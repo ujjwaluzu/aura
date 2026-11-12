@@ -1,0 +1,29 @@
+[package]
+name = "aura"
+version = "0.1.0"
+description = "A considered space for your Windows desktop widgets"
+authors = ["Aura contributors"]
+edition = "2021"
+rust-version = "1.99"
+publish = false
+
+[lib]
+name = "aura_lib"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+serde_json = "1"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
+panic = "abort"

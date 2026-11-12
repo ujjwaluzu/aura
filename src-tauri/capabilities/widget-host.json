@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "widget-host",
+  "description": "Only the host may query foundation metadata, open settings, and issue topmost window commands.",
+  "windows": ["widget-host"],
+  "permissions": [
+    "allow-get-foundation-info",
+    "allow-open-settings",
+    "core:window:allow-start-dragging",
+    "core:window:allow-minimize",
+    "core:window:allow-close",
+    "core:window:allow-set-always-on-top"
+  ]
+}

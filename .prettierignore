@@ -1,0 +1,10 @@
+node_modules
+dist
+.pnpm-store
+src-tauri/target
+src-tauri/gen
+pnpm-lock.yaml
+Cargo.lock
+test-results
+playwright-report
+artifacts

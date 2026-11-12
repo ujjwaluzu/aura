@@ -1,0 +1,3 @@
+# Single application. Allow only the build script required by Vite's bundler.
+allowBuilds:
+  esbuild: true

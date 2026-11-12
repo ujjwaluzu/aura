@@ -1,0 +1,112 @@
+# Foundation verification
+
+Executed on 12 November 2026. This records actual results and separates automated
+WebView/native checks from unverified Windows visual behaviour.
+
+## Environment
+
+- Windows 11 Home Single Language x64, build 26300; Node 22.18.0 and pnpm 11.15.1.
+- Rust/Cargo 1.99.1, stable `x86_64-pc-windows-msvc`.
+- Visual Studio Build Tools 2026, MSVC C++ workload; Windows SDK 10.0.26100.0.
+- WebView2 Runtime 157.0.4341.46.
+
+## Executed results
+
+| Check                                                                                     | Result                                                            |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `pnpm.cmd install --frozen-lockfile`                                                      | Passed, lockfile installed without changes                        |
+| `pnpm.cmd audit --prod`                                                                   | Passed; no known production advisories reported at check time     |
+| `pnpm.cmd typecheck`                                                                      | Passed, strict application and tooling TypeScript                 |
+| `pnpm.cmd lint`                                                                           | Passed, zero warnings                                             |
+| `pnpm.cmd format:check`                                                                   | Passed                                                            |
+| `pnpm.cmd build`                                                                          | Passed; JS about 251 kB / 78 kB gzip, CSS about 16 kB / 4 kB gzip |
+| `cargo check --manifest-path src-tauri/Cargo.toml --locked`                               | Passed                                                            |
+| `cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings` | Passed                                                            |
+| `cargo fmt --manifest-path src-tauri/Cargo.toml --check`                                  | Passed                                                            |
+| `cargo test --manifest-path src-tauri/Cargo.toml --locked`                                | Passed: 2 unit tests, no failures                                 |
+| `pnpm.cmd test:e2e`                                                                       | Passed: 5 Chromium browser tests                                  |
+| `pnpm.cmd tauri build --debug --no-bundle -- --locked`                                    | Passed; debug Windows executable launched                         |
+| Opt-in native WebView test                                                                | Passed: 1 integration test against real Rust and WebView2         |
+| `pnpm.cmd desktop:build`                                                                  | Passed; optimized executable and per-user NSIS installer          |
+
+Browser tests cover preview honesty, keyboard opacity adjustment, the settings
+placeholder, initial-window overflow, absence of remote asset requests and
+structured error/retry behaviour using a deliberate test transport substitute.
+These browser checks do not prove native behaviour.
+
+The native test connected to the actual packaged-assets debug executable. It
+verified real metadata IPC, structured rejection of an invalid protocol,
+transparent WebView body, host bounds, pin/unpin command completion, separate
+settings creation/reuse/close/reopen, denial of the metadata command from
+settings, and application shutdown while settings was still open. DOM activation
+exercised React handlers and real IPC; it does not verify physical pointer input.
+The debug process exited when the smoke test quit the host. The optimized release
+executable was subsequently launched for local use without remote-debugging
+environment options.
+
+Frontend and native WebView screenshots were rendered and inspected locally at
+`artifacts/aura-preview.png` and `artifacts/aura-native-webview.png` (ignored by
+Git). They confirm the UI rendering, not the final desktop compositor output.
+
+Initial validation found and fixed a 22-pixel host overflow, a redundant effect
+state update and test typing/selector issues. The native harness was corrected
+to capture structured rejections inside the page before CDP serialization. Fresh
+debug sessions must fully exit before another launch to avoid transient WebView2
+targets from a previous browser process. Final pass results above supersede
+those initial failures.
+
+## Build artifacts
+
+- `src-tauri/target/release/aura.exe`: 3,163,136 bytes.
+- `src-tauri/target/release/bundle/nsis/Aura_0.1.0_x64-setup.exe`: 1,186,924 bytes
+  (1.13 MiB). Unsigned local development artifact; not installed or published.
+- Executable SHA-256:
+  `C3BA4E010064DB170F8ECBD316603C055FB6A48981E657E5533AFDD8B22DF9B1`.
+- Installer SHA-256:
+  `733692BEAE53635E5ECC434B49B9490B9403FA9179A1A540FC62808D1489F225`.
+
+Resolved runtime packages: React/React DOM 19.3.1, Tauri API 2.12.4, Lucide React
+1.72.0; native Tauri 2.12.5 and Serde 1.0.229. Development tools include TypeScript
+5.9.3, Vite 7.3.8 with React plugin 5.2.0, Tailwind 4.3.5, Tauri CLI 2.12.4,
+ESLint 10.14.0, Prettier 3.10.0 and Playwright 1.65.0. Full exact dependency graphs
+are in the two lockfiles.
+
+## Repeat native smoke test
+
+First terminal (fresh process; port 9222 must be unused):
+
+```powershell
+pnpm.cmd tauri build --debug --no-bundle -- --locked
+$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9222 --remote-debugging-address=127.0.0.1'
+& .\src-tauri\target\debug\aura.exe
+Remove-Item Env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS
+```
+
+While Aura is open, use a second terminal:
+
+```powershell
+$env:AURA_NATIVE_CDP = 'http://127.0.0.1:9222'
+pnpm.cmd test:e2e
+Remove-Item Env:AURA_NATIVE_CDP
+```
+
+The test quits that debug app. The remote debugging option is process-local and
+is not present in source configuration or the release environment. Tests must
+only target the developer's own Aura instance on loopback.
+
+## Remaining acceptance
+
+The Windows computer-use helper could not start: `windows sandbox failed:
+helper_unknown_error: setup refresh had errors`. Resetting/retrying did not
+recover it. Therefore actual desktop compositing, native blur, physical drag and
+button hit-testing, minimize/taskbar recovery, visual topmost ordering and
+mixed-monitor/DPI behaviour were **not visually verified**. Native transparency
+is configured and WebView alpha was checked; full desktop transparency must
+still be confirmed on the visible app. Native wallpaper blur is not implemented.
+
+Clean-machine installer install/upgrade/uninstall, code signing, Windows 10,
+additional Windows 11 builds, alternate GPUs/WebView2 versions, accessibility
+assistive technology, Remote Desktop, mixed-DPI monitors and performance budgets
+remain untested. No public compatibility or idle-resource promise is implied.
+The app has no real widgets, persistence, music/monitoring integration, startup
+registration or desktop-icon-layer integration yet.
