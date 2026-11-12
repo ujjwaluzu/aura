@@ -33,16 +33,16 @@
         "title": "Aura Settings",
         "url": "index.html?window=settings",
         "create": false,
-        "width": 520,
-        "height": 480,
+        "width": 840,
+        "height": 640,
         "center": true,
         "resizable": false,
         "maximizable": false,
-        "decorations": false,
-        "transparent": true,
-        "backgroundColor": "#00000000",
-        "shadow": false,
-        "noRedirectionBitmap": true
+        "decorations": true,
+        "transparent": false,
+        "backgroundColor": "#111318",
+        "theme": "Dark",
+        "shadow": true
       }
     ],
     "security": {

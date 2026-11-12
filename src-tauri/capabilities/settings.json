@@ -1,11 +1,13 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "settings",
-  "description": "The settings placeholder receives only drag, minimize, and close window APIs; no application commands.",
+  "description": "Settings can read and update validated local preferences, receive updates, and close its own UI. It cannot read system usage or create windows.",
   "windows": ["settings"],
   "permissions": [
-    "core:window:allow-start-dragging",
-    "core:window:allow-minimize",
+    "allow-get-preferences",
+    "allow-set-preferences",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
     "core:window:allow-close"
   ]
 }

@@ -57,6 +57,11 @@ disabled and the status says preview. The separate settings view can be inspecte
 at `http://127.0.0.1:1420/?window=settings`. This does not test native transparency,
 window management or ACL enforcement.
 
+Theme and layout changes apply immediately and persist across native restarts in
+`preferences.json` in Tauri's app-config directory (normally
+`%APPDATA%\com.projectaura.desktop`). Browser previews keep separate localStorage
+preferences and synchronize between preview tabs on the same origin.
+
 ## Checks
 
 | Command                  | Purpose                                          |
@@ -99,6 +104,8 @@ both lockfiles committed; use controlled dependency updates and rerun checks.
 3. Minimize and recover from the taskbar. Enable and disable always-on-top with
    another normal window in front.
 4. Open settings repeatedly: one settings window should exist. Close/reopen it.
+   Confirm the window is opaque. Try the five themes and all twelve layout
+   previews, then restart Aura and confirm the selected pair remains active.
 5. Close the host while settings is open: all Aura windows should exit.
 6. Repeat on light/dark wallpaper, 100/125/150/200% scale, mixed-DPI monitors,
    Remote Desktop and multiple supported WebView2/GPU configurations.

@@ -4,6 +4,8 @@ fn main() {
             "get_foundation_info",
             "open_settings",
             "get_system_snapshot",
+            "get_preferences",
+            "set_preferences",
         ]),
     ))
     .expect("failed to build Aura application metadata and capabilities");

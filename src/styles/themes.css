@@ -1,0 +1,175 @@
+:root,
+[data-theme] {
+  --theme-hue: 266;
+  --color-accent: hsl(var(--theme-hue) 55% 78%);
+  --color-text: hsl(var(--theme-hue) 35% 94%);
+  --color-secondary: hsl(var(--theme-hue) 14% 68%);
+  --color-muted: hsl(var(--theme-hue) 10% 54%);
+  --chart-color: hsl(var(--theme-hue) 65% 72%);
+  --wave-strong: hsl(calc(var(--theme-hue) + 24) 65% 75%);
+  --wave-mid: hsl(var(--theme-hue) 62% 64%);
+  --wave-end: hsl(calc(var(--theme-hue) - 12) 55% 60%);
+  --wave-edge: hsl(calc(var(--theme-hue) + 16) 70% 82%);
+  --inset-background:
+    linear-gradient(
+      180deg,
+      hsl(var(--theme-hue) 30% 85% / 0.055),
+      transparent 48%
+    ),
+    hsl(var(--theme-hue) 16% 10% / var(--glass-opacity, 0.35));
+}
+[data-theme='ocean'] {
+  --theme-hue: 210;
+}
+[data-theme='jade'] {
+  --theme-hue: 155;
+}
+[data-theme='amber'] {
+  --theme-hue: 38;
+}
+[data-theme='rose'] {
+  --theme-hue: 338;
+}
+
+.host-surface[data-theme] {
+  border-color: hsl(var(--theme-hue) 45% 72% / 0.3);
+  background:
+    radial-gradient(
+      ellipse at 0 0,
+      hsl(calc(var(--theme-hue) + 28) 40% 70% / 0.11),
+      transparent 56%
+    ),
+    radial-gradient(
+      ellipse at 100% 100%,
+      hsl(var(--theme-hue) 50% 55% / 0.15),
+      transparent 40%
+    ),
+    hsl(var(--theme-hue) 18% 10% / var(--glass-opacity));
+  box-shadow:
+    0 14px 30px rgb(5 3 17 / 0.3),
+    inset 0 1px 2px hsl(var(--theme-hue) 60% 85% / 0.16),
+    inset 0 -1px 3px hsl(var(--theme-hue) 75% 74% / 0.4);
+}
+.host-surface .glass-inset,
+.secondary-slot[data-module='clock'] {
+  background: var(--inset-background);
+  border-color: hsl(var(--theme-hue) 40% 90% / 0.075);
+}
+.host-surface .clock-time {
+  color: hsl(var(--theme-hue) 68% 88%);
+}
+.host-surface .clock-date {
+  color: hsl(var(--theme-hue) 30% 80%);
+}
+.host-surface .widget-divider {
+  background: hsl(var(--theme-hue) 45% 80% / 0.14);
+}
+.host-surface .usage-icon {
+  color: var(--color-accent);
+  background: hsl(var(--theme-hue) 55% 80% / 0.09);
+}
+.host-surface .usage-label {
+  color: var(--color-text);
+}
+.host-surface .usage-track {
+  color: var(--chart-color);
+}
+.host-surface .host-tools .icon-button {
+  color: var(--color-accent);
+  background: hsl(var(--theme-hue) 45% 85% / 0.035);
+}
+.host-surface .host-tools [aria-pressed='true'] {
+  background: hsl(var(--theme-hue) 55% 74% / 0.16);
+}
+.host-surface .music-connect-button {
+  color: var(--color-text);
+  border-color: hsl(var(--theme-hue) 55% 85% / 0.15);
+  background: hsl(var(--theme-hue) 55% 70% / 0.075);
+}
+.host-surface .music-connect-button:hover {
+  border-color: hsl(var(--theme-hue) 55% 85% / 0.3);
+  background: hsl(var(--theme-hue) 55% 70% / 0.14);
+}
+
+.primary-slot {
+  z-index: 1;
+  min-width: 0;
+  min-height: 0;
+  grid-column: 1;
+  grid-row: 1;
+}
+.primary-slot > .clock-widget {
+  height: 100%;
+}
+.host-modules {
+  grid-column: 3;
+  grid-row: 1;
+}
+.widget-divider {
+  grid-column: 2;
+  grid-row: 1;
+}
+.host-surface[data-side='right'] {
+  grid-template-columns: minmax(0, 0.64fr) 1px minmax(0, 0.36fr);
+}
+.host-surface[data-side='right'] .primary-slot {
+  grid-column: 3;
+}
+.host-surface[data-side='right'] .host-modules {
+  grid-column: 1;
+  padding-left: 14px;
+  padding-right: 12px;
+}
+.host-surface[data-side='right'] .primary-slot > .clock-widget {
+  padding-left: 24px;
+}
+.secondary-slot {
+  min-width: 0;
+  min-height: 0;
+}
+.secondary-slot > .system-monitor-widget,
+.secondary-slot > .music-connect-card {
+  height: 100%;
+}
+.secondary-slot > .music-connect-card {
+  padding: 6px 12px;
+  gap: 4px;
+}
+.secondary-slot[data-module='clock'] {
+  --glass-opacity: 0.35;
+  border: 1px solid hsl(var(--theme-hue) 40% 90% / 0.075);
+  border-radius: 13px;
+}
+.secondary-slot > .clock-widget {
+  height: 100%;
+  padding: 6px 18px;
+}
+.secondary-slot .clock-time {
+  font-size: 44px;
+}
+.secondary-slot .clock-date {
+  font-size: 10px;
+  margin-top: 2px;
+}
+.primary-slot > .system-monitor-widget {
+  height: 100%;
+  padding: 48px 12px 14px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+.primary-slot > .music-connect-card {
+  margin: 48px 12px 14px;
+  height: calc(100% - 62px);
+  padding: 14px 10px;
+}
+.primary-slot .music-connect-actions {
+  flex-direction: column;
+  align-items: stretch;
+}
+.primary-slot .music-connect-button {
+  flex: initial;
+  max-width: none;
+}
+.primary-slot .music-connect-notice {
+  font-size: 9px;
+}

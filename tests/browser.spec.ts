@@ -1,4 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
+import { layouts } from '../src/features/layouts/catalog';
+import { themes } from '../src/features/themes/catalog';
 
 test.use({ timezoneId: 'Asia/Kolkata', locale: 'en-GB' });
 
@@ -56,20 +58,27 @@ test('clock changes the local date at midnight', async ({ page }) => {
   await expect(page.locator('.clock-date')).toHaveText('Friday 13 November');
 });
 
-test('settings placeholder renders at its own entry with no persistent-preferences claim', async ({
+test('settings is opaque with theme and layout tabs and five palette previews', async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 520, height: 480 });
+  await page.setViewportSize({ width: 840, height: 640 });
   await page.goto('/?window=settings');
   await expect(
-    page.getByRole('heading', { name: 'Make it yours.' }),
+    page.getByRole('heading', { name: 'Settings', exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText('Preferences are not saved in this phase.'),
-  ).toBeVisible();
-  await expect(
-    page.getByRole('button', { name: 'Close settings' }),
-  ).toBeDisabled();
+    page.getByRole('tab', { name: 'Theme', exact: true }),
+  ).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('button', { name: / theme$/ })).toHaveCount(5);
+  await expect(page.locator('body')).toHaveCSS(
+    'background-color',
+    'rgb(17, 19, 24)',
+  );
+  await expect(page.locator('.settings-app')).toHaveCSS(
+    'backdrop-filter',
+    'none',
+  );
+  await expect(page.getByRole('button', { name: 'Done' })).toBeDisabled();
 });
 
 test('frontend uses local assets and remains usable when external traffic is blocked', async ({
@@ -107,8 +116,17 @@ test('structured command failure is shown and retry can reconnect', async ({
     Object.assign(window, {
       isTauri: true,
       __TAURI_INTERNALS__: {
+        transformCallback: () => 0,
         metadata: { currentWindow: { label: 'widget-host' } },
         invoke: async (command: string) => {
+          if (command === 'get_preferences')
+            return {
+              themeId: 'violet',
+              layoutId: 'clock-left-stats-music',
+              revision: 0,
+              warning: null,
+            };
+          if (command.startsWith('plugin:event|')) return 1;
           if (command === 'get_system_snapshot')
             return {
               cpuPercent: null,
@@ -132,6 +150,7 @@ test('structured command failure is shown and retry can reconnect', async ({
           };
         },
       },
+      __TAURI_EVENT_PLUGIN_INTERNALS__: { unregisterListener: () => {} },
       allowTestConnection: () => {
         fail = false;
       },
@@ -168,8 +187,17 @@ async function mockSystemMonitoring(page: Page, failInitially = false) {
       Object.assign(window, {
         isTauri: true,
         __TAURI_INTERNALS__: {
+          transformCallback: () => 0,
           metadata: { currentWindow: { label: 'widget-host' } },
           invoke: async (command: string) => {
+            if (command === 'get_preferences')
+              return {
+                themeId: 'violet',
+                layoutId: 'clock-left-stats-music',
+                revision: 0,
+                warning: null,
+              };
+            if (command.startsWith('plugin:event|')) return 1;
             if (command === 'get_foundation_info')
               return {
                 protocolVersion: 1,
@@ -195,6 +223,7 @@ async function mockSystemMonitoring(page: Page, failInitially = false) {
             }
           },
         },
+        __TAURI_EVENT_PLUGIN_INTERNALS__: { unregisterListener: () => {} },
         monitorTest: {
           requests: () => requests,
           allowReadings: () => {
@@ -339,4 +368,117 @@ test('monitor errors show unavailable readings and recover through the retry con
   await expect(
     page.getByRole('button', { name: 'Retry system monitoring' }),
   ).toHaveCount(0);
+});
+
+test('all five themes update the host across windows and survive reload', async ({
+  page,
+  context,
+}) => {
+  await page.goto('/');
+  const settings = await context.newPage();
+  await settings.setViewportSize({ width: 840, height: 640 });
+  await settings.goto('/?window=settings');
+  const colours = new Set<string>();
+  for (const theme of themes) {
+    const option = settings.getByRole('button', {
+      name: `${theme.name} theme`,
+    });
+    await expect(option).toBeEnabled();
+    await option.click();
+    await expect(option).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByLabel('Aura widget host')).toHaveAttribute(
+      'data-theme',
+      theme.id,
+    );
+    colours.add(
+      await page
+        .locator('.clock-time')
+        .evaluate((element) => getComputedStyle(element).color),
+    );
+  }
+  expect(colours.size).toBe(5);
+  await page.reload();
+  await expect(page.getByLabel('Aura widget host')).toHaveAttribute(
+    'data-theme',
+    'rose',
+  );
+  await settings.reload();
+  await expect(
+    settings.getByRole('button', { name: 'Rose theme' }),
+  ).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('all twelve layouts apply without clipped modules or connection buttons', async ({
+  page,
+  context,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  const settings = await context.newPage();
+  await settings.setViewportSize({ width: 840, height: 640 });
+  await settings.goto('/?window=settings');
+  await settings.getByRole('tab', { name: 'Layout', exact: true }).click();
+  await expect(settings.locator('.layout-option')).toHaveCount(12);
+  for (const layout of layouts) {
+    const option = settings.getByRole('button', {
+      name: `${layout.title}, ${layout.description}`,
+      exact: true,
+    });
+    await expect(option).toBeEnabled();
+    await option.click();
+    await expect(page.getByLabel('Aura widget host')).toHaveAttribute(
+      'data-layout',
+      layout.id,
+    );
+    const bounds = await page.evaluate(() => {
+      const host = document
+        .querySelector('.host-surface')!
+        .getBoundingClientRect();
+      return Array.from(
+        document.querySelectorAll(
+          '.clock-widget, .system-monitor-widget, .music-connect-card',
+        ),
+      ).map((element) => {
+        const box = element.getBoundingClientRect();
+        return {
+          inside:
+            box.left >= host.left &&
+            box.right <= host.right &&
+            box.top >= host.top &&
+            box.bottom <= host.bottom,
+          noOverflow:
+            element.scrollWidth <= element.clientWidth &&
+            element.scrollHeight <= element.clientHeight,
+        };
+      });
+    });
+    expect(bounds, layout.id).toHaveLength(3);
+    expect(
+      bounds.every((bound) => bound.inside && bound.noOverflow),
+      layout.id,
+    ).toBe(true);
+    for (const name of ['Connect Spotify', 'Connect YouTube Music']) {
+      await expect(page.getByRole('button', { name })).toBeInViewport();
+    }
+  }
+  await page.reload();
+  await expect(page.getByLabel('Aura widget host')).toHaveAttribute(
+    'data-layout',
+    layouts.at(-1)!.id,
+  );
+});
+
+test('settings tabs support keyboard navigation', async ({ page }) => {
+  await page.setViewportSize({ width: 840, height: 640 });
+  await page.goto('/?window=settings');
+  await page.getByRole('tab', { name: 'Theme', exact: true }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(
+    page.getByRole('tab', { name: 'Layout', exact: true }),
+  ).toBeFocused();
+  await expect(page.locator('.layout-option')).toHaveCount(12);
+  await page.keyboard.press('Home');
+  await expect(
+    page.getByRole('tab', { name: 'Theme', exact: true }),
+  ).toBeFocused();
 });

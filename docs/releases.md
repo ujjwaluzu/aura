@@ -41,7 +41,8 @@ installation mode and a larger package.
   Retain results rather than claiming performance from the stack alone.
 - Verify production CSP/capabilities, no debug endpoints and no unnecessary
   network connections. Confirm icons, version metadata and failure messages.
-- When persistence arrives, back up local data and test migrations and rollback.
+- Test preservation of the versioned theme/layout preferences during upgrades.
+  Back up local data before future schema migrations and test rollback.
 - Produce hashes, release notes and an inventory of dependencies/toolchain
   versions. Publishing infrastructure belongs to a separate later phase.
 

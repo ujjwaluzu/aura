@@ -7,11 +7,19 @@ use tauri::Manager;
 
 pub fn run() {
     tauri::Builder::default()
+        .setup(|app| {
+            app.manage(Arc::new(services::preferences::PreferencesStore::load(
+                app.path().app_config_dir().ok(),
+            )));
+            Ok(())
+        })
         .manage(Arc::new(services::system_monitor::SystemMonitor::default()))
         .invoke_handler(tauri::generate_handler![
             commands::foundation::get_foundation_info,
             commands::windows::open_settings,
             commands::system_monitor::get_system_snapshot,
+            commands::preferences::get_preferences,
+            commands::preferences::set_preferences,
         ])
         .on_window_event(|window, event| {
             // The host owns the application lifetime. Closing settings only

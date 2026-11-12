@@ -1,4 +1,7 @@
 import { chromium, expect, test } from '@playwright/test';
+import { layouts } from '../src/features/layouts/catalog';
+import { themes } from '../src/features/themes/catalog';
+import type { Preferences } from '../src/types/preferences';
 
 /** Attach only to an Aura WebView2 test instance started locally by the developer.
  * No debug endpoint is configured in the production application. */
@@ -58,6 +61,10 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
     platform: 'windows',
     protocolVersion: 1,
   });
+  const originalPreferences = await invoke<Preferences>(
+    host,
+    'get_preferences',
+  );
   await expect(host.locator('body')).toHaveCSS(
     'background-color',
     'rgba(0, 0, 0, 0)',
@@ -140,8 +147,94 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
     .dispatchEvent('click');
   const settings = await settingsEvent;
   await expect(
-    settings.getByRole('heading', { name: 'Make it yours.' }),
+    settings.getByRole('heading', { name: 'Settings', exact: true }),
   ).toBeVisible();
+  await expect(settings.locator('body')).toHaveCSS(
+    'background-color',
+    'rgb(17, 19, 24)',
+  );
+  await expect(settings.locator('.settings-app')).toHaveCSS(
+    'backdrop-filter',
+    'none',
+  );
+  await expect(settings.getByRole('button', { name: / theme$/ })).toHaveCount(
+    5,
+  );
+  const forbiddenWrite = await invoke(
+    host,
+    'set_preferences',
+    { patch: { themeId: 'ocean' } },
+    true,
+  );
+  expect(String(forbiddenWrite)).toMatch(/not allowed|denied/i);
+  const ocean = settings.getByRole('button', { name: 'Ocean theme' });
+  await expect(ocean).toBeEnabled();
+  await ocean.dispatchEvent('click');
+  await expect(host.getByLabel('Aura widget host')).toHaveAttribute(
+    'data-theme',
+    'ocean',
+  );
+  await expect(ocean).toHaveAttribute('aria-pressed', 'true');
+  await settings.screenshot({
+    path: 'artifacts/aura-settings-theme.png',
+    animations: 'disabled',
+  });
+  await settings
+    .getByRole('tab', { name: 'Layout', exact: true })
+    .dispatchEvent('click');
+  await expect(settings.locator('.layout-option')).toHaveCount(12);
+  for (const layout of layouts) {
+    const option = settings.getByRole('button', {
+      name: `${layout.title}, ${layout.description}`,
+      exact: true,
+    });
+    await expect(option).toBeEnabled();
+    await option.dispatchEvent('click');
+    await expect(host.getByLabel('Aura widget host')).toHaveAttribute(
+      'data-layout',
+      layout.id,
+    );
+  }
+  const example = settings.getByRole('button', {
+    name: 'Clock right, Music above CPU / RAM',
+    exact: true,
+  });
+  await expect(example).toBeEnabled();
+  await example.dispatchEvent('click');
+  await expect(host.getByLabel('Aura widget host')).toHaveAttribute(
+    'data-layout',
+    'clock-right-music-stats',
+  );
+  await settings.screenshot({
+    path: 'artifacts/aura-settings-layout.png',
+    animations: 'disabled',
+  });
+  await host.screenshot({
+    path: 'artifacts/aura-ocean-clock-right.png',
+    omitBackground: true,
+    animations: 'disabled',
+  });
+  const invalidTheme = await invoke(
+    settings,
+    'set_preferences',
+    { patch: { themeId: 'invalid' } },
+    true,
+  );
+  expect(String(invalidTheme)).toMatch(/invalid|unknown variant/i);
+  await invoke(settings, 'set_preferences', {
+    patch: {
+      themeId: originalPreferences.themeId,
+      layoutId: originalPreferences.layoutId,
+    },
+  });
+  await expect(host.getByLabel('Aura widget host')).toHaveAttribute(
+    'data-theme',
+    originalPreferences.themeId,
+  );
+  await expect(host.getByLabel('Aura widget host')).toHaveAttribute(
+    'data-layout',
+    originalPreferences.layoutId,
+  );
   const denied = await invoke(
     settings,
     'get_foundation_info',
@@ -159,9 +252,7 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
   ).toHaveLength(1);
 
   const closed = settings.waitForEvent('close');
-  await settings
-    .getByRole('button', { name: 'Close settings' })
-    .dispatchEvent('click');
+  await settings.getByRole('button', { name: 'Done' }).dispatchEvent('click');
   await closed;
   await expect(
     host.getByRole('status', { name: 'Native connection' }),
@@ -171,7 +262,14 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
     .getByRole('button', { name: 'Open settings' })
     .dispatchEvent('click');
   const secondSettings = await reopened;
-  await expect(secondSettings.getByRole('heading')).toBeVisible();
+  await expect(
+    secondSettings.getByRole('heading', { name: 'Settings', exact: true }),
+  ).toBeVisible();
+  await expect(
+    secondSettings.getByRole('button', {
+      name: `${themes.find((theme) => theme.id === originalPreferences.themeId)!.name} theme`,
+    }),
+  ).toHaveAttribute('aria-pressed', 'true');
   await invoke(host, 'plugin:window|minimize', { label: 'widget-host' });
   const paused = await invoke(host, 'get_system_snapshot', {}, true);
   expect(paused).toMatchObject({ code: 'MONITOR_PAUSED' });

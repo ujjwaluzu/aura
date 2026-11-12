@@ -2,9 +2,9 @@
 
 A Windows desktop personalisation application built with Tauri 2, Rust, React
 and TypeScript. Aura's foundation provides a transparent, frameless widget-host
-window with a restrained dark glass identity and a separate settings placeholder.
-The main surface is a compact 760 x 264 purple glass rectangle: a digital clock and date on
-the left, with CPU/RAM history cards above a music connection panel on the right.
+window with a restrained dark glass identity and a separate opaque settings window.
+The main surface is a compact 760 x 264 rectangle: a digital clock and date,
+CPU/RAM history cards and a music connection panel, arranged to your preference.
 This repository contains only the desktop application.
 
 ## Foundation scope
@@ -20,10 +20,13 @@ This repository contains only the desktop application.
   These currently report coming soon; account connection and playback are not implemented.
 - Typed Rust metadata command, protocol validation, structured errors and retry UI.
 - Settings window created on demand and reused while open.
+- Theme tab with Violet, Ocean, Jade, Amber and Rose previews.
+- Layout tab with all 12 arrangements of the clock, CPU/RAM group and music panel
+  in the two-column format. Selections update the host instantly and survive restart.
 - Widget definition/instance contracts with clock, system monitor and music-entry components.
 - Scoped Tauri capabilities, local content and restrictive content security policy.
 
-Music, notes, per-widget drag/resize, saved layouts,
+Music, notes, per-widget drag/resize, multiple named layouts,
 startup, native wallpaper blur and desktop-icon-layer integration are **not
 implemented**. The foundation is not a public production release.
 
@@ -63,14 +66,14 @@ src/
   app/                    Window entry and future providers
   components/
     ui/                   Shared glass and control primitives
-    settings/             Settings placeholder
-    widgets/              Future widget components
+    settings/             Opaque settings tabs and miniature previews
+    widgets/              Clock, system monitor and music entry
   features/
     widget-engine/        Definition, instance, registry and renderer
-    layouts/              Saved-layout contract
-    themes/               Theme contract
+    layouts/              Arrangement catalog and future saved-layout contract
+    themes/               Five palettes and theme contract
     integrations/         Future native adapter boundary
-  hooks/                  Native connection lifecycle
+  hooks/                  Native connection and preferences lifecycle
   lib/                    Typed Tauri adapter and error handling
   stores/                 State ownership notes
   styles/                 Design tokens and shared styles

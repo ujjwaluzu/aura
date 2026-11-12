@@ -43,8 +43,8 @@ export function UsageSparkline({
     >
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop stopColor="#b190ed" stopOpacity="0.32" />
-          <stop offset="1" stopColor="#9671d7" stopOpacity="0" />
+          <stop stopColor="var(--chart-color)" stopOpacity="0.32" />
+          <stop offset="1" stopColor="var(--chart-color)" stopOpacity="0" />
         </linearGradient>
       </defs>
       {segments.map((points, index) => (

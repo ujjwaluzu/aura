@@ -22,21 +22,23 @@ preview does not fabricate a successful native response.
 
 ## Windows and lifetime
 
-| Label         | Creation               | Purpose                          | Close behaviour                     |
-| ------------- | ---------------------- | -------------------------------- | ----------------------------------- |
-| `widget-host` | On launch              | Transparent foundation surface   | Exit the app and close all windows  |
-| `settings`    | Rust command on demand | Separate preferences placeholder | Destroy settings only; host remains |
+| Label         | Creation               | Purpose                        | Close behaviour                     |
+| ------------- | ---------------------- | ------------------------------ | ----------------------------------- |
+| `widget-host` | On launch              | Transparent foundation surface | Exit the app and close all windows  |
+| `settings`    | Rust command on demand | Opaque Theme and Layout tabs   | Destroy settings only; host remains |
 
-Both windows are frameless and use transparent native backgrounds plus transparent
+Only the host is frameless and uses a transparent native background plus transparent
 HTML/body/root surfaces. The inset glass panel supplies its own subtle border and
 shadow. `noRedirectionBitmap` is configured to reduce Windows transparent-window
 startup flashes. This still needs testing across GPU drivers and WebView2 builds.
 
 Host and settings have fixed initial sizes in logical pixels. The host is now a
-760 x 264 rectangle, with a clock/date at the left, CPU/RAM cards at the
+760 x 264 rectangle. By default, the clock/date is at the left, with CPU/RAM cards at the
 upper right and a music-entry panel beneath. The clock and non-interactive card
 surfaces are drag regions; buttons are not.
-Settings retains its own title bar. There is no full-screen invisible overlay. Taskbar presence is
+Settings is 840 x 640 with an opaque dark background, native Windows frame and
+title bar. Its content scrolls while the tabs and footer remain accessible.
+There is no full-screen invisible overlay. Taskbar presence is
 retained so minimizing has an obvious recovery path; no tray or hide-to-background
 behaviour is introduced yet. Closing the host owns the application lifetime even
 when settings is open. The host can opt into topmost mode, off by default.
@@ -45,7 +47,7 @@ Rust owns settings creation, including label, URL and configuration. The fronten
 cannot create arbitrary windows. Repeated settings requests reuse and focus the
 existing window. The command is asynchronous to avoid the Windows WebView2
 synchronous creation deadlock. Each window has an independent React runtime;
-future cross-window preferences must synchronize through Rust commands/events,
+cross-window preferences synchronize through Rust commands/events,
 not shared JavaScript memory.
 
 This is a **transparent top-level widget host**, not a desktop-icon-layer host.
@@ -58,7 +60,7 @@ click-through without a reliable way to recover interaction. See
 
 `styles/tokens.css` contains colour, type, spacing, radius, opacity, blur, shadow
 and motion values. `GlassSurface` owns the common glass treatment and accepts an
-opacity override plus panel/inset variants. The host uses a purple-tinted
+opacity override plus panel/inset variants. The host uses a colour-tinted
 translucent surface and a static local SVG wave. `Text`, `IconButton`, `Toggle`, `ControlRow`
 and `Stack` keep widgets consistent. Tailwind provides layout utilities; visual
 tokens remain ordinary CSS custom properties. Typography uses local Windows
@@ -94,19 +96,34 @@ The weather reading in the visual reference is not represented by fabricated dat
 
 The components live under `components/widgets/clock`,
 `components/widgets/system-monitor` and `components/widgets/music-player`, with definitions in the registry. Future
-layout code will enforce minimum dimensions,
+freeform layout code will enforce minimum dimensions,
 clamp positions to monitor work areas and persist logical coordinates. Saved
-layouts carry a schema version and monitor identity. Themes will validate
+layouts carry a schema version and monitor identity. Future custom themes will validate
 allowlisted token overrides. Detailed widget configuration schemas should be
 introduced with real widgets, rather than inventing a general plugin language.
 
 ## State and persistence
 
-Topmost state lasts for this host session; opacity is a fixed design token. No store library is warranted
-yet. SQLite is planned for local notes, layouts and preferences, with versioned
-migrations and one authoritative Rust persistence boundary. Introduce the
-dependency when the first persistent feature exists. No database is created by
-this foundation.
+Topmost state lasts for this host session; opacity is a fixed design token.
+Rust owns theme and layout preferences in a versioned `preferences.json` under
+Tauri's application-config directory. Two allowlisted IDs do not need a database
+or state library. Reads are bounded to 16 KiB; unknown values/schema versions and
+corrupt files fall back to defaults with a Settings warning. Writes use a
+same-directory temporary file and rename; failed writes retain the prior state.
+
+`get_preferences` returns a typed snapshot. Only Settings can invoke
+`set_preferences`, which merges a patch, persists it, then emits a snapshot to
+both windows. Revision numbers discard stale replies/events. Each React window
+subscribes before loading and cleans up its listener. Browser development uses
+separate preview-only localStorage; production persistence stays in Rust.
+
+Five fixed palettes use CSS variables. Twelve static layouts cover each choice
+of primary module, left/right position and ordering of the two stacked modules.
+CPU and RAM remain one module; no freeform resizing or named-layout manager is
+introduced. Settings thumbnails are static diagrams and never run extra monitors.
+
+SQLite remains planned for notes and multiple named layouts, with versioned
+migrations at the same Rust boundary. No database is created by this milestone.
 
 ## Security and performance
 
@@ -116,8 +133,11 @@ the caller's API access, not a sandbox around target labels; this trusted local
 UI uses `getCurrentWindow()`. Do not load untrusted widget code into either
 window. App commands are enrolled using
 `AppManifest::commands` so they are subject to the capability ACL. The host alone
-gets metadata/settings/system-snapshot permissions and topmost control. Settings receives only
-drag, minimize and close. Production assets have a CSP; style attributes are
+gets metadata/settings/system-snapshot permissions and topmost control. Both windows
+can read preferences and subscribe/unsubscribe to events; only Settings can write
+preferences, and Rust checks its caller label as well. Settings also receives close
+permission; its native frame handles dragging/minimizing. Neither window can emit
+frontend events. Production assets have a CSP; style attributes are
 allowed for React/CSS-variable styling. Development additionally permits Vite's
 loopback HMR connection. No unsafe script evaluation or remote script source is
 allowed.

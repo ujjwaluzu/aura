@@ -3,7 +3,7 @@ import { Pin, RefreshCw, Settings2, Minus, X } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { GlassSurface } from '../components/ui/GlassSurface';
 import { IconButton } from '../components/ui/IconButton';
-import { SettingsPlaceholder } from '../components/settings/SettingsPlaceholder';
+import { Settings } from '../components/settings/Settings';
 import { useNativeConnection } from '../hooks/useNativeConnection';
 import { errorMessage, isDesktop, openSettings } from '../lib/native';
 import { WidgetRenderer } from '../features/widget-engine/WidgetRenderer';
@@ -12,6 +12,8 @@ import { clockDefinition } from '../components/widgets/clock/definition';
 import { systemMonitorDefinition } from '../components/widgets/system-monitor/definition';
 import { musicDefinition } from '../components/widgets/music-player/definition';
 import { AmbientWave } from '../components/ui/AmbientWave';
+import { usePreferences } from '../hooks/usePreferences';
+import { getLayout } from '../features/layouts/catalog';
 
 const clock: WidgetInstance = {
   id: 'host-clock',
@@ -46,13 +48,16 @@ const music: WidgetInstance = {
 export function App() {
   return new URLSearchParams(window.location.search).get('window') ===
     'settings' ? (
-    <SettingsPlaceholder />
+    <Settings />
   ) : (
     <WidgetHost />
   );
 }
 
 function WidgetHost() {
+  const { preferences } = usePreferences();
+  const layout = getLayout(preferences.layoutId);
+  const widgets = { clock, stats: systemMonitor, music };
   const { connection, reconnect } = useNativeConnection();
   const [pinned, setPinned] = useState(false);
   const [pinBusy, setPinBusy] = useState(false);
@@ -93,13 +98,38 @@ function WidgetHost() {
         className="host-surface"
         opacity={0.79}
         aria-label="Aura widget host"
+        data-theme={preferences.themeId}
+        data-layout={preferences.layoutId}
+        data-primary={layout.primary}
+        data-side={layout.side}
       >
         <AmbientWave />
-        <WidgetRenderer instance={clock} />
+        <div className="primary-slot">
+          <WidgetRenderer
+            instance={{
+              ...widgets[layout.primary],
+              themeId: preferences.themeId,
+            }}
+          />
+        </div>
         <div className="widget-divider" aria-hidden="true" />
         <div className="host-modules">
-          <WidgetRenderer instance={systemMonitor} />
-          <WidgetRenderer instance={music} />
+          <div className="secondary-slot" data-module={layout.top}>
+            <WidgetRenderer
+              instance={{
+                ...widgets[layout.top],
+                themeId: preferences.themeId,
+              }}
+            />
+          </div>
+          <div className="secondary-slot" data-module={layout.bottom}>
+            <WidgetRenderer
+              instance={{
+                ...widgets[layout.bottom],
+                themeId: preferences.themeId,
+              }}
+            />
+          </div>
         </div>
         <nav className="host-tools" aria-label="Window controls">
           <IconButton
