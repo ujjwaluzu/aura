@@ -33,7 +33,7 @@ shadow. `noRedirectionBitmap` is configured to reduce Windows transparent-window
 startup flashes. This still needs testing across GPU drivers and WebView2 builds.
 
 Host and settings have fixed initial sizes in logical pixels. The host is now a
-1120 x 388 rectangle, with a large clock/date at the left, CPU/RAM cards at the
+760 x 264 rectangle, with a clock/date at the left, CPU/RAM cards at the
 upper right and a music-entry panel beneath. The clock and non-interactive card
 surfaces are drag regions; buttons are not.
 Settings retains its own title bar. There is no full-screen invisible overlay. Taskbar presence is

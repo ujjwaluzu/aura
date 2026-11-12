@@ -5,9 +5,9 @@ export const musicDefinition: WidgetDefinition = {
   kind: 'music-player',
   displayName: 'Music connections',
   component: MusicConnections,
-  defaultDimensions: { width: 600, height: 154 },
-  minimumDimensions: { width: 460, height: 134 },
-  defaultPosition: { x: 420, y: 180 },
+  defaultDimensions: { width: 448, height: 92 },
+  minimumDimensions: { width: 360, height: 88 },
+  defaultPosition: { x: 280, y: 138 },
   defaultConfiguration: {},
   defaultThemeId: 'aura-dark',
 };

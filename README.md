@@ -3,7 +3,7 @@
 A Windows desktop personalisation application built with Tauri 2, Rust, React
 and TypeScript. Aura's foundation provides a transparent, frameless widget-host
 window with a restrained dark glass identity and a separate settings placeholder.
-The main surface is a purple glass rectangle: a large digital clock and date on
+The main surface is a compact 760 x 264 purple glass rectangle: a digital clock and date on
 the left, with CPU/RAM history cards above a music connection panel on the right.
 This repository contains only the desktop application.
 

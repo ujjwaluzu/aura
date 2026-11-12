@@ -69,8 +69,8 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
   expect(bounds.content).toBeLessThanOrEqual(bounds.viewport);
   await expect(host.getByLabel('Current time')).toBeVisible();
   // Allow a few logical pixels for native frame/DPI rounding.
-  expect(bounds.viewport).toBeGreaterThanOrEqual(384);
-  expect(bounds.viewport).toBeLessThanOrEqual(392);
+  expect(bounds.viewport).toBeGreaterThanOrEqual(260);
+  expect(bounds.viewport).toBeLessThanOrEqual(268);
   await expect(
     host.getByRole('button', { name: 'Connect Spotify' }),
   ).toBeVisible();
@@ -107,7 +107,7 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
       .last(),
   ).toHaveAttribute('d', /C/);
   await host.screenshot({
-    path: 'artifacts/aura-purple-layout-native.png',
+    path: 'artifacts/aura-compact-purple-native.png',
     omitBackground: true,
     animations: 'disabled',
   });

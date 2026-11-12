@@ -3,9 +3,10 @@
 Executed on 12 November 2026. This records actual results and separates automated
 WebView/native checks from unverified Windows visual behaviour.
 
-Updated for the purple-glass layout iteration: a 1120 x 388 host with a large clock/date
+Updated for the compact purple-glass iteration: a 760 x 264 host with a clock/date
 on the left, side-by-side CPU/RAM history cards above two music entry buttons on
-the right, a static ambient wave, and corner controls. The
+the right, a static ambient wave, and corner controls. Window area is about 54%
+smaller than the previous 1120 x 388 host. The
 introduction, opacity slider and visible diagnostic footer have been removed.
 
 ## Environment
@@ -59,7 +60,7 @@ executable was subsequently launched for local use without remote-debugging
 environment options.
 
 Frontend and native WebView screenshots were rendered and inspected locally at
-`artifacts/aura-purple-layout-preview.png` and `artifacts/aura-purple-layout-native.png` (ignored by
+`artifacts/aura-compact-purple-preview.png` and `artifacts/aura-compact-purple-native.png` (ignored by
 Git). They confirm the UI rendering, not the final desktop compositor output.
 
 Initial validation found and fixed a 22-pixel host overflow, a redundant effect
@@ -71,7 +72,7 @@ those initial failures.
 
 The compact clock timing test uses paused browser time so application startup
 does not cross the tested minute boundary. The native viewport test allows a few
-logical pixels for Windows frame/DPI rounding around the configured 388-pixel
+logical pixels for Windows frame/DPI rounding around the configured 264-pixel
 host. Rust services are unchanged in this visual iteration; Rust check, Clippy and
 all five unit tests were executed during the previous CPU/RAM iteration. The unit cases cover serialization,
 unavailable data and invalid/out-of-range readings. An initial compile found a
@@ -80,12 +81,12 @@ sysinfo API name mismatch (`with_usage`); it was corrected before the passing ch
 ## Build artifacts
 
 - `src-tauri/target/release/aura.exe`: 3,194,368 bytes.
-- `src-tauri/target/release/bundle/nsis/Aura_0.1.0_x64-setup.exe`: 1,200,914 bytes
-  (1.15 MiB). Unsigned local development artifact; not installed or published.
+- `src-tauri/target/release/bundle/nsis/Aura_0.1.0_x64-setup.exe`: 1,200,143 bytes
+  (1.14 MiB). Unsigned local development artifact; not installed or published.
 - Executable SHA-256:
-  `62BA83C431ED8C4EE02962BC352BF9585AA0A67D73E182BFC238CECF193E6BC0`.
+  `2F3630EE4E500BEBEC909EBF83EEFAC1F8931B5697B034C1A6E6A80A41530ABF`.
 - Installer SHA-256:
-  `6D3E9AC31D7E4519FE4E7C2570666285CC481643F6C639497F22D412AF4E6C71`.
+  `BA3ED3DB267284D807062FAF81ACAB4D59933739ACB4410E76B263E5917372AB`.
 
 Resolved runtime packages: React/React DOM 19.3.1, Tauri API 2.12.4, Lucide React
 1.72.0; native Tauri 2.12.5, Serde 1.0.229 and sysinfo 0.40.3 (system feature only). Development tools include TypeScript

@@ -5,9 +5,9 @@ export const systemMonitorDefinition: WidgetDefinition = {
   kind: 'system-monitor',
   displayName: 'System monitor',
   component: SystemMonitorWidget,
-  defaultDimensions: { width: 600, height: 106 },
-  minimumDimensions: { width: 460, height: 96 },
-  defaultPosition: { x: 420, y: 62 },
+  defaultDimensions: { width: 448, height: 80 },
+  minimumDimensions: { width: 360, height: 76 },
+  defaultPosition: { x: 280, y: 48 },
   defaultConfiguration: {},
   defaultThemeId: 'aura-dark',
 };
