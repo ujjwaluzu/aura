@@ -33,8 +33,9 @@ shadow. `noRedirectionBitmap` is configured to reduce Windows transparent-window
 startup flashes. This still needs testing across GPU drivers and WebView2 builds.
 
 Host and settings have fixed initial sizes in logical pixels. The host is now a
-640 x 212 rectangle, with a clock/date at the left and CPU/RAM readings at the
-right. The clock and monitor surface are drag regions; icon controls are not.
+1120 x 388 rectangle, with a large clock/date at the left, CPU/RAM cards at the
+upper right and a music-entry panel beneath. The clock and non-interactive card
+surfaces are drag regions; buttons are not.
 Settings retains its own title bar. There is no full-screen invisible overlay. Taskbar presence is
 retained so minimizing has an obvious recovery path; no tray or hide-to-background
 behaviour is introduced yet. Closing the host owns the application lifetime even
@@ -57,7 +58,8 @@ click-through without a reliable way to recover interaction. See
 
 `styles/tokens.css` contains colour, type, spacing, radius, opacity, blur, shadow
 and motion values. `GlassSurface` owns the common glass treatment and accepts an
-opacity override; the compact host uses its default. `Text`, `IconButton`, `Toggle`, `ControlRow`
+opacity override plus panel/inset variants. The host uses a purple-tinted
+translucent surface and a static local SVG wave. `Text`, `IconButton`, `Toggle`, `ControlRow`
 and `Stack` keep widgets consistent. Tailwind provides layout utilities; visual
 tokens remain ordinary CSS custom properties. Typography uses local Windows
 fonts, icons ship in the bundle, and reduced-motion preferences are respected.
@@ -75,15 +77,23 @@ holds a unique instance ID, kind, dimensions, position, visibility, configuratio
 and theme ID. Separating the two allows multiple notes without duplicating a
 definition. IDs should be generated when instances are created, not during render.
 
-The registry is a static in-process map with clock and system-monitor definitions. `WidgetRenderer` resolves a visible
+The registry is a static in-process map with clock, system-monitor and music-entry definitions. `WidgetRenderer` resolves a visible
 instance and safely omits unknown or unavailable kinds. It does not implement
 layout, dragging or resizing. There is no dynamic code loading, third-party plugin
 API or placeholder widget. The clock alone schedules a timeout at the
 next minute boundary, pauses while hidden, and refreshes on visibility/focus.
 The monitor owns a separate request lifecycle, scoped to its mounted component.
+Its sparklines plot up to 32 actual snapshots in UI memory. Repeated cached
+snapshots do not add graph points, unavailable CPU samples split the line, and
+errors/unmount discard the buffer. There is no synthetic waveform or stored
+usage history.
 
-The components live under `components/widgets/clock` and
-`components/widgets/system-monitor`, with definitions in the registry. Future
+The music panel currently has two connection entry buttons with a local coming-soon
+response. It does not authenticate, open provider accounts or control playback.
+The weather reading in the visual reference is not represented by fabricated data.
+
+The components live under `components/widgets/clock`,
+`components/widgets/system-monitor` and `components/widgets/music-player`, with definitions in the registry. Future
 layout code will enforce minimum dimensions,
 clamp positions to monitor work areas and persist logical coordinates. Saved
 layouts carry a schema version and monitor identity. Themes will validate
@@ -131,7 +141,8 @@ CPU is unavailable during its initial baseline sample and after idle gaps over
 three seconds; the following spaced sample reports current usage. Unavailable
 memory and invalid CPU values are serialized as null, not zero. Percentages are
 bounded, physical memory is represented in bytes, and sampling intervals use a
-monotonic clock. The UI displays GiB and does not retain a history.
+monotonic clock. The UI displays GiB and retains only the bounded transient
+sparkline buffer; no monitoring history is persisted.
 
 Future services should publish change events, batch
 updates and stop work when unused. Core features must continue offline. CPU and

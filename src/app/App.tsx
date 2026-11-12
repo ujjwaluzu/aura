@@ -10,6 +10,8 @@ import { WidgetRenderer } from '../features/widget-engine/WidgetRenderer';
 import type { WidgetInstance } from '../features/widget-engine/types';
 import { clockDefinition } from '../components/widgets/clock/definition';
 import { systemMonitorDefinition } from '../components/widgets/system-monitor/definition';
+import { musicDefinition } from '../components/widgets/music-player/definition';
+import { AmbientWave } from '../components/ui/AmbientWave';
 
 const clock: WidgetInstance = {
   id: 'host-clock',
@@ -29,6 +31,16 @@ const systemMonitor: WidgetInstance = {
   configuration: systemMonitorDefinition.defaultConfiguration,
   visible: true,
   themeId: systemMonitorDefinition.defaultThemeId,
+};
+
+const music: WidgetInstance = {
+  id: 'host-music',
+  kind: musicDefinition.kind,
+  dimensions: musicDefinition.defaultDimensions,
+  position: musicDefinition.defaultPosition,
+  configuration: musicDefinition.defaultConfiguration,
+  visible: true,
+  themeId: musicDefinition.defaultThemeId,
 };
 
 export function App() {
@@ -77,10 +89,18 @@ function WidgetHost() {
 
   return (
     <main className="app-frame widget-frame">
-      <GlassSurface className="host-surface" aria-label="Aura widget host">
+      <GlassSurface
+        className="host-surface"
+        opacity={0.79}
+        aria-label="Aura widget host"
+      >
+        <AmbientWave />
         <WidgetRenderer instance={clock} />
         <div className="widget-divider" aria-hidden="true" />
-        <WidgetRenderer instance={systemMonitor} />
+        <div className="host-modules">
+          <WidgetRenderer instance={systemMonitor} />
+          <WidgetRenderer instance={music} />
+        </div>
         <nav className="host-tools" aria-label="Window controls">
           <IconButton
             label="Always on top"
@@ -88,17 +108,17 @@ function WidgetHost() {
             disabled={!isDesktop() || pinBusy}
             onClick={() => void togglePin()}
           >
-            <Pin size={13} />
+            <Pin size={17} />
           </IconButton>
           <IconButton label="Open settings" onClick={() => void showSettings()}>
-            <Settings2 size={13} />
+            <Settings2 size={17} />
           </IconButton>
           <IconButton
             label="Minimize window"
             disabled={!isDesktop()}
             onClick={() => void windowAction('minimize')}
           >
-            <Minus size={14} />
+            <Minus size={18} />
           </IconButton>
           <IconButton
             label="Quit Aura"
@@ -106,7 +126,7 @@ function WidgetHost() {
             disabled={!isDesktop()}
             onClick={() => void windowAction('close')}
           >
-            <X size={14} />
+            <X size={18} />
           </IconButton>
         </nav>
         <div className="sr-only">

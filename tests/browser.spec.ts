@@ -290,6 +290,36 @@ test('monitoring stops while hidden and resumes with fresh readings', async ({
   await expect(page.getByLabel('CPU utilization')).toHaveText('26%');
 });
 
+test('reference layout places usage cards above two honest music entry points', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  const spotify = page.getByRole('button', { name: 'Connect Spotify' });
+  const youtube = page.getByRole('button', { name: 'Connect YouTube Music' });
+  await expect(spotify).toBeVisible();
+  await expect(youtube).toBeVisible();
+  const cpu = await page.locator('.usage-card').first().boundingBox();
+  const ram = await page.locator('.usage-card').last().boundingBox();
+  const music = await page
+    .getByRole('region', { name: 'Music connections' })
+    .boundingBox();
+  const clock = await page.getByRole('region', { name: 'Clock' }).boundingBox();
+  expect(cpu && ram && music && clock).toBeTruthy();
+  expect(ram!.y).toBe(cpu!.y);
+  expect(ram!.x).toBeGreaterThan(cpu!.x);
+  expect(music!.y).toBeGreaterThan(cpu!.y + cpu!.height);
+  expect(clock!.x).toBeLessThan(cpu!.x);
+  await spotify.click();
+  await expect(
+    page.getByRole('region', { name: 'Music connections' }).getByRole('status'),
+  ).toHaveText('Spotify connection is coming soon.');
+  await youtube.click();
+  await expect(
+    page.getByRole('region', { name: 'Music connections' }).getByRole('status'),
+  ).toHaveText('YouTube Music connection is coming soon.');
+});
+
 test('monitor errors show unavailable readings and recover through the retry control', async ({
   page,
 }) => {

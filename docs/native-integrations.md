@@ -24,9 +24,13 @@ or after an error. Snapshot fields are `cpuPercent`, `memoryPercent`,
 `usedMemoryBytes`, `totalMemoryBytes` and `sampledAtUnixMs`. Null distinguishes
 warm-up/unavailable data from real zero. A gap over three seconds re-primes CPU
 so the hidden-period average is not shown as a current reading. The UI includes
-error/retry handling and displays physical memory in GiB. No history is stored.
+error/retry handling and displays physical memory in GiB. The UI retains up to 32
+recent snapshots for sparklines; no history is written to disk.
 
 ## Universal music
+
+The current music panel is UI-only: its two provider buttons report that
+connection is coming soon. The native integration below remains planned.
 
 Use the Rust `windows` crate's `Windows.Media.Control` WinRT bindings for
 [`GlobalSystemMediaTransportControlsSessionManager`](https://learn.microsoft.com/en-us/uwp/api/windows.media.control.globalsystemmediatransportcontrolssessionmanager?view=winrt-26100).

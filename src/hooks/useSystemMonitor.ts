@@ -7,6 +7,7 @@ interface MonitorState {
   status: 'preview' | 'loading' | 'ready' | 'paused' | 'error';
   snapshot: SystemSnapshot | null;
   error: string | null;
+  history: SystemSnapshot[];
 }
 
 export function useSystemMonitor() {
@@ -14,6 +15,7 @@ export function useSystemMonitor() {
     status: isDesktop() ? 'loading' : 'preview',
     snapshot: null,
     error: null,
+    history: [],
   });
   const [attempt, setAttempt] = useState(0);
 
@@ -32,7 +34,15 @@ export function useSystemMonitor() {
       try {
         const snapshot = await getSystemSnapshot();
         if (active && request === generation) {
-          setState({ status: 'ready', snapshot, error: null });
+          setState((previous) => ({
+            status: 'ready',
+            snapshot,
+            error: null,
+            history:
+              previous.snapshot?.sampledAtUnixMs === snapshot.sampledAtUnixMs
+                ? previous.history
+                : [...previous.history.slice(-31), snapshot],
+          }));
           continuePolling = true;
         }
       } catch (error) {
@@ -46,6 +56,7 @@ export function useSystemMonitor() {
             status: paused ? 'paused' : 'error',
             snapshot: null,
             error: paused ? null : errorMessage(error),
+            history: [],
           });
         }
       } finally {
@@ -75,7 +86,7 @@ export function useSystemMonitor() {
   }, [attempt]);
 
   const retry = () => {
-    setState({ status: 'loading', snapshot: null, error: null });
+    setState({ status: 'loading', snapshot: null, error: null, history: [] });
     setAttempt((value) => value + 1);
   };
 

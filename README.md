@@ -3,8 +3,8 @@
 A Windows desktop personalisation application built with Tauri 2, Rust, React
 and TypeScript. Aura's foundation provides a transparent, frameless widget-host
 window with a restrained dark glass identity and a separate settings placeholder.
-The main surface is a compact horizontal rectangle: a live digital clock and date
-on the left, with live CPU/RAM readings and subtle usage bars on the right.
+The main surface is a purple glass rectangle: a large digital clock and date on
+the left, with CPU/RAM history cards above a music connection panel on the right.
 This repository contains only the desktop application.
 
 ## Foundation scope
@@ -15,9 +15,12 @@ This repository contains only the desktop application.
 - CPU and physical RAM monitoring through Rust/sysinfo, sampled on demand at
   most once per second. Collection stops while the host is hidden or minimized.
 - Fixed glass treatment; no network dependency for clock or monitoring.
+- CPU/RAM sparklines use up to 32 actual recent samples, held only in UI memory.
+- Music panel with Connect Spotify and Connect YouTube Music entry buttons.
+  These currently report coming soon; account connection and playback are not implemented.
 - Typed Rust metadata command, protocol validation, structured errors and retry UI.
 - Settings window created on demand and reused while open.
-- Widget definition/instance contracts with clock and system-monitor widgets.
+- Widget definition/instance contracts with clock, system monitor and music-entry components.
 - Scoped Tauri capabilities, local content and restrictive content security policy.
 
 Music, notes, per-widget drag/resize, saved layouts,

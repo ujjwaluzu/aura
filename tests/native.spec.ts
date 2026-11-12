@@ -69,8 +69,14 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
   expect(bounds.content).toBeLessThanOrEqual(bounds.viewport);
   await expect(host.getByLabel('Current time')).toBeVisible();
   // Allow a few logical pixels for native frame/DPI rounding.
-  expect(bounds.viewport).toBeGreaterThanOrEqual(208);
-  expect(bounds.viewport).toBeLessThanOrEqual(216);
+  expect(bounds.viewport).toBeGreaterThanOrEqual(384);
+  expect(bounds.viewport).toBeLessThanOrEqual(392);
+  await expect(
+    host.getByRole('button', { name: 'Connect Spotify' }),
+  ).toBeVisible();
+  await expect(
+    host.getByRole('button', { name: 'Connect YouTube Music' }),
+  ).toBeVisible();
   await expect(
     host.getByRole('region', { name: 'System usage' }),
   ).toBeVisible();
@@ -93,8 +99,15 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
   expect(usage.cpuPercent).toBeLessThanOrEqual(100);
   expect(usage.memoryPercent).toBeGreaterThanOrEqual(0);
   expect(usage.memoryPercent).toBeLessThanOrEqual(100);
+  await expect(
+    host
+      .locator('.usage-sparkline')
+      .first()
+      .locator('path[stroke="currentColor"]')
+      .last(),
+  ).toHaveAttribute('d', /C/);
   await host.screenshot({
-    path: 'artifacts/aura-system-monitor-native.png',
+    path: 'artifacts/aura-purple-layout-native.png',
     omitBackground: true,
     animations: 'disabled',
   });
