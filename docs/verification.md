@@ -3,8 +3,8 @@
 Executed on 12 November 2026. This records actual results and separates automated
 WebView/native checks from unverified Windows visual behaviour.
 
-Updated for the compact-clock iteration: a 640 x 212 host with a live clock/date
-on the left, an empty right-hand widget slot, and discreet corner controls. The
+Updated for the CPU/RAM iteration: a 640 x 212 host with a live clock/date
+on the left, CPU and physical RAM readings on the right, and discreet corner controls. The
 introduction, opacity slider and visible diagnostic footer have been removed.
 
 ## Environment
@@ -23,35 +23,38 @@ introduction, opacity slider and visible diagnostic footer have been removed.
 | `pnpm.cmd typecheck`                                                                      | Passed, strict application and tooling TypeScript                 |
 | `pnpm.cmd lint`                                                                           | Passed, zero warnings                                             |
 | `pnpm.cmd format:check`                                                                   | Passed                                                            |
-| `pnpm.cmd build`                                                                          | Passed; JS about 249 kB / 77 kB gzip, CSS about 15 kB / 4 kB gzip |
+| `pnpm.cmd build`                                                                          | Passed; JS about 253 kB / 78 kB gzip, CSS about 16 kB / 4 kB gzip |
 | `cargo check --manifest-path src-tauri/Cargo.toml --locked`                               | Passed                                                            |
 | `cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings` | Passed                                                            |
 | `cargo fmt --manifest-path src-tauri/Cargo.toml --check`                                  | Passed                                                            |
-| `cargo test --manifest-path src-tauri/Cargo.toml --locked`                                | Passed: 2 unit tests, no failures                                 |
-| `pnpm.cmd test:e2e`                                                                       | Passed: 6 Chromium browser tests                                  |
-| `pnpm.cmd tauri build --debug --no-bundle -- --locked`                                    | Passed; debug Windows executable launched                         |
-| Opt-in native WebView test                                                                | Passed: 1 integration test against real Rust and WebView2         |
+| `cargo test --manifest-path src-tauri/Cargo.toml --locked`                                | Passed: 5 unit tests, no failures                                 |
+| `pnpm.cmd test:e2e`                                                                       | Passed: 9 Chromium browser tests                                  |
+| `pnpm.cmd tauri build --debug --no-bundle -- --locked`                                    | Previously passed for the clock; current module tested in release |
+| Opt-in native WebView test                                                                | Passed: 1 integration test against the release executable         |
 | `pnpm.cmd desktop:build`                                                                  | Passed; optimized executable and per-user NSIS installer          |
 
 Browser tests cover preview honesty, local clock updates at minute boundaries,
 date rollover at midnight, the settings placeholder, compact-window overflow,
-absence of remote asset requests and
+absence of remote asset requests, CPU warm-up without fake zero readings,
+one-second monitor requests, suspension/resume while hidden, and
 structured error/retry behaviour using a deliberate test transport substitute.
 These browser checks do not prove native behaviour.
 
-The native test connected to the actual packaged-assets debug executable. It
+The native test connected to the actual packaged-assets release executable using
+an opt-in process-local WebView2 debugging option. It
 verified real metadata IPC, structured rejection of an invalid protocol,
-transparent WebView body, compact host bounds, clock visibility, an empty right
-slot, pin/unpin command completion, separate
-settings creation/reuse/close/reopen, denial of the metadata command from
-settings, and application shutdown while settings was still open. DOM activation
+transparent WebView body, compact host bounds, clock visibility, real CPU/RAM
+readings within valid ranges, pin/unpin command completion, separate
+settings creation/reuse/close/reopen, denial of both metadata and monitoring
+commands from settings, a `MONITOR_PAUSED` response after minimizing the native
+host, and application shutdown while settings was still open. DOM activation
 exercised React handlers and real IPC; it does not verify physical pointer input.
-The debug process exited when the smoke test quit the host. The optimized release
+The test process exited when the smoke test quit the host. The optimized release
 executable was subsequently launched for local use without remote-debugging
 environment options.
 
 Frontend and native WebView screenshots were rendered and inspected locally at
-`artifacts/aura-compact-preview.png` and `artifacts/aura-compact-native.png` (ignored by
+`artifacts/aura-system-monitor-preview.png` and `artifacts/aura-system-monitor-native.png` (ignored by
 Git). They confirm the UI rendering, not the final desktop compositor output.
 
 Initial validation found and fixed a 22-pixel host overflow, a redundant effect
@@ -64,21 +67,23 @@ those initial failures.
 The compact clock timing test uses paused browser time so application startup
 does not cross the tested minute boundary. The native viewport test allows a few
 logical pixels for Windows frame/DPI rounding (214 observed for the configured
-212-pixel host on this machine). Rust services were unchanged in this iteration;
-Rust unit/check/Clippy results above were executed during the foundation phase.
+212-pixel host on this machine). Rust check, Clippy and all five unit tests were
+executed again for the CPU/RAM service. The new unit cases cover serialization,
+unavailable data and invalid/out-of-range readings. An initial compile found a
+sysinfo API name mismatch (`with_usage`); it was corrected before the passing checks.
 
 ## Build artifacts
 
-- `src-tauri/target/release/aura.exe`: 3,162,624 bytes.
-- `src-tauri/target/release/bundle/nsis/Aura_0.1.0_x64-setup.exe`: 1,187,509 bytes
-  (1.13 MiB). Unsigned local development artifact; not installed or published.
+- `src-tauri/target/release/aura.exe`: 3,192,320 bytes.
+- `src-tauri/target/release/bundle/nsis/Aura_0.1.0_x64-setup.exe`: 1,197,904 bytes
+  (1.14 MiB). Unsigned local development artifact; not installed or published.
 - Executable SHA-256:
-  `399AE74175254BB5F097D0EB96F35786FE8D3980525A2D4F0C48AA261A1E747E`.
+  `08348B3168D8D1FCE58BD255CB29792DEFBAA20426835069D0F274BE3309EB03`.
 - Installer SHA-256:
-  `AC2A4A98B8B693109D7538D799551AE831440959BC2ABC152892DCCB702D337C`.
+  `B5DF0C44CE5451C93CDBD6840BCA868016FB028DB3B8DD83697125A63BADB42D`.
 
 Resolved runtime packages: React/React DOM 19.3.1, Tauri API 2.12.4, Lucide React
-1.72.0; native Tauri 2.12.5 and Serde 1.0.229. Development tools include TypeScript
+1.72.0; native Tauri 2.12.5, Serde 1.0.229 and sysinfo 0.40.3 (system feature only). Development tools include TypeScript
 5.9.3, Vite 7.3.8 with React plugin 5.2.0, Tailwind 4.3.5, Tauri CLI 2.12.4,
 ESLint 10.14.0, Prettier 3.10.0 and Playwright 1.65.0. Full exact dependency graphs
 are in the two lockfiles.
@@ -88,9 +93,9 @@ are in the two lockfiles.
 First terminal (fresh process; port 9222 must be unused):
 
 ```powershell
-pnpm.cmd tauri build --debug --no-bundle -- --locked
+pnpm.cmd desktop:build
 $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9222 --remote-debugging-address=127.0.0.1'
-& .\src-tauri\target\debug\aura.exe
+& .\src-tauri\target\release\aura.exe
 Remove-Item Env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS
 ```
 
@@ -102,7 +107,7 @@ pnpm.cmd test:e2e
 Remove-Item Env:AURA_NATIVE_CDP
 ```
 
-The test quits that debug app. The remote debugging option is process-local and
+The test quits that test app. The remote debugging option is process-local and
 is not present in source configuration or the release environment. Tests must
 only target the developer's own Aura instance on loopback.
 
@@ -120,6 +125,6 @@ Clean-machine installer install/upgrade/uninstall, code signing, Windows 10,
 additional Windows 11 builds, alternate GPUs/WebView2 versions, accessibility
 assistive technology, Remote Desktop, mixed-DPI monitors and performance budgets
 remain untested. No public compatibility or idle-resource promise is implied.
-The clock is the only implemented widget. Persistence, music/monitoring
+Clock and CPU/RAM monitoring are implemented. Persistence, music
 integration, startup registration and desktop-icon-layer integration remain
 unimplemented.

@@ -33,8 +33,8 @@ shadow. `noRedirectionBitmap` is configured to reduce Windows transparent-window
 startup flashes. This still needs testing across GPU drivers and WebView2 builds.
 
 Host and settings have fixed initial sizes in logical pixels. The host is now a
-640 x 212 rectangle, with a clock/date at the left and an empty future-widget slot
-at the right. The clock and empty slot are drag regions; icon controls are not.
+640 x 212 rectangle, with a clock/date at the left and CPU/RAM readings at the
+right. The clock and monitor surface are drag regions; icon controls are not.
 Settings retains its own title bar. There is no full-screen invisible overlay. Taskbar presence is
 retained so minimizing has an obvious recovery path; no tray or hide-to-background
 behaviour is introduced yet. Closing the host owns the application lifetime even
@@ -75,14 +75,16 @@ holds a unique instance ID, kind, dimensions, position, visibility, configuratio
 and theme ID. Separating the two allows multiple notes without duplicating a
 definition. IDs should be generated when instances are created, not during render.
 
-The registry is a static in-process map with the clock registered. `WidgetRenderer` resolves a visible
+The registry is a static in-process map with clock and system-monitor definitions. `WidgetRenderer` resolves a visible
 instance and safely omits unknown or unavailable kinds. It does not implement
 layout, dragging or resizing. There is no dynamic code loading, third-party plugin
 API or placeholder widget. The clock alone schedules a timeout at the
 next minute boundary, pauses while hidden, and refreshes on visibility/focus.
+The monitor owns a separate request lifecycle, scoped to its mounted component.
 
-The clock component lives under `components/widgets/clock`, with its definition
-in the registry. Future layout code will enforce minimum dimensions,
+The components live under `components/widgets/clock` and
+`components/widgets/system-monitor`, with definitions in the registry. Future
+layout code will enforce minimum dimensions,
 clamp positions to monitor work areas and persist logical coordinates. Saved
 layouts carry a schema version and monitor identity. Themes will validate
 allowlisted token overrides. Detailed widget configuration schemas should be
@@ -104,15 +106,34 @@ the caller's API access, not a sandbox around target labels; this trusted local
 UI uses `getCurrentWindow()`. Do not load untrusted widget code into either
 window. App commands are enrolled using
 `AppManifest::commands` so they are subject to the capability ACL. The host alone
-gets metadata/settings permissions and topmost control. Settings receives only
+gets metadata/settings/system-snapshot permissions and topmost control. Settings receives only
 drag, minimize and close. Production assets have a CSP; style attributes are
 allowed for React/CSS-variable styling. Development additionally permits Vite's
 loopback HMR connection. No unsafe script evaluation or remote script source is
 allowed.
 
-There are no OS sampling loops, background processes or network requests in
-product code. The clock owns its timeout and visibility/focus listeners, and
-cleans them up on unmount. Future services should publish change events, batch
+There are no background processes or network requests in product code. The clock
+owns its timeout and visibility/focus listeners and cleans them up on unmount.
+The monitor calls Rust, then schedules the next request one second after completion.
+It pauses on document visibility changes, ignores stale in-flight completions,
+and removes timers/listeners when unmounted. Failures stop scheduled requests
+until retry or a visibility/focus resume event;
+a native minimized/hidden result pauses until visibility/focus resumes.
+
+`SystemMonitor` owns a lazy, mutex-protected `sysinfo::System` with only CPU usage
+and physical RAM refreshes enabled. Commands use Tauri's blocking pool so native
+collection does not block the UI thread. Cached snapshots prevent rapid callers
+from refreshing more than once per second. No process, disk, GPU or network
+sampling is requested. The native command also checks host visibility/minimized
+state before collecting, independently of WebView visibility propagation.
+
+CPU is unavailable during its initial baseline sample and after idle gaps over
+three seconds; the following spaced sample reports current usage. Unavailable
+memory and invalid CPU values are serialized as null, not zero. Percentages are
+bounded, physical memory is represented in bytes, and sampling intervals use a
+monotonic clock. The UI displays GiB and does not retain a history.
+
+Future services should publish change events, batch
 updates and stop work when unused. Core features must continue offline. CPU and
 memory targets need measurement on real low-end systems; no resource claim is
 made from framework choice alone.

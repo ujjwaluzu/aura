@@ -1,11 +1,11 @@
 # Native integration investigation
 
-All integrations below are planned. No monitoring, media, startup or Explorer
-reparenting code ships in the foundation.
+CPU/RAM monitoring is implemented. Media, startup and Explorer reparenting remain
+planned; those investigations do not imply implementation.
 
 ## CPU and RAM
 
-Evaluate the Rust [`sysinfo` crate](https://docs.rs/sysinfo/latest/sysinfo/), using
+The Rust [`sysinfo` crate](https://docs.rs/sysinfo/latest/sysinfo/) is integrated, using
 one long-lived `System` instance. Refresh only CPU usage and memory fields, rather
 than scanning every process, disk and sensor. CPU usage is calculated between
 samples: warm up with two refreshes separated by at least
@@ -13,12 +13,18 @@ samples: warm up with two refreshes separated by at least
 Do not display the first sample as a trustworthy zero. Memory values are bytes;
 compute units and percentages consistently from used/total memory.
 
-Start at approximately one update per second when a monitor widget is visible;
-measure before increasing frequency. Run collection off the UI thread, share one
-sampler across widgets, and stop it when no consumer exists. Emit compact typed
-snapshots (`cpuPercent`, `usedMemoryBytes`, `totalMemoryBytes`, sample timestamp),
-and represent unavailable readings explicitly. Recheck crate MSRV and API version
-when adding the dependency; the crate is deliberately not installed now.
+`sysinfo` 0.40.3 is installed with default features disabled and only `system`
+enabled. One lazy sampler is shared behind a narrow Rust command; only CPU usage
+and RAM are refreshed, off the UI thread, at most once per second. There is no
+native worker loop or collection while no consumer requests data. A native
+visibility/minimize guard prevents collection from unexpected hidden requests.
+
+The frontend requests one snapshot at a time and stops while hidden, unmounted
+or after an error. Snapshot fields are `cpuPercent`, `memoryPercent`,
+`usedMemoryBytes`, `totalMemoryBytes` and `sampledAtUnixMs`. Null distinguishes
+warm-up/unavailable data from real zero. A gap over three seconds re-primes CPU
+so the hidden-period average is not shown as a current reading. The UI includes
+error/retry handling and displays physical memory in GiB. No history is stored.
 
 ## Universal music
 

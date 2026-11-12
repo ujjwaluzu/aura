@@ -80,7 +80,8 @@ pnpm.cmd exec playwright install chromium
 pnpm.cmd test:e2e
 ```
 
-The native smoke test is opt-in and attaches to a local **debug** WebView2 instance.
+The native smoke test is opt-in and attaches to a local WebView2 test instance
+started with a process-local remote-debugging option.
 See `tests/native.spec.ts` and the recorded procedure in `docs/verification.md`.
 Remote debugging is a developer-only process environment option; it is not set
 in production code or bundle configuration.

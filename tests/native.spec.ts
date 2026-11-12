@@ -1,6 +1,6 @@
 import { chromium, expect, test } from '@playwright/test';
 
-/** Attach only to Aura's debug WebView2, started locally by the developer.
+/** Attach only to an Aura WebView2 test instance started locally by the developer.
  * No debug endpoint is configured in the production application. */
 test('real Rust IPC, window controls, settings isolation and host-owned shutdown', async () => {
   test.setTimeout(60_000);
@@ -71,9 +71,30 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
   // Allow a few logical pixels for native frame/DPI rounding.
   expect(bounds.viewport).toBeGreaterThanOrEqual(208);
   expect(bounds.viewport).toBeLessThanOrEqual(216);
-  await expect(host.getByRole('region', { name: 'Widget space' })).toBeEmpty();
+  await expect(
+    host.getByRole('region', { name: 'System usage' }),
+  ).toBeVisible();
+  await expect(host.getByRole('meter', { name: 'CPU usage' })).toHaveAttribute(
+    'aria-valuenow',
+    /\d/,
+  );
+  const usage = await invoke<{
+    cpuPercent: number | null;
+    memoryPercent: number | null;
+    usedMemoryBytes: number;
+    totalMemoryBytes: number;
+    sampledAtUnixMs: number;
+  }>(host, 'get_system_snapshot');
+  expect(usage.totalMemoryBytes).toBeGreaterThan(0);
+  expect(usage.usedMemoryBytes).toBeGreaterThanOrEqual(0);
+  expect(usage.usedMemoryBytes).toBeLessThanOrEqual(usage.totalMemoryBytes);
+  expect(usage.cpuPercent).not.toBeNull();
+  expect(usage.cpuPercent).toBeGreaterThanOrEqual(0);
+  expect(usage.cpuPercent).toBeLessThanOrEqual(100);
+  expect(usage.memoryPercent).toBeGreaterThanOrEqual(0);
+  expect(usage.memoryPercent).toBeLessThanOrEqual(100);
   await host.screenshot({
-    path: 'artifacts/aura-compact-native.png',
+    path: 'artifacts/aura-system-monitor-native.png',
     omitBackground: true,
     animations: 'disabled',
   });
@@ -115,6 +136,8 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
     true,
   );
   expect(String(denied)).toMatch(/not allowed|not found|denied/i);
+  const monitorDenied = await invoke(settings, 'get_system_snapshot', {}, true);
+  expect(String(monitorDenied)).toMatch(/not allowed|not found|denied/i);
   await host
     .getByRole('button', { name: 'Open settings' })
     .dispatchEvent('click');
@@ -136,6 +159,9 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
     .dispatchEvent('click');
   const secondSettings = await reopened;
   await expect(secondSettings.getByRole('heading')).toBeVisible();
+  await invoke(host, 'plugin:window|minimize', { label: 'widget-host' });
+  const paused = await invoke(host, 'get_system_snapshot', {}, true);
+  expect(paused).toMatchObject({ code: 'MONITOR_PAUSED' });
   const disconnected = new Promise<void>((resolve) =>
     browser.once('disconnected', () => resolve()),
   );

@@ -4,7 +4,7 @@ A Windows desktop personalisation application built with Tauri 2, Rust, React
 and TypeScript. Aura's foundation provides a transparent, frameless widget-host
 window with a restrained dark glass identity and a separate settings placeholder.
 The main surface is a compact horizontal rectangle: a live digital clock and date
-on the left, with space reserved for future widgets on the right.
+on the left, with live CPU/RAM readings and subtle usage bars on the right.
 This repository contains only the desktop application.
 
 ## Foundation scope
@@ -12,13 +12,15 @@ This repository contains only the desktop application.
 - Frameless, draggable host; minimize, quit and optional always-on-top controls.
 - Reusable glass surfaces, text, icon buttons, controls and layout primitives.
 - Local digital clock, refreshed at minute boundaries and suspended while hidden.
-- Fixed glass treatment; no monitoring polling or network dependency.
+- CPU and physical RAM monitoring through Rust/sysinfo, sampled on demand at
+  most once per second. Collection stops while the host is hidden or minimized.
+- Fixed glass treatment; no network dependency for clock or monitoring.
 - Typed Rust metadata command, protocol validation, structured errors and retry UI.
 - Settings window created on demand and reused while open.
-- Widget definition/instance contracts and the first registered clock widget.
+- Widget definition/instance contracts with clock and system-monitor widgets.
 - Scoped Tauri capabilities, local content and restrictive content security policy.
 
-CPU/RAM monitoring, music, notes, per-widget drag/resize, saved layouts,
+Music, notes, per-widget drag/resize, saved layouts,
 startup, native wallpaper blur and desktop-icon-layer integration are **not
 implemented**. The foundation is not a public production release.
 
@@ -85,7 +87,8 @@ public/                   Local Aura mark; no remote assets
 ```
 
 React 19, TypeScript 5.9, Vite, Tailwind CSS 4 and Lucide React form the UI layer.
-Rust uses Tauri and Serde; no optional native integration plugins are installed.
+Rust uses Tauri, Serde and sysinfo (only its `system` feature). No optional Tauri
+integration plugins are installed.
 `pnpm-lock.yaml` and `src-tauri/Cargo.lock` pin the resolved dependencies.
 
 Read [development](docs/development.md), [architecture](docs/architecture.md),

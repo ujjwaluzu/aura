@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 test.use({ timezoneId: 'Asia/Kolkata', locale: 'en-GB' });
 
@@ -20,7 +20,11 @@ test('preview is honest about native availability and preserves transparency', a
     'rgba(0, 0, 0, 0)',
   );
   await expect(page.getByLabel('Current time')).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Widget space' })).toBeEmpty();
+  await expect(
+    page.getByRole('region', { name: 'System usage' }),
+  ).toBeVisible();
+  await expect(page.getByLabel('CPU utilization')).toHaveText('—');
+  await expect(page.getByLabel('RAM utilization')).toHaveText('—');
   await expect(page.locator('h1')).toHaveCount(0);
   await page.getByRole('button', { name: 'Open settings' }).click();
   await expect(page.getByRole('alert')).toHaveText(
@@ -105,6 +109,14 @@ test('structured command failure is shown and retry can reconnect', async ({
       __TAURI_INTERNALS__: {
         metadata: { currentWindow: { label: 'widget-host' } },
         invoke: async (command: string) => {
+          if (command === 'get_system_snapshot')
+            return {
+              cpuPercent: null,
+              memoryPercent: null,
+              usedMemoryBytes: null,
+              totalMemoryBytes: null,
+              sampledAtUnixMs: Date.now(),
+            };
           if (command !== 'get_foundation_info') return;
           if (fail)
             throw {
@@ -139,4 +151,162 @@ test('structured command failure is shown and retry can reconnect', async ({
     page.getByRole('status', { name: 'Native connection' }),
   ).toHaveText('Native core connected');
   await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
+async function mockSystemMonitoring(page: Page, failInitially = false) {
+  // Explicit test-only transport. Production preview never fabricates readings.
+  await page.addInitScript(
+    ({ failInitially }) => {
+      let failed = failInitially;
+      let cpu: number | null = null;
+      let requests = 0;
+      let visibility = 'visible';
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: () => visibility,
+      });
+      Object.assign(window, {
+        isTauri: true,
+        __TAURI_INTERNALS__: {
+          metadata: { currentWindow: { label: 'widget-host' } },
+          invoke: async (command: string) => {
+            if (command === 'get_foundation_info')
+              return {
+                protocolVersion: 1,
+                appName: 'Aura',
+                version: '0.1.0',
+                platform: 'windows',
+                windowMode: 'transparent-host',
+              };
+            if (command === 'get_system_snapshot') {
+              requests += 1;
+              if (failed)
+                throw {
+                  code: 'MONITOR_UNAVAILABLE',
+                  message: 'Test sampler unavailable.',
+                };
+              return {
+                cpuPercent: cpu,
+                memoryPercent: 37.5,
+                usedMemoryBytes: 6 * 1024 ** 3,
+                totalMemoryBytes: 16 * 1024 ** 3,
+                sampledAtUnixMs: Date.now(),
+              };
+            }
+          },
+        },
+        monitorTest: {
+          requests: () => requests,
+          allowReadings: () => {
+            failed = false;
+            cpu = 26.2;
+          },
+          setVisibility: (value: string) => {
+            visibility = value;
+            document.dispatchEvent(new Event('visibilitychange'));
+          },
+        },
+      });
+    },
+    { failInitially },
+  );
+}
+
+test('system readings warm up without a fake CPU zero and update once per second', async ({
+  page,
+}) => {
+  await mockSystemMonitoring(page);
+  await page.clock.install({ time: new Date('2026-11-12T09:05:00+05:30') });
+  await page.clock.pauseAt(new Date('2026-11-12T09:05:30+05:30'));
+  await page.goto('/');
+  await expect(page.getByLabel('RAM utilization')).toHaveText('38%');
+  await expect(page.getByLabel('CPU utilization')).toHaveText('—');
+  await expect(page.getByText('6.0 / 16.0 GiB')).toBeVisible();
+  const before = await page.evaluate(() => {
+    const mock = (
+      window as unknown as {
+        monitorTest: { requests: () => number; allowReadings: () => void };
+      }
+    ).monitorTest;
+    mock.allowReadings();
+    return mock.requests();
+  });
+  await page.clock.runFor(999);
+  expect(
+    await page.evaluate(() =>
+      (
+        window as unknown as { monitorTest: { requests: () => number } }
+      ).monitorTest.requests(),
+    ),
+  ).toBe(before);
+  await page.clock.runFor(1);
+  await expect(page.getByLabel('CPU utilization')).toHaveText('26%');
+  await expect(page.getByRole('meter', { name: 'CPU usage' })).toHaveAttribute(
+    'aria-valuenow',
+    '26.2',
+  );
+});
+
+test('monitoring stops while hidden and resumes with fresh readings', async ({
+  page,
+}) => {
+  await mockSystemMonitoring(page);
+  await page.clock.install({ time: new Date('2026-11-12T09:05:00+05:30') });
+  await page.clock.pauseAt(new Date('2026-11-12T09:05:30+05:30'));
+  await page.goto('/');
+  await expect(page.getByLabel('RAM utilization')).toHaveText('38%');
+  const before = await page.evaluate(() => {
+    const mock = (
+      window as unknown as {
+        monitorTest: {
+          setVisibility: (value: string) => void;
+          requests: () => number;
+        };
+      }
+    ).monitorTest;
+    mock.setVisibility('hidden');
+    return mock.requests();
+  });
+  await page.clock.runFor(10_000);
+  expect(
+    await page.evaluate(() =>
+      (
+        window as unknown as { monitorTest: { requests: () => number } }
+      ).monitorTest.requests(),
+    ),
+  ).toBe(before);
+  await page.evaluate(() => {
+    const mock = (
+      window as unknown as {
+        monitorTest: {
+          allowReadings: () => void;
+          setVisibility: (value: string) => void;
+        };
+      }
+    ).monitorTest;
+    mock.allowReadings();
+    mock.setVisibility('visible');
+  });
+  await expect(page.getByLabel('CPU utilization')).toHaveText('26%');
+});
+
+test('monitor errors show unavailable readings and recover through the retry control', async ({
+  page,
+}) => {
+  await mockSystemMonitoring(page, true);
+  await page.goto('/');
+  await expect(page.getByLabel('CPU utilization')).toHaveText('—');
+  await expect(
+    page.getByRole('button', { name: 'Retry system monitoring' }),
+  ).toBeVisible();
+  await page.evaluate(() =>
+    (
+      window as unknown as { monitorTest: { allowReadings: () => void } }
+    ).monitorTest.allowReadings(),
+  );
+  await page.getByRole('button', { name: 'Retry system monitoring' }).click();
+  await expect(page.getByLabel('CPU utilization')).toHaveText('26%');
+  await expect(
+    page.getByRole('button', { name: 'Retry system monitoring' }),
+  ).toHaveCount(0);
 });

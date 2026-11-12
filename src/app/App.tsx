@@ -9,6 +9,7 @@ import { errorMessage, isDesktop, openSettings } from '../lib/native';
 import { WidgetRenderer } from '../features/widget-engine/WidgetRenderer';
 import type { WidgetInstance } from '../features/widget-engine/types';
 import { clockDefinition } from '../components/widgets/clock/definition';
+import { systemMonitorDefinition } from '../components/widgets/system-monitor/definition';
 
 const clock: WidgetInstance = {
   id: 'host-clock',
@@ -18,6 +19,16 @@ const clock: WidgetInstance = {
   configuration: clockDefinition.defaultConfiguration,
   visible: true,
   themeId: clockDefinition.defaultThemeId,
+};
+
+const systemMonitor: WidgetInstance = {
+  id: 'host-system-monitor',
+  kind: systemMonitorDefinition.kind,
+  dimensions: systemMonitorDefinition.defaultDimensions,
+  position: systemMonitorDefinition.defaultPosition,
+  configuration: systemMonitorDefinition.defaultConfiguration,
+  visible: true,
+  themeId: systemMonitorDefinition.defaultThemeId,
 };
 
 export function App() {
@@ -69,11 +80,7 @@ function WidgetHost() {
       <GlassSurface className="host-surface" aria-label="Aura widget host">
         <WidgetRenderer instance={clock} />
         <div className="widget-divider" aria-hidden="true" />
-        <section
-          className="widget-slot"
-          aria-label="Widget space"
-          data-tauri-drag-region
-        />
+        <WidgetRenderer instance={systemMonitor} />
         <nav className="host-tools" aria-label="Window controls">
           <IconButton
             label="Always on top"

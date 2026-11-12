@@ -6,6 +6,7 @@
   "permissions": [
     "allow-get-foundation-info",
     "allow-open-settings",
+    "allow-get-system-snapshot",
     "core:window:allow-start-dragging",
     "core:window:allow-minimize",
     "core:window:allow-close",
