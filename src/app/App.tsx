@@ -1,25 +1,24 @@
 import { useState } from 'react';
-import {
-  Clock3,
-  Layers2,
-  Music2,
-  Pin,
-  RefreshCw,
-  StickyNote,
-  Waves,
-  Activity,
-  ArrowUpRight,
-} from 'lucide-react';
+import { Pin, RefreshCw, Settings2, Minus, X } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { GlassSurface } from '../components/ui/GlassSurface';
-import { WindowBar } from '../components/ui/WindowBar';
-import { Text } from '../components/ui/Text';
-import { ControlRow, Toggle } from '../components/ui/Controls';
-import { Stack } from '../components/ui/Stack';
 import { IconButton } from '../components/ui/IconButton';
 import { SettingsPlaceholder } from '../components/settings/SettingsPlaceholder';
 import { useNativeConnection } from '../hooks/useNativeConnection';
 import { errorMessage, isDesktop, openSettings } from '../lib/native';
+import { WidgetRenderer } from '../features/widget-engine/WidgetRenderer';
+import type { WidgetInstance } from '../features/widget-engine/types';
+import { clockDefinition } from '../components/widgets/clock/definition';
+
+const clock: WidgetInstance = {
+  id: 'host-clock',
+  kind: clockDefinition.kind,
+  dimensions: clockDefinition.defaultDimensions,
+  position: clockDefinition.defaultPosition,
+  configuration: clockDefinition.defaultConfiguration,
+  visible: true,
+  themeId: clockDefinition.defaultThemeId,
+};
 
 export function App() {
   return new URLSearchParams(window.location.search).get('window') ===
@@ -32,7 +31,6 @@ export function App() {
 
 function WidgetHost() {
   const { connection, reconnect } = useNativeConnection();
-  const [opacity, setOpacity] = useState(86);
   const [pinned, setPinned] = useState(false);
   const [pinBusy, setPinBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,96 +56,54 @@ function WidgetHost() {
     }
   };
 
+  const windowAction = async (action: 'minimize' | 'close') => {
+    try {
+      await getCurrentWindow()[action]();
+    } catch (error) {
+      setError(errorMessage(error));
+    }
+  };
+
   return (
-    <main className="app-frame">
-      <GlassSurface
-        className="host-surface"
-        opacity={opacity / 100}
-        aria-label="Aura widget host"
-      >
-        <WindowBar onSettings={() => void showSettings()} onError={setError} />
-        <div className="host-content">
-          <div className="intro">
-            <span className="eyebrow">
-              <span className="little-line" /> Your desktop, considered
-            </span>
-            <h1>
-              A little more calm.
-              <br />
-              <span>A little more you.</span>
-            </h1>
-            <Text>A home for the things you like to keep close.</Text>
-          </div>
-          <div className="widget-space">
-            <div className="widget-space-heading">
-              <Layers2 size={16} strokeWidth={1.5} />
-              <span>Your widget space</span>
-              <span className="phase-label">Foundation</span>
-            </div>
-            <div className="widget-empty">
-              <div className="planned-icons" aria-hidden="true">
-                <Clock3 />
-                <Activity />
-                <Music2 />
-                <StickyNote />
-              </div>
-              <p>Something good starts with a little space.</p>
-              <span>Clock, system monitor, music and notes are planned.</span>
-            </div>
-          </div>
-          <Stack className="controls">
-            <ControlRow
-              icon={<Waves size={18} />}
-              title="Glass opacity"
-              description="Find your balance of light and shade."
-            >
-              <div className="opacity-control">
-                <input
-                  aria-label="Glass opacity"
-                  type="range"
-                  min="65"
-                  max="96"
-                  value={opacity}
-                  onChange={(event) => setOpacity(Number(event.target.value))}
-                />
-                <output aria-live="off">{opacity}%</output>
-              </div>
-            </ControlRow>
-            <ControlRow
-              icon={<Pin size={18} />}
-              title="Always on top"
-              description={
-                isDesktop()
-                  ? 'Keep Aura above your other windows.'
-                  : 'Available in the desktop application.'
-              }
-            >
-              <Toggle
-                label="Always on top"
-                checked={pinned}
-                onChange={() => void togglePin()}
-                disabled={!isDesktop() || pinBusy}
-              />
-            </ControlRow>
-          </Stack>
-          {error && (
-            <p className="error-message" role="alert">
-              {error}
-            </p>
-          )}
-          {connection.status === 'error' && (
-            <p className="error-message" role="alert">
-              {connection.error}
-            </p>
-          )}
-        </div>
-        <footer className="status-bar">
-          <span
-            className={`connection-status status-${connection.status}`}
-            role="status"
-            aria-label="Native connection"
+    <main className="app-frame widget-frame">
+      <GlassSurface className="host-surface" aria-label="Aura widget host">
+        <WidgetRenderer instance={clock} />
+        <div className="widget-divider" aria-hidden="true" />
+        <section
+          className="widget-slot"
+          aria-label="Widget space"
+          data-tauri-drag-region
+        />
+        <nav className="host-tools" aria-label="Window controls">
+          <IconButton
+            label="Always on top"
+            aria-pressed={pinned}
+            disabled={!isDesktop() || pinBusy}
+            onClick={() => void togglePin()}
           >
-            <span className="status-dot" />
+            <Pin size={13} />
+          </IconButton>
+          <IconButton label="Open settings" onClick={() => void showSettings()}>
+            <Settings2 size={13} />
+          </IconButton>
+          <IconButton
+            label="Minimize window"
+            disabled={!isDesktop()}
+            onClick={() => void windowAction('minimize')}
+          >
+            <Minus size={14} />
+          </IconButton>
+          <IconButton
+            label="Quit Aura"
+            className="close-button"
+            disabled={!isDesktop()}
+            onClick={() => void windowAction('close')}
+          >
+            <X size={14} />
+          </IconButton>
+        </nav>
+        <div className="sr-only">
+          <span role="status" aria-label="Native connection">
             {connection.status === 'connected'
               ? 'Native core connected'
               : connection.status === 'preview'
@@ -156,26 +112,20 @@ function WidgetHost() {
                   ? 'Connecting to native core…'
                   : 'Native core unavailable'}
           </span>
-          {connection.status === 'error' ? (
-            <IconButton
-              label="Retry native connection"
-              onClick={() => void reconnect()}
-            >
-              <RefreshCw size={14} />
-            </IconButton>
-          ) : (
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => void showSettings()}
-            >
-              Settings <ArrowUpRight size={13} />
-            </button>
-          )}
-          <span className="version">
-            v{connection.info?.version ?? '0.1.0'}
-          </span>
-        </footer>
+        </div>
+        {(error || connection.status === 'error') && (
+          <div className="host-notice">
+            <p role="alert">{error ?? connection.error}</p>
+            {connection.status === 'error' && (
+              <IconButton
+                label="Retry native connection"
+                onClick={() => void reconnect()}
+              >
+                <RefreshCw size={14} />
+              </IconButton>
+            )}
+          </div>
+        )}
       </GlassSurface>
     </main>
   );

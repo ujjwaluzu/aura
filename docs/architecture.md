@@ -32,8 +32,10 @@ HTML/body/root surfaces. The inset glass panel supplies its own subtle border an
 shadow. `noRedirectionBitmap` is configured to reduce Windows transparent-window
 startup flashes. This still needs testing across GPU drivers and WebView2 builds.
 
-Host and settings have fixed initial sizes in logical pixels. Only the title bar
-is a drag region. There is no full-screen invisible overlay. Taskbar presence is
+Host and settings have fixed initial sizes in logical pixels. The host is now a
+640 x 212 rectangle, with a clock/date at the left and an empty future-widget slot
+at the right. The clock and empty slot are drag regions; icon controls are not.
+Settings retains its own title bar. There is no full-screen invisible overlay. Taskbar presence is
 retained so minimizing has an obvious recovery path; no tray or hide-to-background
 behaviour is introduced yet. Closing the host owns the application lifetime even
 when settings is open. The host can opt into topmost mode, off by default.
@@ -54,8 +56,8 @@ click-through without a reliable way to recover interaction. See
 ## Visual system
 
 `styles/tokens.css` contains colour, type, spacing, radius, opacity, blur, shadow
-and motion values. `GlassSurface` owns the common glass treatment and accepts a
-bounded opacity supplied by controls. `Text`, `IconButton`, `Toggle`, `ControlRow`
+and motion values. `GlassSurface` owns the common glass treatment and accepts an
+opacity override; the compact host uses its default. `Text`, `IconButton`, `Toggle`, `ControlRow`
 and `Stack` keep widgets consistent. Tailwind provides layout utilities; visual
 tokens remain ordinary CSS custom properties. Typography uses local Windows
 fonts, icons ship in the bundle, and reduced-motion preferences are respected.
@@ -73,13 +75,14 @@ holds a unique instance ID, kind, dimensions, position, visibility, configuratio
 and theme ID. Separating the two allows multiple notes without duplicating a
 definition. IDs should be generated when instances are created, not during render.
 
-The registry is a static in-process map. `WidgetRenderer` resolves a visible
+The registry is a static in-process map with the clock registered. `WidgetRenderer` resolves a visible
 instance and safely omits unknown or unavailable kinds. It does not implement
-layout, dragging or resizing. No dynamic code loading, third-party plugin API,
-background widget timers or placeholder widgets are registered.
+layout, dragging or resizing. There is no dynamic code loading, third-party plugin
+API or placeholder widget. The clock alone schedules a timeout at the
+next minute boundary, pauses while hidden, and refreshes on visibility/focus.
 
-When building the first clock, add its component under `components/widgets/clock`
-and its definition to the registry. Layout code will enforce minimum dimensions,
+The clock component lives under `components/widgets/clock`, with its definition
+in the registry. Future layout code will enforce minimum dimensions,
 clamp positions to monitor work areas and persist logical coordinates. Saved
 layouts carry a schema version and monitor identity. Themes will validate
 allowlisted token overrides. Detailed widget configuration schemas should be
@@ -87,7 +90,7 @@ introduced with real widgets, rather than inventing a general plugin language.
 
 ## State and persistence
 
-Opacity/topmost state lasts for this host session. No store library is warranted
+Topmost state lasts for this host session; opacity is a fixed design token. No store library is warranted
 yet. SQLite is planned for local notes, layouts and preferences, with versioned
 migrations and one authoritative Rust persistence boundary. Introduce the
 dependency when the first persistent feature exists. No database is created by
@@ -107,8 +110,9 @@ allowed for React/CSS-variable styling. Development additionally permits Vite's
 loopback HMR connection. No unsafe script evaluation or remote script source is
 allowed.
 
-There are no sampling loops, background processes, global listeners or network
-requests in product code. Future services should publish change events, batch
+There are no OS sampling loops, background processes or network requests in
+product code. The clock owns its timeout and visibility/focus listeners, and
+cleans them up on unmount. Future services should publish change events, batch
 updates and stop work when unused. Core features must continue offline. CPU and
 memory targets need measurement on real low-end systems; no resource claim is
 made from framework choice alone.

@@ -93,8 +93,8 @@ both lockfiles committed; use controlled dependency updates and rerun checks.
 ## Manual native acceptance
 
 1. Launch on a patterned desktop and confirm visible background around the glass
-   surface; vary opacity and confirm underlying content shows through.
-2. Check there is no native title bar/border; drag only the custom title bar.
+   surface and through the translucent rectangle.
+2. Check there is no native title bar/border; drag the clock or empty right area.
 3. Minimize and recover from the taskbar. Enable and disable always-on-top with
    another normal window in front.
 4. Open settings repeatedly: one settings window should exist. Close/reopen it.

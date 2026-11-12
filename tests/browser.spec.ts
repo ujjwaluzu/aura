@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+test.use({ timezoneId: 'Asia/Kolkata', locale: 'en-GB' });
+
 test('preview is honest about native availability and preserves transparency', async ({
   page,
 }) => {
@@ -10,16 +12,16 @@ test('preview is honest about native availability and preserves transparency', a
     page.getByRole('status', { name: 'Native connection' }),
   ).toHaveText('Frontend preview · native core unavailable');
   await expect(
-    page.getByRole('switch', { name: 'Always on top' }),
+    page.getByRole('button', { name: 'Always on top' }),
   ).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Quit Aura' })).toBeDisabled();
   await expect(page.locator('body')).toHaveCSS(
     'background-color',
     'rgba(0, 0, 0, 0)',
   );
-  await expect(
-    page.getByText('Clock, system monitor, music and notes are planned.'),
-  ).toBeVisible();
+  await expect(page.getByLabel('Current time')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Widget space' })).toBeEmpty();
+  await expect(page.locator('h1')).toHaveCount(0);
   await page.getByRole('button', { name: 'Open settings' }).click();
   await expect(page.getByRole('alert')).toHaveText(
     'Settings opens in a separate window in the desktop application.',
@@ -27,29 +29,33 @@ test('preview is honest about native availability and preserves transparency', a
   expect(errors).toEqual([]);
 });
 
-test('glass opacity supports keyboard adjustment and stays within its range', async ({
+test('clock shows local time and updates at the next minute boundary', async ({
   page,
 }) => {
+  await page.clock.install({ time: new Date('2026-11-12T09:05:00+05:30') });
+  await page.clock.pauseAt(new Date('2026-11-12T09:05:59+05:30'));
   await page.goto('/');
-  const slider = page.getByRole('slider', { name: 'Glass opacity' });
-  await slider.focus();
-  await page.keyboard.press('Home');
-  await expect(slider).toHaveValue('65');
-  await expect(page.getByLabel('Aura widget host')).toHaveCSS(
-    '--glass-opacity',
-    '0.65',
-  );
-  await page.keyboard.press('End');
-  await expect(slider).toHaveValue('96');
-  await expect(page.getByLabel('Aura widget host')).toHaveCSS(
-    '--glass-opacity',
-    '0.96',
-  );
+  const clock = page.getByLabel('Current time');
+  await expect(clock).toHaveText('09:05');
+  await expect(page.locator('.clock-date')).toHaveText('Thursday 12 November');
+  await page.clock.runFor(1_000);
+  await expect(clock).toHaveText('09:06');
+});
+
+test('clock changes the local date at midnight', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-11-12T23:59:00+05:30') });
+  await page.clock.pauseAt(new Date('2026-11-12T23:59:59+05:30'));
+  await page.goto('/');
+  await expect(page.getByLabel('Current time')).toHaveText('23:59');
+  await page.clock.runFor(1_000);
+  await expect(page.getByLabel('Current time')).toHaveText('00:00');
+  await expect(page.locator('.clock-date')).toHaveText('Friday 13 November');
 });
 
 test('settings placeholder renders at its own entry with no persistent-preferences claim', async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 520, height: 480 });
   await page.goto('/?window=settings');
   await expect(
     page.getByRole('heading', { name: 'Make it yours.' }),
@@ -75,9 +81,7 @@ test('frontend uses local assets and remains usable when external traffic is blo
     return route.continue();
   });
   await page.goto('/');
-  await expect(
-    page.getByRole('slider', { name: 'Glass opacity' }),
-  ).toBeVisible();
+  await expect(page.getByLabel('Current time')).toBeVisible();
   expect(external).toEqual([]);
   const metrics = await page.evaluate(() => ({
     scroll: document.documentElement.scrollHeight,

@@ -3,19 +3,22 @@
 A Windows desktop personalisation application built with Tauri 2, Rust, React
 and TypeScript. Aura's foundation provides a transparent, frameless widget-host
 window with a restrained dark glass identity and a separate settings placeholder.
+The main surface is a compact horizontal rectangle: a live digital clock and date
+on the left, with space reserved for future widgets on the right.
 This repository contains only the desktop application.
 
 ## Foundation scope
 
 - Frameless, draggable host; minimize, quit and optional always-on-top controls.
 - Reusable glass surfaces, text, icon buttons, controls and layout primitives.
-- Session-only glass opacity; no background polling or network dependency.
+- Local digital clock, refreshed at minute boundaries and suspended while hidden.
+- Fixed glass treatment; no monitoring polling or network dependency.
 - Typed Rust metadata command, protocol validation, structured errors and retry UI.
 - Settings window created on demand and reused while open.
-- Widget definition/instance contracts and an intentionally empty registry.
+- Widget definition/instance contracts and the first registered clock widget.
 - Scoped Tauri capabilities, local content and restrictive content security policy.
 
-Clock, CPU/RAM monitoring, music, notes, per-widget drag/resize, saved layouts,
+CPU/RAM monitoring, music, notes, per-widget drag/resize, saved layouts,
 startup, native wallpaper blur and desktop-icon-layer integration are **not
 implemented**. The foundation is not a public production release.
 
@@ -31,8 +34,8 @@ pnpm.cmd install --frozen-lockfile
 pnpm.cmd desktop:dev
 ```
 
-Use `pnpm.cmd dev` for frontend-only inspection. The preview explicitly reports
-that Rust is unavailable; native window controls are disabled. It is a development
+Use `pnpm.cmd dev` for frontend-only inspection. Native availability is exposed to
+assistive technology; native window controls are disabled. It is a development
 view of the desktop UI, not a separate website.
 
 ```powershell

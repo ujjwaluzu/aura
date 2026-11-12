@@ -67,8 +67,13 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
     viewport: innerHeight,
   }));
   expect(bounds.content).toBeLessThanOrEqual(bounds.viewport);
+  await expect(host.getByLabel('Current time')).toBeVisible();
+  // Allow a few logical pixels for native frame/DPI rounding.
+  expect(bounds.viewport).toBeGreaterThanOrEqual(208);
+  expect(bounds.viewport).toBeLessThanOrEqual(216);
+  await expect(host.getByRole('region', { name: 'Widget space' })).toBeEmpty();
   await host.screenshot({
-    path: 'artifacts/aura-native-webview.png',
+    path: 'artifacts/aura-compact-native.png',
     omitBackground: true,
     animations: 'disabled',
   });
@@ -83,17 +88,17 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
   // DOM activation checks the React -> IPC -> native path; physical dragging,
   // hit testing and desktop composition remain manual QA.
   await host
-    .getByRole('switch', { name: 'Always on top' })
+    .getByRole('button', { name: 'Always on top' })
     .dispatchEvent('click');
-  await expect(host.getByRole('switch')).toHaveAttribute(
-    'aria-checked',
-    'true',
-  );
-  await host.getByRole('switch').dispatchEvent('click');
-  await expect(host.getByRole('switch')).toHaveAttribute(
-    'aria-checked',
-    'false',
-  );
+  await expect(
+    host.getByRole('button', { name: 'Always on top' }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await host
+    .getByRole('button', { name: 'Always on top' })
+    .dispatchEvent('click');
+  await expect(
+    host.getByRole('button', { name: 'Always on top' }),
+  ).toHaveAttribute('aria-pressed', 'false');
 
   const settingsEvent = context.waitForEvent('page');
   await host
