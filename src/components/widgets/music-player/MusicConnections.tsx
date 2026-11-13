@@ -8,11 +8,7 @@ export function MusicConnections({ themeId }: WidgetProps) {
   const music = useMusic();
   const { preferences } = usePreferences();
   const layout = getLayout(preferences.layoutId);
-  const presentation = layout.focus
-    ? 'focus'
-    : layout.primary === 'music'
-      ? 'vertical'
-      : 'horizontal';
+  const presentation = layout.focus ? 'focus' : 'horizontal';
   return (
     <GlassSurface
       variant="inset"

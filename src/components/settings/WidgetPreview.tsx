@@ -68,13 +68,7 @@ export function WidgetPreview({
       <div className="glass-surface glass-inset music-connect-card">
         <PlayerPresentation
           session={sample}
-          presentation={
-            layout.focus
-              ? 'focus'
-              : layout.primary === 'music'
-                ? 'vertical'
-                : 'horizontal'
-          }
+          presentation={layout.focus ? 'focus' : 'horizontal'}
           progress={<div className="preview-progress" />}
           controls={
             <>

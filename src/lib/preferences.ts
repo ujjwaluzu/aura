@@ -3,7 +3,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { isDesktop } from './native';
 import { themes } from '../features/themes/catalog';
-import { layouts } from '../features/layouts/catalog';
+import { layouts, resolveLayoutId } from '../features/layouts/catalog';
 import {
   defaultPreferences,
   type Preferences,
@@ -23,12 +23,21 @@ function valid(value: unknown): value is Preferences {
   );
 }
 
+function normalize(value: unknown): Preferences | null {
+  if (!value || typeof value !== 'object') return null;
+  const item = value as Preferences;
+  const layoutId = resolveLayoutId(item.layoutId);
+  if (!layoutId) return null;
+  const next = { ...item, layoutId };
+  return valid(next) ? next : null;
+}
+
 function previewPreferences(): Preferences {
   try {
     const value: unknown = JSON.parse(
       localStorage.getItem(previewKey) ?? 'null',
     );
-    return valid(value) ? value : defaultPreferences;
+    return normalize(value) ?? defaultPreferences;
   } catch {
     return defaultPreferences;
   }
@@ -38,14 +47,21 @@ export async function getPreferences(): Promise<Preferences> {
   const preferences = isDesktop()
     ? await invoke<Preferences>('get_preferences')
     : previewPreferences();
-  if (!valid(preferences)) throw new Error('Preferences could not be loaded.');
-  return preferences;
+  const normalized = normalize(preferences);
+  if (!normalized) throw new Error('Preferences could not be loaded.');
+  return normalized;
 }
 
 export async function updatePreferences(
   patch: PreferencesPatch,
 ): Promise<Preferences> {
-  if (isDesktop()) return invoke<Preferences>('set_preferences', { patch });
+  if (isDesktop()) {
+    const next = normalize(
+      await invoke<Preferences>('set_preferences', { patch }),
+    );
+    if (!next) throw new Error('Preferences could not be loaded.');
+    return next;
+  }
   // Browser development preview only; production persistence is owned by Rust.
   const current = previewPreferences();
   const next: Preferences = {
@@ -70,7 +86,8 @@ export async function subscribePreferences(
     return listen<Preferences>(
       'aura://preferences-changed',
       (event) => {
-        if (valid(event.payload)) callback(event.payload);
+        const normalized = normalize(event.payload);
+        if (normalized) callback(normalized);
       },
       { target: { kind: 'Window', label: getCurrentWindow().label } },
     );

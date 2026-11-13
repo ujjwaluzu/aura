@@ -398,7 +398,7 @@ test('all five themes update the host across windows and survive reload', async 
   ).toHaveAttribute('aria-pressed', 'true');
 });
 
-test('all fourteen layouts apply without clipped modules or music entry points', async ({
+test('all six layouts apply without clipped modules or music entry points', async ({
   page,
   context,
 }) => {
@@ -471,4 +471,78 @@ test('settings tabs support keyboard navigation', async ({ page }) => {
   await expect(
     page.getByRole('tab', { name: 'Theme', exact: true }),
   ).toBeFocused();
+});
+
+test('Layout offers exactly four Clock and two Music focus arrangements', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 960, height: 720 });
+  await page.goto('/?window=settings&destination=layout');
+  await expect(page.locator('.layout-option')).toHaveCount(6);
+  await expect(page.locator('.layout-group')).toHaveCount(2);
+  const clock = page.locator('.layout-group').filter({
+    has: page.getByRole('heading', { name: 'Clock 4', exact: true }),
+  });
+  const focus = page.locator('.layout-group').filter({
+    has: page.getByRole('heading', { name: 'Music focus 2', exact: true }),
+  });
+  await expect(clock.locator('.layout-option')).toHaveCount(4);
+  await expect(focus.locator('.layout-option')).toHaveCount(2);
+  await expect(
+    page.getByRole('heading', { name: 'System usage', exact: false }),
+  ).toHaveCount(0);
+  expect(layouts.map((layout) => layout.id)).toEqual([
+    'clock-left-stats-music',
+    'clock-left-music-stats',
+    'clock-right-stats-music',
+    'clock-right-music-stats',
+    'music-focus-clock-left',
+    'music-focus-clock-right',
+  ]);
+  await page.screenshot({ path: 'artifacts/aura-six-layouts.png' });
+});
+
+test('retired saved layouts fall back to Clock without resetting the theme', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 960, height: 720 });
+  await page.goto('/?window=settings&destination=layout');
+  const replacements = {
+    'stats-left-clock-music': 'clock-left-stats-music',
+    'stats-left-music-clock': 'clock-left-music-stats',
+    'stats-right-clock-music': 'clock-right-stats-music',
+    'stats-right-music-clock': 'clock-right-music-stats',
+    'music-left-clock-stats': 'clock-left-music-stats',
+    'music-left-stats-clock': 'clock-left-stats-music',
+    'music-right-clock-stats': 'clock-right-music-stats',
+    'music-right-stats-clock': 'clock-right-stats-music',
+  };
+  for (const [previous, replacement] of Object.entries(replacements)) {
+    await page.evaluate(
+      (layoutId) =>
+        localStorage.setItem(
+          'aura:preview-preferences',
+          JSON.stringify({
+            themeId: 'rose',
+            layoutId,
+            revision: 7,
+            warning: null,
+          }),
+        ),
+      previous,
+    );
+    await page.reload();
+    await expect(page.locator('.settings-app')).toHaveAttribute(
+      'data-theme',
+      'rose',
+    );
+    const expected = layouts.find((layout) => layout.id === replacement)!;
+    await expect(
+      page.getByRole('button', {
+        name: `${expected.title}, ${expected.description}`,
+        exact: true,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.layout-option')).toHaveCount(6);
+  }
 });

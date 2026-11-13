@@ -159,6 +159,52 @@ mod tests {
     }
 
     #[test]
+    fn retired_layouts_keep_saved_theme_and_serialize_as_clock_layouts() {
+        let directory = test_directory();
+        fs::create_dir_all(&directory).unwrap();
+        for (retired, replacement) in [
+            ("stats-left-clock-music", "clock-left-stats-music"),
+            ("stats-left-music-clock", "clock-left-music-stats"),
+            ("stats-right-clock-music", "clock-right-stats-music"),
+            ("stats-right-music-clock", "clock-right-music-stats"),
+            ("music-left-clock-stats", "clock-left-music-stats"),
+            ("music-left-stats-clock", "clock-left-stats-music"),
+            ("music-right-clock-stats", "clock-right-music-stats"),
+            ("music-right-stats-clock", "clock-right-stats-music"),
+        ] {
+            fs::write(
+                directory.join("preferences.json"),
+                serde_json::to_vec(&serde_json::json!({
+                    "schemaVersion": 1, "themeId": "rose", "layoutId": retired
+                }))
+                .unwrap(),
+            )
+            .unwrap();
+            let store = PreferencesStore::load(Some(directory.clone()));
+            let snapshot = store.snapshot().unwrap();
+            assert_eq!(snapshot.theme_id, ThemeId::Rose);
+            assert!(snapshot.warning.is_none());
+            assert_eq!(
+                serde_json::to_value(&snapshot).unwrap()["layoutId"],
+                replacement
+            );
+            store
+                .update(PreferencesPatch {
+                    theme_id: Some(ThemeId::Rose),
+                    layout_id: None,
+                })
+                .unwrap();
+            let saved: serde_json::Value =
+                serde_json::from_slice(&fs::read(directory.join("preferences.json")).unwrap())
+                    .unwrap();
+            assert_eq!(saved["themeId"], "rose");
+            assert_eq!(saved["layoutId"], replacement);
+        }
+        fs::remove_file(directory.join("preferences.json")).unwrap();
+        fs::remove_dir(directory).unwrap();
+    }
+
+    #[test]
     fn failed_save_keeps_the_previous_choices() {
         let store = PreferencesStore::load(None);
         assert!(store

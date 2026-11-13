@@ -686,7 +686,7 @@ test('offline library exposes a retry read without any write', async ({
 });
 
 for (const artwork of [false, true])
-  test(`all 70 theme/layout combinations fit with ${artwork ? 'loaded' : 'missing'} artwork`, async ({
+  test(`all 30 theme/layout combinations fit with ${artwork ? 'loaded' : 'missing'} artwork`, async ({
     page,
   }) => {
     await mockMusic(page, { selected: true, artwork });
@@ -833,7 +833,7 @@ test('search, playlist drill-down and scroll position survive section switches',
 
 for (const layoutId of [
   'clock-left-stats-music',
-  'music-left-clock-stats',
+  'clock-right-music-stats',
   'music-focus-clock-left',
 ]) {
   test(`${layoutId}: More contains volume and destinations, Escape/outside restore focus`, async ({
@@ -1025,7 +1025,7 @@ test('diagnostic copying excludes account identifiers and raw error text', async
 
 for (const layoutId of [
   'clock-left-stats-music',
-  'music-left-clock-stats',
+  'clock-right-music-stats',
   'music-focus-clock-left',
 ]) {
   test(`${layoutId}: library account state never gates playback`, async ({
@@ -1187,7 +1187,7 @@ test('Settings can inspect a widget failure after opening later', async ({
 
 for (const layoutId of [
   'clock-left-stats-music',
-  'music-left-clock-stats',
+  'clock-right-music-stats',
   'music-focus-clock-left',
 ]) {
   test(`${layoutId}: a connected account controls the sole player without opening Settings`, async ({
@@ -1422,13 +1422,14 @@ test('connected ready and picker controls fit every theme and arrangement', asyn
 
 for (const layoutId of [
   'clock-left-stats-music',
-  'music-left-clock-stats',
+  'clock-right-music-stats',
   'music-focus-clock-left',
 ]) {
   test(`${layoutId}: inline volume sits between transport and More and works without opening actions`, async ({
     page,
   }) => {
     await mockMusic(page, { selected: true });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
     await page.evaluate(
       (layoutId) =>

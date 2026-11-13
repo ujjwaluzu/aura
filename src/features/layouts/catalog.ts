@@ -37,78 +37,6 @@ export const layouts = [
     description: 'Music above CPU / RAM',
   },
   {
-    id: 'stats-left-clock-music',
-    primary: 'stats',
-    side: 'left',
-    top: 'clock',
-    bottom: 'music',
-    title: 'CPU / RAM left',
-    description: 'Clock above music',
-  },
-  {
-    id: 'stats-left-music-clock',
-    primary: 'stats',
-    side: 'left',
-    top: 'music',
-    bottom: 'clock',
-    title: 'CPU / RAM left',
-    description: 'Music above clock',
-  },
-  {
-    id: 'stats-right-clock-music',
-    primary: 'stats',
-    side: 'right',
-    top: 'clock',
-    bottom: 'music',
-    title: 'CPU / RAM right',
-    description: 'Clock above music',
-  },
-  {
-    id: 'stats-right-music-clock',
-    primary: 'stats',
-    side: 'right',
-    top: 'music',
-    bottom: 'clock',
-    title: 'CPU / RAM right',
-    description: 'Music above clock',
-  },
-  {
-    id: 'music-left-clock-stats',
-    primary: 'music',
-    side: 'left',
-    top: 'clock',
-    bottom: 'stats',
-    title: 'Music left',
-    description: 'Clock above CPU / RAM',
-  },
-  {
-    id: 'music-left-stats-clock',
-    primary: 'music',
-    side: 'left',
-    top: 'stats',
-    bottom: 'clock',
-    title: 'Music left',
-    description: 'CPU / RAM above clock',
-  },
-  {
-    id: 'music-right-clock-stats',
-    primary: 'music',
-    side: 'right',
-    top: 'clock',
-    bottom: 'stats',
-    title: 'Music right',
-    description: 'Clock above CPU / RAM',
-  },
-  {
-    id: 'music-right-stats-clock',
-    primary: 'music',
-    side: 'right',
-    top: 'stats',
-    bottom: 'clock',
-    title: 'Music right',
-    description: 'CPU / RAM above clock',
-  },
-  {
     id: 'music-focus-clock-left',
     primary: 'clock',
     side: 'left',
@@ -136,3 +64,22 @@ export type LayoutDefinition = (typeof layouts)[number] & {
 export type LayoutId = LayoutDefinition['id'];
 export const getLayout = (id: LayoutId): LayoutDefinition =>
   layouts.find((layout) => layout.id === id) ?? layouts[0];
+
+// Retired saved layouts keep the user's theme and fall back to a Clock arrangement.
+const retiredLayouts: Record<string, LayoutId> = {
+  'stats-left-clock-music': 'clock-left-stats-music',
+  'stats-left-music-clock': 'clock-left-music-stats',
+  'stats-right-clock-music': 'clock-right-stats-music',
+  'stats-right-music-clock': 'clock-right-music-stats',
+  'music-left-clock-stats': 'clock-left-music-stats',
+  'music-left-stats-clock': 'clock-left-stats-music',
+  'music-right-clock-stats': 'clock-right-music-stats',
+  'music-right-stats-clock': 'clock-right-stats-music',
+};
+export function resolveLayoutId(value: unknown): LayoutId | null {
+  if (typeof value !== 'string') return null;
+  return (
+    layouts.find((layout) => layout.id === value)?.id ??
+    (Object.hasOwn(retiredLayouts, value) ? retiredLayouts[value]! : null)
+  );
+}

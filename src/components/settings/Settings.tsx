@@ -169,7 +169,7 @@ export function Settings() {
           <h2>Arrange your space</h2>
           <p>All {layouts.length} arrangements. Changes apply immediately.</p>
         </div>
-        {(['clock', 'stats', 'music', 'focus'] as const).map((group) => {
+        {(['clock', 'focus'] as const).map((group) => {
           const options = layouts.filter((item) =>
             group === 'focus'
               ? getLayout(item.id).focus
@@ -181,8 +181,6 @@ export function Settings() {
                 {
                   {
                     clock: 'Clock',
-                    stats: 'System usage',
-                    music: 'Music',
                     focus: 'Music focus',
                   }[group]
                 }{' '}

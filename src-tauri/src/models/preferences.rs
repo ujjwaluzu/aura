@@ -15,18 +15,14 @@ pub enum ThemeId {
 #[serde(rename_all = "kebab-case")]
 pub enum LayoutId {
     #[default]
+    #[serde(alias = "stats-left-clock-music", alias = "music-left-stats-clock")]
     ClockLeftStatsMusic,
+    #[serde(alias = "stats-left-music-clock", alias = "music-left-clock-stats")]
     ClockLeftMusicStats,
+    #[serde(alias = "stats-right-clock-music", alias = "music-right-stats-clock")]
     ClockRightStatsMusic,
+    #[serde(alias = "stats-right-music-clock", alias = "music-right-clock-stats")]
     ClockRightMusicStats,
-    StatsLeftClockMusic,
-    StatsLeftMusicClock,
-    StatsRightClockMusic,
-    StatsRightMusicClock,
-    MusicLeftClockStats,
-    MusicLeftStatsClock,
-    MusicRightClockStats,
-    MusicRightStatsClock,
     MusicFocusClockLeft,
     MusicFocusClockRight,
 }

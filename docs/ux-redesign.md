@@ -1,8 +1,9 @@
 ﻿# Aura UX redesign verification
 
 The desktop widget stays 760 × 264 logical pixels. Settings owns Theme, Layout,
-and the Music sections Player, Search, Playlists, and Liked videos. The existing
-five theme IDs, fourteen layout IDs, and preference schema are unchanged.
+and the Music sections Player, Search, Playlists, and Liked videos. The five themes and preference schema are unchanged. Layouts are limited to
+four Clock arrangements and two Music focus arrangements. Retired System usage
+and Music arrangements load as Clock layouts while preserving the saved theme.
 
 Settings starts at 960 × 720 with a 720 × 560 minimum. Rust reduces these limits
 when the current monitor's work area is smaller. `open_settings` accepts an
@@ -20,7 +21,8 @@ selected native session disappears, Aura asks the user to choose again rather
 than guessing another session from its source app. Track changes clear cached
 artwork, and thumbnail reads recheck metadata before installing their result.
 
-Widget presentations are horizontal, vertical, and music focus. They share the
+Clock layouts use a horizontal music card; Music focus layouts give the player
+more room. These share the
 player presentation with static layout previews. Volume is visible between the
 transport controls and More in every widget presentation, with a 28 px slider
 hit area, keyboard control, and inline recovery when volume is unavailable. More contains volume, a library link, and an in-card player chooser. Its overlay stays inside the card, supports Escape,
@@ -39,16 +41,16 @@ gates, and official-player restrictions are unchanged.
 
 - TypeScript, ESLint, Prettier and Rust formatting checks passed.
 - Frontend production build and the Windows NSIS package build passed.
-- All 64 Chromium browser tests passed. They cover all 70 theme/layout combinations twice, with loaded and
+- All 66 Chromium browser tests passed. They cover all 30 theme/layout combinations twice, with loaded and
   missing artwork, long titles, essential control bounds, 28 px compact targets,
-  and absence of widget scrollbars. Screenshots of all three presentations, More,
+  and absence of widget scrollbars. Screenshots of the retained presentations, More,
   Theme, Layout, and the account screen were inspected.
 - Browser flows cover account loading/failure, independent playback failure,
   disconnected/expired/unavailable accounts, authorization cancellation, offline
   and empty libraries, multiple sessions, unsupported transport controls, failed
   volume recovery, uncertain writes, search/navigation retention, keyboard sliders,
   overlay focus, metadata changes, reduced motion, and sanitized diagnostic copying.
-- Native unit tests passed: 31 passed, one opt-in live-account test ignored. They cover destination serialization, rejection of retired window
+- Native unit tests passed: 32 passed, one opt-in live-account test ignored. They cover destination serialization, rejection of retired window
   labels, existing preference compatibility, OAuth cancellation, provider writes,
   and account availability for the actual build gate.
 - The availability unit test also passed with `music-validation` and the local
@@ -70,7 +72,7 @@ With no session, Play opens the official YouTube Music player; previous, next,
 and seeking stay disabled until a player is available. Account authorization does
 not itself start browser playback. The official player and release gates remain
 in place. The follow-up browser checks cover direct selection, failed binding,
-transport, seek, volume, and ready/picker bounds across all 70 theme/layout pairs.
+transport, seek, volume, and ready/picker bounds across all 30 theme/layout pairs.
 
 ## Required before release
 
