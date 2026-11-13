@@ -137,9 +137,7 @@ export function PlaybackControls({
     <div
       className={`music-playback ${compact ? 'music-playback-compact' : ''}`}
     >
-      {(!compact ||
-        showSessionSelector ||
-        (!session && playback.sessions.length > 0)) && (
+      {(!compact || showSessionSelector) && (
         <label className="music-session-label">
           Windows media session
           <select
@@ -296,10 +294,12 @@ export function PlaybackControls({
         </>
       ) : (
         <p className="music-session-empty">
-          {playback.message ??
-            (playback.sessions.length
-              ? 'Choose a media session in Aura Music.'
-              : 'Play in YouTube Music to see Windows controls.')}
+          {compact
+            ? 'No player selected'
+            : (playback.message ??
+              (playback.sessions.length
+                ? 'Choose a media session in Aura Music.'
+                : 'Play in YouTube Music to see Windows controls.'))}
         </p>
       )}
       {error && (
