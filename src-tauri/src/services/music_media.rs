@@ -50,7 +50,7 @@ impl MediaService {
         if let Ok(mut saved) = self.state.lock() {
             *saved = state.clone();
         }
-        for label in ["widget-host", "music"] {
+        for label in ["widget-host", "music", "settings"] {
             let _ = app.emit_to(label, "aura://playback-changed", &state);
         }
     }

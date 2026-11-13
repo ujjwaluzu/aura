@@ -293,7 +293,11 @@ export function Settings() {
                     </p>
                   </div>
                 </div>
-                <PlaybackControls playback={music.playback} compact />
+                <PlaybackControls
+                  playback={music.playback}
+                  compact
+                  showSessionSelector
+                />
               </section>
               <section
                 className="settings-music-card"

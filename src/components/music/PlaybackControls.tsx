@@ -25,9 +25,11 @@ function time(seconds: number) {
 export function PlaybackControls({
   playback,
   compact = false,
+  showSessionSelector = false,
 }: {
   playback: PlaybackState;
   compact?: boolean;
+  showSessionSelector?: boolean;
 }) {
   const session = playback.sessions.find((s) => s.id === playback.selectedId);
   const [error, setError] = useState<string | null>(null);
@@ -135,7 +137,9 @@ export function PlaybackControls({
     <div
       className={`music-playback ${compact ? 'music-playback-compact' : ''}`}
     >
-      {(!compact || (!session && playback.sessions.length > 0)) && (
+      {(!compact ||
+        showSessionSelector ||
+        (!session && playback.sessions.length > 0)) && (
         <label className="music-session-label">
           Windows media session
           <select

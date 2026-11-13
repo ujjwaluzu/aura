@@ -9,12 +9,12 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State, WebviewWindow};
 
 pub fn allowed(label: &str) -> Result<(), AppError> {
-    if matches!(label, "widget-host" | "music") {
+    if matches!(label, "widget-host" | "music" | "settings") {
         Ok(())
     } else {
         Err(AppError::new(
             "FORBIDDEN",
-            "Music commands are only available in Aura Music and the widget host.",
+            "Music commands are available in the widget host, Aura Music, and Settings.",
         ))
     }
 }
@@ -22,7 +22,7 @@ fn task_error() -> AppError {
     AppError::new("MUSIC_FAILURE", "The music operation could not finish.")
 }
 fn notify(app: &AppHandle, state: &MusicAccountState) {
-    for label in ["widget-host", "music"] {
+    for label in ["widget-host", "music", "settings"] {
         let _ = app.emit_to(label, "aura://music-account-changed", state);
     }
 }
@@ -167,18 +167,19 @@ pub async fn music_media_volume(
 mod tests {
     use super::*;
     #[test]
-    fn only_host_and_music_have_native_access() {
+    fn host_music_and_settings_have_native_access() {
         assert!(allowed("widget-host").is_ok());
         assert!(allowed("music").is_ok());
-        for label in ["settings", "main", "", "music-other"] {
+        assert!(allowed("settings").is_ok());
+        for label in ["main", "", "music-other"] {
             assert!(allowed(label).is_err());
         }
         let settings: serde_json::Value =
             serde_json::from_str(include_str!("../../capabilities/settings.json")).unwrap();
-        assert!(!settings["permissions"]
+        assert!(settings["permissions"]
             .as_array()
             .unwrap()
             .iter()
-            .any(|v| v.as_str().unwrap_or("").contains("music")));
+            .any(|v| v.as_str().unwrap_or("") == "allow-music-playback-status"));
     }
 }
