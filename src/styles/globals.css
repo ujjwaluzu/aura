@@ -107,10 +107,13 @@ input:focus-visible {
 .host-modules {
   z-index: 1;
   display: grid;
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
   min-width: 0;
   padding: 42px 14px 10px 12px;
+}
+.host-modules:has(> .secondary-slot:first-child[data-module='music']) {
+  grid-template-rows: minmax(0, 1fr) auto;
 }
 .clock-widget {
   z-index: 1;
@@ -154,7 +157,7 @@ input:focus-visible {
   cursor: grab;
 }
 .usage-card {
-  padding: 8px 10px 4px;
+  padding: 8px 10px 2px;
   min-width: 0;
   overflow: hidden;
 }
