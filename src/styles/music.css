@@ -404,24 +404,96 @@
 }
 .music-widget-connected {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: stretch;
+  gap: 7px;
   width: 100%;
   min-width: 0;
 }
 .music-playback-compact {
   flex: 1;
-  gap: 2px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: center;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 6px;
+  min-width: 0;
+  padding: 3px 0;
 }
 .music-playback-compact .music-now-playing img {
-  display: none;
+  display: block;
+  width: 46px;
+  height: 46px;
+  border-radius: 9px;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.3);
 }
 .music-playback-compact .music-now-playing span {
   display: block;
 }
+.music-live-label {
+  grid-column: 1 / -1;
+  color: var(--color-accent);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+}
+.music-artwork-placeholder {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  color: var(--color-accent);
+  background: linear-gradient(
+    145deg,
+    rgba(177, 143, 232, 0.25),
+    rgba(76, 89, 128, 0.25)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+}
+.music-playback-compact .music-now-playing strong {
+  font-size: 12px;
+  font-weight: 650;
+}
+.music-playback-compact .music-now-playing span {
+  font-size: 10px;
+}
+.music-playback-compact .music-progress {
+  grid-column: 1 / -1;
+  height: 3px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 99px;
+}
+.music-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: inherit;
+  transition: width 400ms linear;
+}
 .music-playback-compact .music-transport .icon-button {
-  width: 23px;
-  height: 23px;
+  width: 28px;
+  height: 28px;
+}
+.music-playback-compact .music-transport .icon-button[aria-label^='Pause'] {
+  width: 34px;
+  height: 34px;
+  color: var(--color-accent);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+.music-playback-compact .music-transport {
+  gap: 3px;
+}
+.music-playback-compact .music-session-label {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.music-playback-compact .music-session-label select {
+  padding: 6px 8px;
+  font-size: 10px;
 }
 .music-playback-compact .music-session-empty {
   font-size: 10px;
@@ -451,8 +523,6 @@
 }
 .primary-slot .music-playback-compact .music-now-playing img {
   display: block;
-  width: 28px;
-  height: 28px;
 }
 .primary-slot .music-playback-compact .music-transport {
   justify-content: center;

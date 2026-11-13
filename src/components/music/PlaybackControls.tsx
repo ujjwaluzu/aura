@@ -64,8 +64,19 @@ export function PlaybackControls({
       )}
       {session ? (
         <>
+          {compact && (
+            <span className="music-live-label">
+              {session.playing ? 'NOW PLAYING' : 'PAUSED'}
+            </span>
+          )}
           <div className="music-now-playing">
-            {session.artwork && <img src={session.artwork} alt="" />}
+            {session.artwork ? (
+              <img src={session.artwork} alt="" />
+            ) : (
+              <div className="music-artwork-placeholder">
+                <Play size={18} />
+              </div>
+            )}
             <div>
               <strong title={session.title}>
                 {session.title || 'Untitled'}
@@ -75,6 +86,33 @@ export function PlaybackControls({
               </span>
             </div>
           </div>
+          {compact && (
+            <div
+              className="music-progress"
+              role="progressbar"
+              aria-label="Track progress"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={
+                session.durationSeconds > 0
+                  ? Math.min(
+                      100,
+                      Math.max(
+                        0,
+                        (session.positionSeconds / session.durationSeconds) *
+                          100,
+                      ),
+                    )
+                  : 0
+              }
+            >
+              <span
+                style={{
+                  width: `${session.durationSeconds > 0 ? Math.min(100, Math.max(0, (session.positionSeconds / session.durationSeconds) * 100)) : 0}%`,
+                }}
+              />
+            </div>
+          )}
           <div className="music-transport">
             <IconButton
               label="Previous track"
