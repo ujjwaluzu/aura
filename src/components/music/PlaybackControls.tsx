@@ -64,8 +64,7 @@ export function PlaybackControls({
           }
         })
         .catch((error: unknown) => {
-          if (live)
-            setVolumeError({ sessionId, message: errorMessage(error) });
+          if (live) setVolumeError({ sessionId, message: errorMessage(error) });
         });
     return () => {
       live = false;
@@ -156,14 +155,16 @@ export function PlaybackControls({
       {session ? (
         <>
           <div className="music-now-playing">
-            {session.artwork ? (
-              <img src={session.artwork} alt="" />
-            ) : (
-              <div className="music-artwork-placeholder">
-                <Play size={18} />
-              </div>
-            )}
-            <div>
+            <div className="music-artwork">
+              {session.artwork ? (
+                <img src={session.artwork} alt="" />
+              ) : (
+                <div className="music-artwork-placeholder">
+                  <Play size={18} />
+                </div>
+              )}
+            </div>
+            <div className="music-track-copy">
               <strong title={session.title}>
                 {session.title || 'Untitled'}
               </strong>
@@ -196,86 +197,89 @@ export function PlaybackControls({
               />
             </div>
           )}
-          <div className="music-transport">
-            <IconButton
-              label="Previous track"
-              disabled={busy || !session.canPrevious}
-              onClick={() => void perform('previous')}
-            >
-              <SkipBack size={15} />
-            </IconButton>
-            <IconButton
-              label={session.playing ? 'Pause playback' : 'Resume playback'}
-              disabled={
-                busy || (session.playing ? !session.canPause : !session.canPlay)
-              }
-              onClick={() => void perform(session.playing ? 'pause' : 'play')}
-            >
-              {session.playing ? <Pause size={15} /> : <Play size={15} />}
-            </IconButton>
-            <IconButton
-              label="Next track"
-              disabled={busy || !session.canNext}
-              onClick={() => void perform('next')}
-            >
-              <SkipForward size={15} />
-            </IconButton>
-            {!compact && (
-              <span aria-label="Playback position">
-                {time(session.positionSeconds)} /{' '}
-                {time(session.durationSeconds)}
-              </span>
-            )}
-          </div>
-          {compact && (
-            <div
-              className="music-volume"
-              title={
-                shownVolume === null
-                  ? (shownVolumeError ?? 'Browser volume is loading.')
-                  : 'Controls audio volume for this browser.'
-              }
-            >
-              <ElasticSlider
-                label="Browser volume"
-                max={100}
-                value={shownVolume ?? 100}
-                leftIcon={<Volume1 />}
-                rightIcon={<Volume2 />}
-                onChange={(level) => {
-                  setVolume(level);
-                  pendingVolume.current = { level, sessionId: session.id };
-                  if (volumeTimer.current === null) {
-                    volumeTimer.current = window.setTimeout(() => {
-                      volumeTimer.current = null;
-                      const pending = pendingVolume.current;
-                      if (pending)
-                        void mediaVolume(pending.level / 100)
-                          .then(() => setVolumeError(null))
-                          .catch((e) =>
-                            setVolumeError({
-                              sessionId: pending.sessionId,
-                              message: errorMessage(e),
-                            }),
-                          );
-                    }, 90);
-                  }
-                }}
-                onChangeEnd={(level) => {
-                  if (volumeTimer.current !== null)
-                    window.clearTimeout(volumeTimer.current);
-                  volumeTimer.current = null;
-                  pendingVolume.current = null;
-                  applyVolume(level, session.id);
-                }}
-              />
-              {shownVolumeError && (
-                <span className="music-volume-error" role="status">
-                  {shownVolumeError}
+          <div className="music-controls">
+            <div className="music-transport">
+              <IconButton
+                label="Previous track"
+                disabled={busy || !session.canPrevious}
+                onClick={() => void perform('previous')}
+              >
+                <SkipBack size={15} />
+              </IconButton>
+              <IconButton
+                label={session.playing ? 'Pause playback' : 'Resume playback'}
+                disabled={
+                  busy ||
+                  (session.playing ? !session.canPause : !session.canPlay)
+                }
+                onClick={() => void perform(session.playing ? 'pause' : 'play')}
+              >
+                {session.playing ? <Pause size={15} /> : <Play size={15} />}
+              </IconButton>
+              <IconButton
+                label="Next track"
+                disabled={busy || !session.canNext}
+                onClick={() => void perform('next')}
+              >
+                <SkipForward size={15} />
+              </IconButton>
+              {!compact && (
+                <span aria-label="Playback position">
+                  {time(session.positionSeconds)} /{' '}
+                  {time(session.durationSeconds)}
                 </span>
               )}
             </div>
-          )}
+            {compact && (
+              <div
+                className="music-volume"
+                title={
+                  shownVolume === null
+                    ? (shownVolumeError ?? 'Browser volume is loading.')
+                    : 'Controls audio volume for this browser.'
+                }
+              >
+                <ElasticSlider
+                  label="Browser volume"
+                  max={100}
+                  value={shownVolume ?? 100}
+                  leftIcon={<Volume1 />}
+                  rightIcon={<Volume2 />}
+                  onChange={(level) => {
+                    setVolume(level);
+                    pendingVolume.current = { level, sessionId: session.id };
+                    if (volumeTimer.current === null) {
+                      volumeTimer.current = window.setTimeout(() => {
+                        volumeTimer.current = null;
+                        const pending = pendingVolume.current;
+                        if (pending)
+                          void mediaVolume(pending.level / 100)
+                            .then(() => setVolumeError(null))
+                            .catch((e) =>
+                              setVolumeError({
+                                sessionId: pending.sessionId,
+                                message: errorMessage(e),
+                              }),
+                            );
+                      }, 90);
+                    }
+                  }}
+                  onChangeEnd={(level) => {
+                    if (volumeTimer.current !== null)
+                      window.clearTimeout(volumeTimer.current);
+                    volumeTimer.current = null;
+                    pendingVolume.current = null;
+                    applyVolume(level, session.id);
+                  }}
+                />
+                {shownVolumeError && (
+                  <span className="music-volume-error" role="status">
+                    {shownVolumeError}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </>
       ) : (
         <p className="music-session-empty">
