@@ -111,7 +111,9 @@ mod native {
         tokens: Vec<(u8, i64)>,
         artwork: Option<String>,
         artwork_key: String,
+        artwork_loaded_key: String,
         artwork_retry_after: Option<std::time::Instant>,
+        artwork_missing_since: Option<std::time::Instant>,
     }
     impl Session {
         fn subscribe(
@@ -151,7 +153,9 @@ mod native {
                 tokens,
                 artwork: None,
                 artwork_key: String::new(),
+                artwork_loaded_key: String::new(),
                 artwork_retry_after: None,
+                artwork_missing_since: None,
             }
         }
         fn snapshot(&mut self) -> windows::core::Result<PlaybackSession> {
@@ -163,18 +167,26 @@ mod native {
             let artist = properties.Artist()?.to_string();
             let key = format!("{title}\0{artist}");
             if key != self.artwork_key {
-                self.artwork = None;
-                self.artwork_key = key;
+                self.artwork_key = key.clone();
                 self.artwork_retry_after = None;
+                self.artwork_missing_since = Some(std::time::Instant::now());
             }
-            if self.artwork.is_none()
+            if self.artwork_loaded_key != key
                 && self
                     .artwork_retry_after
                     .is_none_or(|retry_at| std::time::Instant::now() >= retry_at)
             {
-                self.artwork_retry_after =
-                    Some(std::time::Instant::now() + std::time::Duration::from_secs(5));
-                self.artwork = thumbnail(&properties).ok();
+                let now = std::time::Instant::now();
+                self.artwork_retry_after = Some(now + std::time::Duration::from_secs(5));
+                if let Ok(artwork) = thumbnail(&properties) {
+                    self.artwork = Some(artwork);
+                    self.artwork_loaded_key = key;
+                    self.artwork_missing_since = None;
+                } else if self.artwork_missing_since.is_some_and(|since| {
+                    now.duration_since(since) >= std::time::Duration::from_secs(30)
+                }) {
+                    self.artwork = None;
+                }
             }
             let start = timeline.StartTime()?.Duration;
             Ok(PlaybackSession {
