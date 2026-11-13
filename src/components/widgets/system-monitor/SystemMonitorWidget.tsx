@@ -5,13 +5,15 @@ import { IconButton } from '../../ui/IconButton';
 import { GlassSurface } from '../../ui/GlassSurface';
 import { UsageSparkline } from './UsageSparkline';
 
-function UsageReading({
+export function UsageReading({
   label,
   percent,
   detail,
   samples,
+  status = 'active',
 }: {
   label: 'CPU' | 'RAM';
+  status?: 'loading' | 'unavailable' | 'active';
   percent: number | null;
   detail?: string;
   samples: readonly (number | null)[];
@@ -48,7 +50,11 @@ function UsageReading({
           aria-live="off"
           data-tauri-drag-region
         >
-          {value === null ? '—' : `${Math.round(value)}%`}
+          {value === null
+            ? status === 'loading'
+              ? '…'
+              : '—'
+            : `${Math.round(value)}%`}
         </output>
       </div>
       <div
@@ -82,11 +88,25 @@ export function SystemMonitorWidget({ themeId }: WidgetProps) {
       data-tauri-drag-region
     >
       <UsageReading
+        status={
+          status === 'loading'
+            ? 'loading'
+            : status === 'ready'
+              ? 'active'
+              : 'unavailable'
+        }
         label="CPU"
         percent={snapshot?.cpuPercent ?? null}
         samples={history.map((sample) => sample.cpuPercent)}
       />
       <UsageReading
+        status={
+          status === 'loading'
+            ? 'loading'
+            : status === 'ready'
+              ? 'active'
+              : 'unavailable'
+        }
         label="RAM"
         percent={snapshot?.memoryPercent ?? null}
         samples={history.map((sample) => sample.memoryPercent)}

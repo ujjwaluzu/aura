@@ -1,71 +1,117 @@
-use tauri::{AppHandle, Manager, WebviewWindow, WebviewWindowBuilder};
-
 use crate::models::AppError;
+use tauri::{AppHandle, Emitter, Manager, WebviewWindow, WebviewWindowBuilder};
 
-#[tauri::command]
-pub async fn open_music(app: AppHandle, window: WebviewWindow) -> Result<(), AppError> {
-    crate::commands::music::allowed(window.label())?;
-    if let Some(music) = app.get_webview_window("music") {
-        music.unminimize().map_err(AppError::window)?;
-        music.show().map_err(AppError::window)?;
-        return music.set_focus().map_err(AppError::window);
-    }
-    let config = app
-        .config()
-        .app
-        .windows
-        .iter()
-        .find(|config| config.label == "music")
-        .ok_or_else(|| AppError::new("WINDOW_CONFIG", "Aura Music is not configured."))?;
-    match WebviewWindowBuilder::from_config(&app, config)
-        .map_err(AppError::window)?
-        .build()
-    {
-        Ok(music) => music.set_focus().map_err(AppError::window),
-        Err(error) => app
-            .get_webview_window("music")
-            .map(|music| music.set_focus().map_err(AppError::window))
-            .unwrap_or_else(|| Err(AppError::window(error))),
+#[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SettingsDestination {
+    Theme,
+    Layout,
+    MusicPlayer,
+    MusicSearch,
+    MusicPlaylists,
+    MusicLiked,
+}
+impl SettingsDestination {
+    fn query(self) -> &'static str {
+        match self {
+            Self::Theme => "theme",
+            Self::Layout => "layout",
+            Self::MusicPlayer => "music-player",
+            Self::MusicSearch => "music-search",
+            Self::MusicPlaylists => "music-playlists",
+            Self::MusicLiked => "music-liked",
+        }
     }
 }
 
-// An async command avoids creating a WebView inside a synchronous WebView2 IPC
-// callback, which can deadlock on Windows.
 #[tauri::command]
-pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), AppError> {
-    if window.label() != "widget-host" {
-        return Err(AppError::new(
-            "FORBIDDEN",
-            "Only the widget host can open settings.",
-        ));
-    }
+pub async fn open_music(app: AppHandle, window: WebviewWindow) -> Result<(), AppError> {
+    open_settings(app, window, Some(SettingsDestination::MusicPlaylists)).await
+}
 
+// Async avoids creating a WebView inside a synchronous WebView2 callback.
+#[tauri::command]
+pub async fn open_settings(
+    app: AppHandle,
+    window: WebviewWindow,
+    destination: Option<SettingsDestination>,
+) -> Result<(), AppError> {
+    crate::commands::music::allowed(window.label())?;
     if let Some(settings) = app.get_webview_window("settings") {
-        settings.unminimize().map_err(AppError::window)?;
-        settings.show().map_err(AppError::window)?;
-        settings.set_focus().map_err(AppError::window)?;
-        return Ok(());
+        return focus_settings(&settings, destination);
     }
-
-    let config = app
+    let mut config = app
         .config()
         .app
         .windows
         .iter()
-        .find(|config| config.label == "settings")
-        .ok_or_else(|| AppError::new("WINDOW_CONFIG", "The settings window is not configured."))?;
-
-    // Rust owns the URL and label; the frontend cannot create arbitrary windows.
-    let settings = WebviewWindowBuilder::from_config(&app, config)
+        .find(|c| c.label == "settings")
+        .cloned()
+        .ok_or_else(|| AppError::new("WINDOW_CONFIG", "Settings is not configured."))?;
+    if let Some(target) = destination {
+        config.url = tauri::WebviewUrl::App(
+            format!("index.html?window=settings&destination={}", target.query()).into(),
+        );
+    }
+    // Fit logical window dimensions to the current monitor's available work area.
+    if let Some(monitor) = window.current_monitor().map_err(AppError::window)? {
+        let area = monitor
+            .work_area()
+            .size
+            .to_logical::<f64>(monitor.scale_factor());
+        let width = (area.width - 16.0).max(1.0);
+        let height = (area.height - 48.0).max(1.0);
+        config.width = 960.0_f64.min(width);
+        config.height = 720.0_f64.min(height);
+        config.min_width = Some(720.0_f64.min(width));
+        config.min_height = Some(560.0_f64.min(height));
+    }
+    match WebviewWindowBuilder::from_config(&app, &config)
         .map_err(AppError::window)?
-        .build();
-    match settings {
+        .build()
+    {
         Ok(settings) => settings.set_focus().map_err(AppError::window),
-        // A concurrent click may have created the window while this command
-        // was building. Reuse it rather than leaving the action broken.
         Err(error) => match app.get_webview_window("settings") {
-            Some(settings) => settings.set_focus().map_err(AppError::window),
+            Some(settings) => focus_settings(&settings, destination),
             None => Err(AppError::window(error)),
         },
+    }
+}
+fn focus_settings(
+    settings: &WebviewWindow,
+    destination: Option<SettingsDestination>,
+) -> Result<(), AppError> {
+    settings.unminimize().map_err(AppError::window)?;
+    settings.show().map_err(AppError::window)?;
+    if let Some(target) = destination {
+        settings
+            .emit("aura://settings-navigate", target)
+            .map_err(AppError::window)?;
+    }
+    settings.set_focus().map_err(AppError::window)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn destinations_are_closed_and_match_urls() {
+        for destination in [
+            SettingsDestination::Theme,
+            SettingsDestination::Layout,
+            SettingsDestination::MusicPlayer,
+            SettingsDestination::MusicSearch,
+            SettingsDestination::MusicPlaylists,
+            SettingsDestination::MusicLiked,
+        ] {
+            assert_eq!(
+                serde_json::to_value(destination).unwrap(),
+                destination.query()
+            );
+        }
+        assert!(serde_json::from_str::<SettingsDestination>("\"unknown\"").is_err());
+        let config: serde_json::Value =
+            serde_json::from_str(include_str!("../../tauri.conf.json")).unwrap();
+        assert_eq!(config["app"]["windows"].as_array().unwrap().len(), 2);
     }
 }

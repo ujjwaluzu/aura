@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import {
   accountStatus,
@@ -12,19 +19,99 @@ import { errorMessage, isDesktop } from '../lib/native';
 import type { MusicAccountState, PlaybackState } from '../types/music';
 import { clearMusicArtwork } from '../features/integrations/music-artwork';
 
-export function useMusic() {
-  const [account, setAccount] = useState<MusicAccountState>(unavailableAccount);
+const diagnosticKey = 'aura.music.recent-errors';
+type RecentDiagnostic = { code: string; recordedAt: number };
+function readDiagnostics(
+  value: string | null = localStorage.getItem(diagnosticKey),
+): RecentDiagnostic[] {
+  try {
+    const parsed: unknown = JSON.parse(value ?? '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item: unknown): item is RecentDiagnostic => {
+        if (typeof item !== 'object' || item === null) return false;
+        const entry = item as Partial<RecentDiagnostic>;
+        return (
+          typeof entry.code === 'string' &&
+          /^[A-Z_]{1,64}$/.test(entry.code) &&
+          typeof entry.recordedAt === 'number' &&
+          Number.isFinite(entry.recordedAt) &&
+          entry.recordedAt <= Date.now() &&
+          Date.now() - entry.recordedAt < 3_600_000
+        );
+      })
+      .slice(-10);
+  } catch {
+    return [];
+  }
+}
+
+export function useMusicState() {
+  const [account, setAccount] = useState<MusicAccountState>(() =>
+    isDesktop()
+      ? { ...unavailableAccount, status: 'disconnected', message: null }
+      : unavailableAccount,
+  );
   const [playback, setPlayback] = useState<PlaybackState>(emptyPlayback);
   const [loading, setLoading] = useState(isDesktop);
+  const [accountKnown, setAccountKnown] = useState(!isDesktop());
+  const [playbackLoading, setPlaybackLoading] = useState(isDesktop);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const [details, setDetails] = useState<{ code: string; message: string }[]>(
+    [],
+  );
+  const [recentDiagnostics, setRecentDiagnostics] = useState<
+    RecentDiagnostic[]
+  >(() => {
+    try {
+      return readDiagnostics();
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    const receive = (event: StorageEvent) => {
+      if (event.key === diagnosticKey)
+        setRecentDiagnostics(readDiagnostics(event.newValue));
+    };
+    window.addEventListener('storage', receive);
+    return () => window.removeEventListener('storage', receive);
+  }, []);
+  const reportError = useCallback((error: unknown) => {
+    const rawCode =
+      typeof error === 'object' && error !== null && 'code' in error
+        ? String(error.code)
+        : 'UNKNOWN';
+    const code = /^[A-Z_]{1,64}$/.test(rawCode) ? rawCode : 'UNKNOWN';
+    // Share only allowlisted codes and times. Settings can explain widget failures
+    // even when it opens later; messages, identifiers and credentials stay out of storage.
+    try {
+      const recent = [
+        ...readDiagnostics(),
+        { code, recordedAt: Date.now() },
+      ].slice(-10);
+      localStorage.setItem(diagnosticKey, JSON.stringify(recent));
+      setRecentDiagnostics(recent);
+    } catch {
+      /* Diagnostics must never block recovery. */
+    }
+
+    setDetails((current) => [
+      ...current.slice(-9),
+      { code, message: errorMessage(error) },
+    ]);
+  }, []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const version = useRef(0);
+  const playbackVersion = useRef(0);
   const mounted = useRef(false);
   const accountRevision = useRef(0);
   const acceptAccount = useCallback((next: MusicAccountState) => {
     if ((next.revision ?? 0) < accountRevision.current) return;
     accountRevision.current = next.revision ?? 0;
     setAccount(next);
+    setAccountKnown(true);
   }, []);
   const refresh = useCallback(async () => {
     if (!isDesktop()) return;
@@ -35,59 +122,85 @@ export function useMusic() {
       const result = await accountStatus();
       if (mounted.current && request === version.current && result)
         acceptAccount(result);
-    } catch (error) {
+    } catch (e) {
+      reportError(e);
       if (mounted.current && request === version.current)
-        setError(errorMessage(error));
+        setError(errorMessage(e));
     } finally {
       if (mounted.current && request === version.current) setLoading(false);
     }
-  }, [acceptAccount]);
+  }, [acceptAccount, reportError]);
+  const refreshPlayback = useCallback(async () => {
+    if (!isDesktop()) return;
+    const request = ++playbackVersion.current;
+    setPlaybackLoading(true);
+    setPlaybackError(null);
+    try {
+      const state = await playbackStatus();
+      if (mounted.current && request === playbackVersion.current && state)
+        setPlayback(state);
+    } catch (e) {
+      reportError(e);
+      if (mounted.current && request === playbackVersion.current)
+        setPlaybackError(errorMessage(e));
+    } finally {
+      if (mounted.current && request === playbackVersion.current)
+        setPlaybackLoading(false);
+    }
+  }, [reportError]);
   useEffect(() => {
     mounted.current = true;
     let active = true;
     const subscriptions: UnlistenFn[] = [];
+    const keep = (stop: UnlistenFn) => {
+      if (active) subscriptions.push(stop);
+      else stop();
+    };
     if (isDesktop()) {
+      // Each subscription and request starts independently. Subscribe before its snapshot.
       void (async () => {
         try {
-          const unlisten = await listen<MusicAccountState>(
-            'aura://music-account-changed',
-            ({ payload }) => {
-              if (!active || (payload.revision ?? 0) < accountRevision.current)
-                return;
-              if (payload.status !== 'connected') clearMusicArtwork();
-              ++version.current;
-              acceptAccount(payload);
-              setLoading(false);
-              setError(null);
-            },
+          keep(
+            await listen<MusicAccountState>(
+              'aura://music-account-changed',
+              ({ payload }) => {
+                if (
+                  !active ||
+                  (payload.revision ?? 0) < accountRevision.current
+                )
+                  return;
+                if (payload.status !== 'connected') clearMusicArtwork();
+                ++version.current;
+                acceptAccount(payload);
+                setLoading(false);
+                setBusy(false);
+                setError(null);
+              },
+            ),
           );
-          if (!active) {
-            unlisten();
-            return;
-          }
-          subscriptions.push(unlisten);
-          const stopPlayback = await listen<PlaybackState>(
-            'aura://playback-changed',
-            ({ payload }) => {
-              if (active) setPlayback(payload);
-            },
-          );
-          if (!active) {
-            stopPlayback();
-            return;
-          }
-          subscriptions.push(stopPlayback);
-          // Subscribe before starting the native event service. Its initial snapshot
-          // is emitted asynchronously and no interval polls native sessions.
-          const state = await playbackStatus();
-          if (active && state) setPlayback(state);
-          if (active) await refresh();
-        } catch (error) {
-          if (active) {
-            setError(errorMessage(error));
-            setLoading(false);
-          }
+        } catch (e) {
+          if (active) reportError(e);
         }
+        if (active) await refresh();
+      })();
+      void (async () => {
+        try {
+          keep(
+            await listen<PlaybackState>(
+              'aura://playback-changed',
+              ({ payload }) => {
+                if (!active) return;
+                ++playbackVersion.current;
+                setPlayback(payload);
+                setPlaybackLoading(false);
+                setPlaybackError(null);
+              },
+            ),
+          );
+        } catch (e) {
+          if (active) reportError(e);
+        }
+        if (active) await refreshPlayback();
       })();
     }
     return () => {
@@ -95,7 +208,7 @@ export function useMusic() {
       mounted.current = false;
       subscriptions.forEach((stop) => stop());
     };
-  }, [refresh, acceptAccount]);
+  }, [refresh, refreshPlayback, acceptAccount, reportError]);
   const connect = async () => {
     setBusy(true);
     setError(null);
@@ -104,27 +217,29 @@ export function useMusic() {
     try {
       const result = await connectMusic();
       if (mounted.current && version.current === request) acceptAccount(result);
-    } catch (error) {
+    } catch (e) {
+      reportError(e);
       if (mounted.current && version.current === request) {
-        setError(errorMessage(error));
+        setError(errorMessage(e));
         setAccount((current) => ({ ...current, status: 'disconnected' }));
       }
     } finally {
-      if (mounted.current) setBusy(false);
+      if (mounted.current && version.current === request) setBusy(false);
     }
   };
   const disconnect = async () => {
     clearMusicArtwork();
-    ++version.current;
+    const request = ++version.current;
     setError(null);
+    setBusy(true);
     try {
       const result = await disconnectMusic();
-      if (mounted.current) {
-        acceptAccount(result);
-        setBusy(false);
-      }
-    } catch (error) {
-      if (mounted.current) setError(errorMessage(error));
+      if (mounted.current && version.current === request) acceptAccount(result);
+    } catch (e) {
+      reportError(e);
+      if (mounted.current) setError(errorMessage(e));
+    } finally {
+      if (mounted.current) setBusy(false);
     }
   };
   return {
@@ -132,9 +247,23 @@ export function useMusic() {
     playback,
     loading,
     busy,
+    accountKnown,
+    playbackLoading,
+    playbackError,
+    details,
+    recentDiagnostics,
+    reportError,
     error,
     refresh,
+    refreshPlayback,
     connect,
     disconnect,
   };
+}
+export type MusicState = ReturnType<typeof useMusicState>;
+export const MusicContext = createContext<MusicState | null>(null);
+export function useMusic() {
+  const state = useContext(MusicContext);
+  if (!state) throw new Error('Music must be used within MusicProvider');
+  return state;
 }

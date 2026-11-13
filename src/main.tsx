@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { MusicProvider } from './app/providers/MusicProvider';
 import { App } from './app/App';
 import './styles/tokens.css';
 import './styles/globals.css';
@@ -9,7 +10,9 @@ import './styles/music.css';
 
 document.documentElement.classList.toggle(
   'settings-document',
-  new URLSearchParams(window.location.search).get('window') === 'settings',
+  ['settings', 'music'].includes(
+    new URLSearchParams(window.location.search).get('window') ?? '',
+  ),
 );
 document.documentElement.classList.toggle(
   'music-document',
@@ -18,6 +21,8 @@ document.documentElement.classList.toggle(
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <MusicProvider>
+      <App />
+    </MusicProvider>
   </React.StrictMode>,
 );

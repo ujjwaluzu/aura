@@ -57,6 +57,7 @@ export function usePreferences() {
   const update = async (patch: PreferencesPatch) => {
     const id = ++request.current;
     setSaving(true);
+    setSaved(false);
     setError(null);
     try {
       const next = await updatePreferences(patch);

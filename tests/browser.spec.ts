@@ -79,6 +79,9 @@ test('settings is opaque with theme and layout tabs and five palette previews', 
     'none',
   );
   await expect(page.getByRole('button', { name: 'Done' })).toBeDisabled();
+  await page.screenshot({ path: 'artifacts/redesign-settings-theme.png' });
+  await page.getByRole('tab', { name: 'Layout', exact: true }).click();
+  await page.screenshot({ path: 'artifacts/redesign-settings-layout.png' });
 });
 
 test('frontend uses local assets and remains usable when external traffic is blocked', async ({
@@ -319,34 +322,21 @@ test('monitoring stops while hidden and resumes with fresh readings', async ({
   await expect(page.getByLabel('CPU utilization')).toHaveText('26%');
 });
 
-test('reference layout places usage cards above two honest music entry points', async ({
+test('reference layout keeps one clear music entry point below usage', async ({
   page,
 }) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
-  const spotify = page.getByRole('button', { name: 'Connect Spotify' });
-  const youtube = page.getByRole('button', { name: 'Connect YouTube' });
-  await expect(spotify).toBeVisible();
-  await expect(youtube).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Connect Spotify' }),
+  ).toHaveCount(0);
   const cpu = await page.locator('.usage-card').first().boundingBox();
-  const ram = await page.locator('.usage-card').last().boundingBox();
   const music = await page
-    .getByRole('region', { name: 'Music connections' })
+    .getByRole('region', { name: 'Music player' })
     .boundingBox();
-  const clock = await page.getByRole('region', { name: 'Clock' }).boundingBox();
-  expect(cpu && ram && music && clock).toBeTruthy();
-  expect(ram!.y).toBe(cpu!.y);
-  expect(ram!.x).toBeGreaterThan(cpu!.x);
   expect(music!.y).toBeGreaterThan(cpu!.y + cpu!.height);
-  expect(clock!.x).toBeLessThan(cpu!.x);
-  await spotify.click();
-  await expect(
-    page.getByRole('region', { name: 'Music connections' }).getByRole('status'),
-  ).toHaveText('Spotify connection is coming soon.');
-  await youtube.click();
-  await expect(
-    page.getByRole('region', { name: 'Music connections' }).getByRole('status'),
-  ).toHaveText('Open Aura’s desktop application to use music services.');
+  await expect(page.getByText('No music playing')).toBeVisible();
+  await page.getByRole('button', { name: 'Open Music' }).click();
+  await expect(page.getByRole('alert')).toContainText('Playback action failed');
 });
 
 test('monitor errors show unavailable readings and recover through the retry control', async ({
@@ -408,7 +398,7 @@ test('all five themes update the host across windows and survive reload', async 
   ).toHaveAttribute('aria-pressed', 'true');
 });
 
-test('all twelve layouts apply without clipped modules or connection buttons', async ({
+test('all fourteen layouts apply without clipped modules or music entry points', async ({
   page,
   context,
 }) => {
@@ -418,7 +408,7 @@ test('all twelve layouts apply without clipped modules or connection buttons', a
   await settings.setViewportSize({ width: 840, height: 640 });
   await settings.goto('/?window=settings');
   await settings.getByRole('tab', { name: 'Layout', exact: true }).click();
-  await expect(settings.locator('.layout-option')).toHaveCount(12);
+  await expect(settings.locator('.layout-option')).toHaveCount(layouts.length);
   for (const layout of layouts) {
     const option = settings.getByRole('button', {
       name: `${layout.title}, ${layout.description}`,
@@ -452,14 +442,14 @@ test('all twelve layouts apply without clipped modules or connection buttons', a
         };
       });
     });
-    expect(bounds, layout.id).toHaveLength(3);
+    expect(bounds, layout.id).toHaveLength('focus' in layout ? 2 : 3);
     expect(
       bounds.every((bound) => bound.inside && bound.noOverflow),
       layout.id,
     ).toBe(true);
-    for (const name of ['Connect Spotify', 'Connect YouTube']) {
-      await expect(page.getByRole('button', { name })).toBeInViewport();
-    }
+    await expect(
+      page.getByRole('button', { name: 'Open Music' }),
+    ).toBeInViewport();
   }
   await page.reload();
   await expect(page.getByLabel('Aura widget host')).toHaveAttribute(
@@ -476,7 +466,7 @@ test('settings tabs support keyboard navigation', async ({ page }) => {
   await expect(
     page.getByRole('tab', { name: 'Layout', exact: true }),
   ).toBeFocused();
-  await expect(page.locator('.layout-option')).toHaveCount(12);
+  await expect(page.locator('.layout-option')).toHaveCount(layouts.length);
   await page.keyboard.press('Home');
   await expect(
     page.getByRole('tab', { name: 'Theme', exact: true }),

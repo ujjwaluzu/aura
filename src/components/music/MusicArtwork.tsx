@@ -31,7 +31,7 @@ export function MusicArtwork({ url }: { url: string | null }) {
   return (
     <span className="music-artwork" ref={ref}>
       {image?.url === url ? (
-        <img src={image.data} alt="" />
+        <img src={image.data} alt="" onError={() => setImage(null)} />
       ) : (
         <Music2 size={20} />
       )}

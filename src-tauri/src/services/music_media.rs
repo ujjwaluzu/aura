@@ -50,7 +50,7 @@ impl MediaService {
         if let Ok(mut saved) = self.state.lock() {
             *saved = state.clone();
         }
-        for label in ["widget-host", "music", "settings"] {
+        for label in ["widget-host", "settings"] {
             let _ = app.emit_to(label, "aura://playback-changed", &state);
         }
     }
@@ -265,6 +265,8 @@ mod native {
             let key = format!("{title}\0{artist}");
             if key != self.artwork_key {
                 self.artwork_key = key.clone();
+                self.artwork = None;
+                self.artwork_loaded_key.clear();
                 let now = std::time::Instant::now();
                 self.artwork_retry_after = Some(now + std::time::Duration::from_millis(750));
                 self.artwork_missing_since = Some(now);
@@ -282,9 +284,18 @@ mod native {
                 let now = std::time::Instant::now();
                 self.artwork_retry_after = Some(now + std::time::Duration::from_secs(5));
                 if let Ok(artwork) = thumbnail(&properties) {
-                    self.artwork = Some(artwork);
-                    self.artwork_loaded_key = key;
-                    self.artwork_missing_since = None;
+                    // A slow thumbnail read must not install artwork for metadata
+                    // that changed while Windows was returning the image.
+                    let latest = self.native.TryGetMediaPropertiesAsync()?.join()?;
+                    let latest_key = format!("{}\0{}", latest.Title()?, latest.Artist()?);
+                    if latest_key == key {
+                        self.artwork = Some(artwork);
+                        self.artwork_loaded_key = key;
+                        self.artwork_missing_since = None;
+                    } else {
+                        self.artwork = None;
+                        let _ = self.refresh_sender.try_send(Message::Refresh);
+                    }
                 } else if self.artwork_missing_since.is_some_and(|since| {
                     now.duration_since(since) >= std::time::Duration::from_secs(30)
                 }) {
@@ -442,6 +453,7 @@ mod native {
         let mut next_id = 0u64;
         let mut selected: Option<String> = None;
         let mut selected_source: Option<String> = None;
+        let mut selection_message: Option<String> = None;
         let _ = tx.try_send(Message::Refresh);
         while let Ok(message) = rx.recv() {
             if service.stopped.load(Ordering::SeqCst) {
@@ -458,6 +470,7 @@ mod native {
                             .and_then(|session| session.native.SourceAppUserModelId().ok())
                             .map(|source| source.to_string());
                         selected = id;
+                        selection_message = None;
                         Ok(())
                     } else {
                         Err(media_error())
@@ -512,21 +525,15 @@ mod native {
                     &tx,
                 ));
             }
-            if !sessions.iter().any(|s| Some(&s.id) == selected.as_ref()) {
+            let disappeared =
+                selected.is_some() && !sessions.iter().any(|s| Some(&s.id) == selected.as_ref());
+            if disappeared {
                 selected = None;
-                if let Some(source) = selected_source.as_deref() {
-                    let mut replacements = sessions.iter().filter(|session| {
-                        session
-                            .native
-                            .SourceAppUserModelId()
-                            .is_ok_and(|candidate| candidate.to_string() == source)
-                    });
-                    if let Some(replacement) = replacements.next() {
-                        if replacements.next().is_none() {
-                            selected = Some(replacement.id.clone());
-                        }
-                    }
-                }
+                selected_source = None;
+            }
+            if disappeared {
+                selection_message =
+                    Some("The selected player closed. Choose a media session again.".into());
             }
             let snapshots = sessions
                 .iter_mut()
@@ -537,7 +544,7 @@ mod native {
                 PlaybackState {
                     sessions: snapshots,
                     selected_id: selected.clone(),
-                    message: None,
+                    message: selection_message.clone(),
                 },
             );
         }

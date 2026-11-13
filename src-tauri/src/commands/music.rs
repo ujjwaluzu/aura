@@ -9,12 +9,12 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State, WebviewWindow};
 
 pub fn allowed(label: &str) -> Result<(), AppError> {
-    if matches!(label, "widget-host" | "music" | "settings") {
+    if matches!(label, "widget-host" | "settings") {
         Ok(())
     } else {
         Err(AppError::new(
             "FORBIDDEN",
-            "Music commands are available in the widget host, Aura Music, and Settings.",
+            "Music commands are available in the widget host and Settings.",
         ))
     }
 }
@@ -22,7 +22,7 @@ fn task_error() -> AppError {
     AppError::new("MUSIC_FAILURE", "The music operation could not finish.")
 }
 fn notify(app: &AppHandle, state: &MusicAccountState) {
-    for label in ["widget-host", "music", "settings"] {
+    for label in ["widget-host", "settings"] {
         let _ = app.emit_to(label, "aura://music-account-changed", state);
     }
 }
@@ -169,7 +169,7 @@ mod tests {
     #[test]
     fn host_music_and_settings_have_native_access() {
         assert!(allowed("widget-host").is_ok());
-        assert!(allowed("music").is_ok());
+        assert!(allowed("music").is_err());
         assert!(allowed("settings").is_ok());
         for label in ["main", "", "music-other"] {
             assert!(allowed(label).is_err());

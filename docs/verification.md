@@ -1,5 +1,9 @@
 ﻿# Foundation verification
 
+The subsequent [UX redesign verification](ux-redesign.md) records the consolidated
+Settings experience, updated checks, and outstanding release acceptance. The
+measurements below describe earlier milestones.
+
 The latest official YouTube API milestone passed 29 Rust tests, 27 browser tests,
 one native release WebView integration test and a separately enabled live token
 refresh test. Real-account browsing, disposable-playlist edits, rating restoration,

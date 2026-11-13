@@ -447,6 +447,28 @@ pub fn artwork(url: &str) -> Result<String, AppError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn native_availability_matches_build_gate_without_saved_credentials() {
+        let directory = std::env::temp_dir().join(format!(
+            "aura-availability-{}-{}",
+            std::process::id(),
+            music_oauth::now()
+        ));
+        let service = MusicService::new(Some(directory));
+        let state = service.status().unwrap();
+        assert_eq!(state.validation_build, music_oauth::validation_build());
+        assert_eq!(
+            state.status,
+            if music_oauth::gate().is_ok() {
+                "disconnected"
+            } else {
+                "unavailable"
+            }
+        );
+        assert!(state.name.is_none());
+        assert!(state.channel_id.is_none());
+    }
+
     /// Explicit developer-only acceptance check. Never runs in the normal suite.
     #[cfg(windows)]
     #[test]

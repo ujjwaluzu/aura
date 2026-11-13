@@ -42,6 +42,7 @@ export function ElasticSlider({
     return next;
   };
   const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (disabled) return;
     const delta =
       event.key === 'ArrowRight' || event.key === 'ArrowUp'
         ? 1
@@ -61,7 +62,10 @@ export function ElasticSlider({
     onChange(next);
     onChangeEnd?.(next);
   };
-  const percent = max > min ? ((value - min) / (max - min)) * 100 : 0;
+  const percent =
+    max > min
+      ? Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100))
+      : 0;
   return (
     <div
       className={`elastic-slider ${active ? 'is-active' : ''} ${disabled ? 'is-disabled' : ''}`}

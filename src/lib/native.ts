@@ -28,10 +28,33 @@ export async function getFoundationInfo(): Promise<FoundationInfo> {
   return info;
 }
 
-export async function openSettings(): Promise<void> {
+export type MusicSection = 'player' | 'search' | 'playlists' | 'liked';
+export type SettingsDestination = 'theme' | 'layout' | `music-${MusicSection}`;
+export async function openSettings(
+  destination?: SettingsDestination,
+): Promise<void> {
   if (!isDesktop())
     throw new Error(
       'Settings opens in a separate window in the desktop application.',
     );
-  await invoke('open_settings');
+  await invoke('open_settings', { destination: destination ?? null });
+}
+
+/** User-facing recovery; raw structured errors stay in the window diagnostics. */
+export function musicError(error: unknown): string {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String(error.code)
+      : '';
+  if (/TIMEOUT/.test(code))
+    return 'This took too long. Check your connection and try again.';
+  if (/EXPIRED|AUTH/.test(code))
+    return 'Your authorization expired. Reconnect your account in Player.';
+  if (/NETWORK|OFFLINE/.test(code))
+    return 'Could not reach YouTube. Check your connection and refresh.';
+  if (/VOLUME/.test(code))
+    return 'Volume is unavailable. Try again while the browser is playing audio.';
+  if (/FORBIDDEN|READ_ONLY/.test(code))
+    return 'This action is unavailable for this account or playlist.';
+  return 'The action could not finish. Refresh to check the result.';
 }

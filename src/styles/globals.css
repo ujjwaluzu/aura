@@ -107,10 +107,10 @@ input:focus-visible {
 .host-modules {
   z-index: 1;
   display: grid;
-  grid-template-rows: 80px minmax(0, 1fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 10px;
   min-width: 0;
-  padding: 48px 14px 14px 12px;
+  padding: 42px 14px 10px 12px;
 }
 .clock-widget {
   z-index: 1;
@@ -245,7 +245,7 @@ input:focus-visible {
 }
 .host-tools .icon-button {
   width: 28px;
-  height: 26px;
+  height: 28px;
   border-radius: 8px;
   color: #c9b8e8;
   background: rgba(218, 197, 255, 0.035);
@@ -257,71 +257,6 @@ input:focus-visible {
 .host-tools .icon-button svg {
   width: 14px;
   height: 14px;
-}
-.music-connect-card {
-  container-type: inline-size;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px;
-  cursor: grab;
-}
-.music-connect-card-playing {
-  gap: 0;
-}
-.music-connect-card-playing .music-connect-notice {
-  min-height: 0;
-  margin: 0;
-}
-.music-connect-card-playing .music-widget-connected {
-  height: 100%;
-}
-.music-connect-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-}
-.music-connect-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 38px;
-  flex: 1;
-  max-width: 250px;
-  padding: 8px 10px;
-  border: 1px solid rgba(206, 185, 247, 0.15);
-  border-radius: 9px;
-  background: rgba(170, 137, 225, 0.075);
-  color: #e3d9f5;
-  font-size: 11px;
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast),
-    transform var(--transition-fast);
-}
-.music-connect-button:hover {
-  border-color: rgba(206, 185, 247, 0.3);
-  background: rgba(170, 137, 225, 0.14);
-  transform: translateY(-1px);
-}
-.music-connect-button:active {
-  transform: translateY(0);
-}
-.music-connect-button svg {
-  flex: 0 0 18px;
-  width: 18px;
-  height: 18px;
-}
-.music-connect-notice {
-  min-height: 14px;
-  font-size: 10px;
-  color: var(--color-secondary);
-  text-align: center;
 }
 .host-notice {
   z-index: 3;
@@ -532,14 +467,6 @@ p {
   }
   .music-connect-card {
     padding: 10px;
-  }
-  .music-connect-actions {
-    gap: 8px;
-  }
-  .music-connect-button {
-    padding: 8px;
-    gap: 7px;
-    font-size: 11px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

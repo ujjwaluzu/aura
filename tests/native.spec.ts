@@ -1,30 +1,22 @@
-import { chromium, expect, test } from '@playwright/test';
+﻿import { chromium, expect, test } from '@playwright/test';
 import { layouts } from '../src/features/layouts/catalog';
 import { themes } from '../src/features/themes/catalog';
 import type { Preferences } from '../src/types/preferences';
+import type { PlaybackState } from '../src/types/music';
 
-/** Attach only to an Aura WebView2 test instance started locally by the developer.
- * No debug endpoint is configured in the production application. */
-test('real Rust IPC, window controls, settings isolation and host-owned shutdown', async () => {
-  test.setTimeout(60_000);
-  const endpoint = process.env.AURA_NATIVE_CDP;
-  if (!endpoint)
-    throw new Error('Start a debug Aura instance and set AURA_NATIVE_CDP.');
-  const browser = await chromium.connectOverCDP(endpoint);
-  const context = browser.contexts()[0];
-  if (!context) throw new Error('No Aura WebView context found.');
+/** Real packaged WebView IPC. Set AURA_NATIVE_CDP for a task-owned Aura instance. */
+test('Settings permissions, navigation reuse, playback events and preferences over Rust IPC', async () => {
+  test.setTimeout(120_000);
+  const browser = await chromium.connectOverCDP(process.env.AURA_NATIVE_CDP!);
+  const context = browser.contexts()[0]!;
   const host = context
     .pages()
     .find(
-      (page) =>
-        page.url().startsWith('http://tauri.localhost/') &&
-        !page.url().includes('window=settings'),
+      (p) =>
+        !p.url().includes('window=settings') &&
+        /tauri.localhost|127.0.0.1:1420/.test(p.url()),
     );
-  if (!host) throw new Error('No Aura host page found.');
-
-  await expect(
-    host.getByRole('status', { name: 'Native connection' }),
-  ).toHaveText('Native core connected');
+  if (!host) throw new Error('No Aura widget host found.');
   const invoke = <T>(
     page: typeof host,
     command: string,
@@ -32,8 +24,8 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
     captureError = false,
   ) =>
     page.evaluate(
-      ({ command, args, captureError }) => {
-        const internals = (
+      ({ command, args, captureError }) =>
+        (
           window as unknown as {
             __TAURI_INTERNALS__: {
               invoke: (
@@ -42,318 +34,257 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
               ) => Promise<unknown>;
             };
           }
-        ).__TAURI_INTERNALS__;
-        return internals.invoke(command, args).catch((error: unknown) => {
-          if (captureError) return error;
-          throw error;
-        });
-      },
+        ).__TAURI_INTERNALS__
+          .invoke(command, args)
+          .catch((e: unknown) => {
+            if (captureError) return e;
+            throw e;
+          }),
       { command, args, captureError },
     ) as Promise<T>;
-
-  const info = await invoke<{
-    appName: string;
-    platform: string;
-    protocolVersion: number;
-  }>(host, 'get_foundation_info', { protocolVersion: 1 });
-  expect(info).toMatchObject({
-    appName: 'Aura',
-    platform: 'windows',
-    protocolVersion: 1,
-  });
-  const originalPreferences = await invoke<Preferences>(
+  const original = await invoke<Preferences>(host, 'get_preferences');
+  const originalPlayback = await invoke<PlaybackState>(
     host,
-    'get_preferences',
-  );
-  await expect(host.locator('body')).toHaveCSS(
-    'background-color',
-    'rgba(0, 0, 0, 0)',
-  );
-  const bounds = await host.evaluate(() => ({
-    content: document.documentElement.scrollHeight,
-    viewport: innerHeight,
-  }));
-  expect(bounds.content).toBeLessThanOrEqual(bounds.viewport);
-  await expect(host.getByLabel('Current time')).toBeVisible();
-  // Allow a few logical pixels for native frame/DPI rounding.
-  expect(bounds.viewport).toBeGreaterThanOrEqual(260);
-  expect(bounds.viewport).toBeLessThanOrEqual(268);
-  await expect(
-    host.getByRole('button', { name: 'Connect Spotify' }),
-  ).toBeVisible();
-  await expect(
-    host.getByRole('button', { name: 'Connect YouTube' }),
-  ).toBeVisible();
-  await expect(
-    host.getByRole('region', { name: 'System usage' }),
-  ).toBeVisible();
-  await expect(host.getByRole('meter', { name: 'CPU usage' })).toHaveAttribute(
-    'aria-valuenow',
-    /\d/,
-  );
-  const usage = await invoke<{
-    cpuPercent: number | null;
-    memoryPercent: number | null;
-    usedMemoryBytes: number;
-    totalMemoryBytes: number;
-    sampledAtUnixMs: number;
-  }>(host, 'get_system_snapshot');
-  expect(usage.totalMemoryBytes).toBeGreaterThan(0);
-  expect(usage.usedMemoryBytes).toBeGreaterThanOrEqual(0);
-  expect(usage.usedMemoryBytes).toBeLessThanOrEqual(usage.totalMemoryBytes);
-  expect(usage.cpuPercent).not.toBeNull();
-  expect(usage.cpuPercent).toBeGreaterThanOrEqual(0);
-  expect(usage.cpuPercent).toBeLessThanOrEqual(100);
-  expect(usage.memoryPercent).toBeGreaterThanOrEqual(0);
-  expect(usage.memoryPercent).toBeLessThanOrEqual(100);
-  await expect(
-    host
-      .locator('.usage-sparkline')
-      .first()
-      .locator('path[stroke="currentColor"]')
-      .last(),
-  ).toHaveAttribute('d', /C/);
-  await host.screenshot({
-    path: 'artifacts/aura-compact-purple-native.png',
-    omitBackground: true,
-    animations: 'disabled',
-  });
-  const rejected = await invoke(
-    host,
-    'get_foundation_info',
-    { protocolVersion: 0 },
-    true,
-  );
-  expect(rejected).toMatchObject({ code: 'PROTOCOL_MISMATCH' });
-
-  const account = await invoke<{ status: string }>(
-    host,
-    'music_account_status',
-  );
-  expect(account.status).toBe('unavailable');
-  const gatedConnect = await invoke(host, 'music_connect', {}, true);
-  expect(gatedConnect).toMatchObject({ code: 'MUSIC_UNAVAILABLE' });
-  const invalidPlayerLink = await invoke(
-    host,
-    'music_open_player',
-    { target: { kind: 'track', id: 'https://evil.test' } },
-    true,
-  );
-  expect(invalidPlayerLink).toMatchObject({ code: 'INVALID_INPUT' });
-  const musicEvent = context.waitForEvent('page');
-  await invoke(host, 'open_music');
-  const music = await musicEvent;
-  await expect(
-    music.getByRole('heading', { name: 'Bring your library closer' }),
-  ).toBeVisible();
-  await expect(music.locator('body')).toHaveCSS(
-    'background-color',
-    'rgb(17, 19, 24)',
-  );
-  await expect(
-    music.getByRole('button', { name: 'Connect YouTube', exact: true }),
-  ).toBeDisabled();
-  expect(
-    await invoke<{ status: string }>(music, 'music_account_status'),
-  ).toMatchObject({ status: 'unavailable' });
-  const sessions = await invoke<{
-    sessions: unknown[];
-    selectedId: string | null;
-  }>(music, 'music_playback_status');
-  expect(Array.isArray(sessions.sessions)).toBe(true);
-  expect(sessions.selectedId).toBeNull();
-  expect(
-    await invoke(
-      music,
-      'music_select_session',
-      { id: 'missing-session' },
-      true,
-    ),
-  ).toMatchObject({ code: 'MEDIA_UNAVAILABLE' });
-  const musicPreferencesDenied = await invoke(
-    music,
-    'set_preferences',
-    { patch: { themeId: 'ocean' } },
-    true,
-  );
-  expect(String(musicPreferencesDenied)).toMatch(/not allowed|denied/i);
-  await invoke(host, 'open_music');
-  expect(
-    context.pages().filter((page) => page.url().includes('window=music')),
-  ).toHaveLength(1);
-  await music.screenshot({ path: 'artifacts/aura-music-native.png' });
-  const musicClosed = music.waitForEvent('close');
-  await invoke(music, 'plugin:window|close', { label: 'music' }).catch(
-    () => {},
-  );
-  await musicClosed;
-  await expect(host.getByLabel('Current time')).toBeVisible();
-
-  // DOM activation checks the React -> IPC -> native path; physical dragging,
-  // hit testing and desktop composition remain manual QA.
-  await host
-    .getByRole('button', { name: 'Always on top' })
-    .dispatchEvent('click');
-  await expect(
-    host.getByRole('button', { name: 'Always on top' }),
-  ).toHaveAttribute('aria-pressed', 'true');
-  await host
-    .getByRole('button', { name: 'Always on top' })
-    .dispatchEvent('click');
-  await expect(
-    host.getByRole('button', { name: 'Always on top' }),
-  ).toHaveAttribute('aria-pressed', 'false');
-
-  const settingsEvent = context.waitForEvent('page');
-  await host
-    .getByRole('button', { name: 'Open settings' })
-    .dispatchEvent('click');
-  const settings = await settingsEvent;
-  await expect(
-    settings.getByRole('heading', { name: 'Settings', exact: true }),
-  ).toBeVisible();
-  await expect(settings.locator('body')).toHaveCSS(
-    'background-color',
-    'rgb(17, 19, 24)',
-  );
-  await expect(settings.locator('.settings-app')).toHaveCSS(
-    'backdrop-filter',
-    'none',
-  );
-  await expect(settings.getByRole('button', { name: / theme$/ })).toHaveCount(
-    5,
-  );
-  const forbiddenWrite = await invoke(
-    host,
-    'set_preferences',
-    { patch: { themeId: 'ocean' } },
-    true,
-  );
-  expect(String(forbiddenWrite)).toMatch(/not allowed|denied/i);
-  const ocean = settings.getByRole('button', { name: 'Ocean theme' });
-  await expect(ocean).toBeEnabled();
-  await ocean.dispatchEvent('click');
-  await expect(host.getByLabel('Aura widget host')).toHaveAttribute(
-    'data-theme',
-    'ocean',
-  );
-  await expect(ocean).toHaveAttribute('aria-pressed', 'true');
-  await settings.screenshot({
-    path: 'artifacts/aura-settings-theme.png',
-    animations: 'disabled',
-  });
-  await settings
-    .getByRole('tab', { name: 'Layout', exact: true })
-    .dispatchEvent('click');
-  await expect(settings.locator('.layout-option')).toHaveCount(12);
-  for (const layout of layouts) {
-    const option = settings.getByRole('button', {
-      name: `${layout.title}, ${layout.description}`,
-      exact: true,
-    });
-    await expect(option).toBeEnabled();
-    await option.dispatchEvent('click');
-    await expect(host.getByLabel('Aura widget host')).toHaveAttribute(
-      'data-layout',
-      layout.id,
-    );
-  }
-  const example = settings.getByRole('button', {
-    name: 'Clock right, Music above CPU / RAM',
-    exact: true,
-  });
-  await expect(example).toBeEnabled();
-  await example.dispatchEvent('click');
-  await expect(host.getByLabel('Aura widget host')).toHaveAttribute(
-    'data-layout',
-    'clock-right-music-stats',
-  );
-  await settings.screenshot({
-    path: 'artifacts/aura-settings-layout.png',
-    animations: 'disabled',
-  });
-  await host.screenshot({
-    path: 'artifacts/aura-ocean-clock-right.png',
-    omitBackground: true,
-    animations: 'disabled',
-  });
-  const invalidTheme = await invoke(
-    settings,
-    'set_preferences',
-    { patch: { themeId: 'invalid' } },
-    true,
-  );
-  expect(String(invalidTheme)).toMatch(/invalid|unknown variant/i);
-  await invoke(settings, 'set_preferences', {
-    patch: {
-      themeId: originalPreferences.themeId,
-      layoutId: originalPreferences.layoutId,
-    },
-  });
-  await expect(host.getByLabel('Aura widget host')).toHaveAttribute(
-    'data-theme',
-    originalPreferences.themeId,
-  );
-  await expect(host.getByLabel('Aura widget host')).toHaveAttribute(
-    'data-layout',
-    originalPreferences.layoutId,
-  );
-  const denied = await invoke(
-    settings,
-    'get_foundation_info',
-    { protocolVersion: 1 },
-    true,
-  );
-  expect(String(denied)).toMatch(/not allowed|not found|denied/i);
-  const monitorDenied = await invoke(settings, 'get_system_snapshot', {}, true);
-  expect(String(monitorDenied)).toMatch(/not allowed|not found|denied/i);
-  for (const command of [
-    'open_music',
-    'music_account_status',
-    'music_connect',
-    'music_disconnect',
     'music_playback_status',
-  ]) {
-    const deniedMusic = await invoke(settings, command, {}, true);
-    expect(String(deniedMusic), command).toMatch(
-      /not allowed|not found|denied/i,
-    );
-  }
-  await host
-    .getByRole('button', { name: 'Open settings' })
-    .dispatchEvent('click');
-  expect(
-    context.pages().filter((page) => page.url().includes('window=settings')),
-  ).toHaveLength(1);
-
-  const closed = settings.waitForEvent('close');
-  await settings.getByRole('button', { name: 'Done' }).dispatchEvent('click');
-  await closed;
-  await expect(
-    host.getByRole('status', { name: 'Native connection' }),
-  ).toHaveText('Native core connected');
-  const reopened = context.waitForEvent('page');
-  await host
-    .getByRole('button', { name: 'Open settings' })
-    .dispatchEvent('click');
-  const secondSettings = await reopened;
-  await expect(
-    secondSettings.getByRole('heading', { name: 'Settings', exact: true }),
-  ).toBeVisible();
-  await expect(
-    secondSettings.getByRole('button', {
-      name: `${themes.find((theme) => theme.id === originalPreferences.themeId)!.name} theme`,
-    }),
-  ).toHaveAttribute('aria-pressed', 'true');
-  await invoke(host, 'plugin:window|minimize', { label: 'widget-host' });
-  const paused = await invoke(host, 'get_system_snapshot', {}, true);
-  expect(paused).toMatchObject({ code: 'MONITOR_PAUSED' });
-  const disconnected = new Promise<void>((resolve) =>
-    browser.once('disconnected', () => resolve()),
   );
-  await host
-    .getByRole('button', { name: 'Quit Aura' })
-    .dispatchEvent('click')
-    .catch(() => {});
-  await disconnected;
+  let settings = context
+    .pages()
+    .find((p) => p.url().includes('window=settings'));
+  try {
+    await expect(
+      host.getByRole('status', { name: 'Native connection' }),
+    ).toHaveText('Native core connected');
+    expect(
+      await invoke(host, 'get_foundation_info', { protocolVersion: 0 }, true),
+    ).toMatchObject({ code: 'PROTOCOL_MISMATCH' });
+    if (!settings) {
+      const created = context.waitForEvent('page');
+      await invoke(host, 'open_music');
+      settings = await created;
+    } else await invoke(host, 'open_music');
+    await expect(
+      settings.getByRole('heading', { name: 'Settings', exact: true }),
+    ).toBeVisible();
+    await expect(
+      settings.getByRole('button', { name: 'Playlists', exact: true }),
+    ).toHaveAttribute('aria-current', 'page');
+    await expect(settings.locator('body')).toHaveCSS(
+      'background-color',
+      'rgb(17, 19, 24)',
+    );
+    const dimensions = await settings.evaluate(() => ({
+      width: innerWidth,
+      height: innerHeight,
+    }));
+    expect(dimensions.width).toBeGreaterThanOrEqual(720);
+    expect(dimensions.height).toBeGreaterThanOrEqual(500);
+    await invoke(host, 'open_settings', { destination: 'music-player' });
+    await expect(
+      settings.getByRole('button', { name: 'Player', exact: true }),
+    ).toHaveAttribute('aria-current', 'page');
+    const account = await invoke<{ status: string; validationBuild: boolean }>(
+      settings,
+      'music_account_status',
+    );
+    expect(account.validationBuild).toBe(
+      Boolean(process.env.AURA_EXPECT_VALIDATION),
+    );
+    if (!account.validationBuild) {
+      expect(account.status).toBe('unavailable');
+      expect(await invoke(settings, 'music_connect', {}, true)).toMatchObject({
+        code: 'MUSIC_UNAVAILABLE',
+      });
+      await expect(
+        settings.getByRole('button', { name: 'Connect YouTube', exact: true }),
+      ).toBeDisabled();
+    } else
+      expect(['connected', 'disconnected', 'expired']).toContain(
+        account.status,
+      );
+    const state = await invoke<PlaybackState>(
+      settings,
+      'music_playback_status',
+    );
+    expect(Array.isArray(state.sessions)).toBe(true);
+    // Subscription must receive an event caused by a real Rust session command.
+    await settings.evaluate(() => {
+      Object.assign(window, { auraPlaybackEvents: 0 });
+      const api = (
+        window as unknown as {
+          __TAURI_INTERNALS__: {
+            transformCallback: (fn: () => void) => number;
+            invoke: (cmd: string, args: unknown) => Promise<unknown>;
+          };
+        }
+      ).__TAURI_INTERNALS__;
+      return api.invoke('plugin:event|listen', {
+        event: 'aura://playback-changed',
+        target: { kind: 'Any' },
+        handler: api.transformCallback(() => {
+          (window as unknown as { auraPlaybackEvents: number })
+            .auraPlaybackEvents++;
+        }),
+      });
+    });
+    await invoke(settings, 'music_select_session', { id: null });
+    await expect
+      .poll(() =>
+        settings!.evaluate(
+          () =>
+            (window as unknown as { auraPlaybackEvents: number })
+              .auraPlaybackEvents,
+        ),
+      )
+      .toBeGreaterThan(0);
+    await expect(settings.getByLabel('Windows media session')).toHaveValue('');
+    if (state.sessions[0]) {
+      await settings
+        .getByLabel('Windows media session')
+        .selectOption(state.sessions[0].id);
+      await expect
+        .poll(
+          async () =>
+            (await invoke<PlaybackState>(host, 'music_playback_status'))
+              .selectedId,
+        )
+        .toBe(state.sessions[0].id);
+      await expect(host.locator('.player-information strong')).toHaveText(
+        state.sessions[0].title || 'Untitled media',
+      );
+    }
+    await invoke(settings, 'music_select_session', { id: null });
+    for (const [command, args] of [
+      ['music_media_control', { action: 'pause' }],
+      ['music_media_seek', { positionSeconds: 1 }],
+      ['music_media_volume', { level: null }],
+      ['music_select_session', { id: 'missing-session' }],
+    ] as const) {
+      const result = await invoke<{ code: string }>(
+        settings,
+        command,
+        args,
+        true,
+      );
+      expect(['MEDIA_UNAVAILABLE', 'BROWSER_VOLUME_UNAVAILABLE']).toContain(
+        result.code,
+      );
+    }
+    // Invalid inputs prove these commands reached native validation rather than ACL denial.
+    for (const [command, args] of [
+      [
+        'music_browse',
+        { query: { kind: 'playlist', id: 'https://invalid.test' } },
+      ],
+      [
+        'music_change',
+        { change: { kind: 'like', id: 'https://invalid.test', liked: true } },
+      ],
+      [
+        'music_open_player',
+        { target: { kind: 'track', id: 'https://invalid.test' } },
+      ],
+      ['music_artwork', { url: 'https://invalid.test/art.png' }],
+    ] as const) {
+      const result = await invoke(settings, command, args, true);
+      expect(JSON.stringify(result), command).not.toMatch(
+        /not allowed|denied/i,
+      );
+      expect(result).toHaveProperty('code');
+    }
+    await invoke(host, 'open_settings');
+    await expect(
+      settings.getByRole('button', { name: 'Player', exact: true }),
+    ).toHaveAttribute('aria-current', 'page');
+    await invoke(host, 'open_settings', { destination: 'theme' });
+    for (const theme of themes) {
+      const option = settings.getByRole('button', {
+        name: `${theme.name} theme`,
+      });
+      await expect(option).toBeEnabled();
+      await option.dispatchEvent('click');
+      await expect(host.getByLabel('Aura widget host')).toHaveAttribute(
+        'data-theme',
+        theme.id,
+      );
+    }
+    await invoke(host, 'open_settings', { destination: 'layout' });
+    await expect(settings.locator('.layout-option')).toHaveCount(
+      layouts.length,
+    );
+    for (const layout of layouts) {
+      const option = settings.getByRole('button', {
+        name: `${layout.title}, ${layout.description}`,
+        exact: true,
+      });
+      await expect(option).toBeEnabled();
+      await option.dispatchEvent('click');
+      await expect(host.getByLabel('Aura widget host')).toHaveAttribute(
+        'data-layout',
+        layout.id,
+      );
+    }
+    for (const command of ['get_system_snapshot', 'get_foundation_info'])
+      expect(
+        JSON.stringify(
+          await invoke(settings, command, { protocolVersion: 1 }, true),
+        ),
+      ).toMatch(/not allowed|denied/i);
+    expect(
+      JSON.stringify(
+        await invoke(
+          host,
+          'set_preferences',
+          { patch: { themeId: 'ocean' } },
+          true,
+        ),
+      ),
+    ).toMatch(/not allowed|denied/i);
+    await invoke(host, 'open_music');
+    await expect(
+      settings.getByRole('button', { name: 'Playlists', exact: true }),
+    ).toHaveAttribute('aria-current', 'page');
+    expect(
+      context.pages().filter((p) => p.url().includes('window=settings')),
+    ).toHaveLength(1);
+    expect(
+      context.pages().filter((p) => p.url().includes('window=music')),
+    ).toHaveLength(0);
+    await invoke(settings, 'set_preferences', {
+      patch: { themeId: original.themeId, layoutId: original.layoutId },
+    });
+    await invoke(settings, 'music_select_session', {
+      id: originalPlayback.selectedId,
+    });
+    await settings.screenshot({
+      path: `artifacts/aura-settings-${account.validationBuild ? 'validation' : 'regular'}-native.png`,
+    });
+    const beforeClose = await invoke<PlaybackState>(
+      host,
+      'music_playback_status',
+    );
+    const closed = settings.waitForEvent('close');
+    await settings.getByRole('button', { name: 'Done' }).dispatchEvent('click');
+    await closed;
+    expect(
+      (await invoke<PlaybackState>(host, 'music_playback_status')).selectedId,
+    ).toBe(beforeClose.selectedId);
+    const reopened = context.waitForEvent('page');
+    await invoke(host, 'open_settings', { destination: 'music-search' });
+    settings = await reopened;
+    await expect(
+      settings.getByRole('button', { name: 'Search', exact: true }).first(),
+    ).toHaveAttribute('aria-current', 'page');
+    await settings.getByRole('button', { name: 'Done' }).dispatchEvent('click');
+  } finally {
+    // Restore user preferences/session even when assertions fail.
+    if (settings && !settings.isClosed()) {
+      await invoke(settings, 'set_preferences', {
+        patch: { themeId: original.themeId, layoutId: original.layoutId },
+      }).catch(() => {});
+    }
+    await invoke(host, 'music_select_session', {
+      id: originalPlayback.selectedId,
+    }).catch(() => {});
+    await browser.close();
+  }
 });

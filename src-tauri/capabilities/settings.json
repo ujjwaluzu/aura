@@ -17,6 +17,11 @@
     "allow-music-media-volume",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
-    "core:window:allow-close"
+    "core:window:allow-close",
+    "allow-open-settings",
+    "allow-music-browse",
+    "allow-music-change",
+    "allow-music-open-player",
+    "allow-music-artwork"
   ]
 }

@@ -13,8 +13,8 @@ import { systemMonitorDefinition } from '../components/widgets/system-monitor/de
 import { musicDefinition } from '../components/widgets/music-player/definition';
 import { AmbientWave } from '../components/ui/AmbientWave';
 import { usePreferences } from '../hooks/usePreferences';
+import { WidgetArrangement } from '../features/layouts/WidgetArrangement';
 import { getLayout } from '../features/layouts/catalog';
-import { MusicWindow } from '../components/music/MusicWindow';
 
 const clock: WidgetInstance = {
   id: 'host-clock',
@@ -47,10 +47,9 @@ const music: WidgetInstance = {
 };
 
 export function App() {
-  if (new URLSearchParams(window.location.search).get('window') === 'music')
-    return <MusicWindow />;
-  return new URLSearchParams(window.location.search).get('window') ===
-    'settings' ? (
+  return ['settings', 'music'].includes(
+    new URLSearchParams(window.location.search).get('window') ?? '',
+  ) ? (
     <Settings />
   ) : (
     <WidgetHost />
@@ -108,54 +107,19 @@ function WidgetHost() {
         data-focus={layout.focus ? 'music' : undefined}
       >
         <AmbientWave />
-        {layout.focus ? (
-          <>
-            <div className="focus-clock-slot">
-              <WidgetRenderer
-                instance={{
-                  ...clock,
-                  themeId: preferences.themeId,
-                }}
-              />
-            </div>
-            <div className="widget-divider" aria-hidden="true" />
-            <div className="focus-music-slot">
-              <WidgetRenderer
-                instance={{ ...music, themeId: preferences.themeId }}
-              />
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="primary-slot">
-              <WidgetRenderer
-                instance={{
-                  ...widgets[layout.primary],
-                  themeId: preferences.themeId,
-                }}
-              />
-            </div>
-            <div className="widget-divider" aria-hidden="true" />
-            <div className="host-modules">
-              <div className="secondary-slot" data-module={layout.top}>
-                <WidgetRenderer
-                  instance={{
-                    ...widgets[layout.top],
-                    themeId: preferences.themeId,
-                  }}
-                />
-              </div>
-              <div className="secondary-slot" data-module={layout.bottom}>
-                <WidgetRenderer
-                  instance={{
-                    ...widgets[layout.bottom],
-                    themeId: preferences.themeId,
-                  }}
-                />
-              </div>
-            </div>
-          </>
-        )}
+        <div
+          className="host-drag-strip"
+          data-tauri-drag-region
+          aria-hidden="true"
+        />
+        <WidgetArrangement
+          layout={layout}
+          render={(module) => (
+            <WidgetRenderer
+              instance={{ ...widgets[module], themeId: preferences.themeId }}
+            />
+          )}
+        />
         <nav className="host-tools" aria-label="Window controls">
           <IconButton
             label="Always on top"
