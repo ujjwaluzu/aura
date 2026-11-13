@@ -417,7 +417,7 @@
   display: none;
 }
 .music-playback-compact .music-now-playing span {
-  display: none;
+  display: block;
 }
 .music-playback-compact .music-transport .icon-button {
   width: 23px;

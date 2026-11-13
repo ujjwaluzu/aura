@@ -45,7 +45,7 @@ export function PlaybackControls({
     <div
       className={`music-playback ${compact ? 'music-playback-compact' : ''}`}
     >
-      {!compact && (
+      {(!compact || (!session && playback.sessions.length > 0)) && (
         <label className="music-session-label">
           Windows media session
           <select
@@ -53,7 +53,7 @@ export function PlaybackControls({
             disabled={busy}
             onChange={(event) => void choose(event.target.value)}
           >
-            <option value="">Choose the YouTube Music session</option>
+            <option value="">Choose a media session</option>
             {playback.sessions.map((s) => (
               <option value={s.id} key={s.id}>
                 {s.title || 'Untitled'} · {s.source}

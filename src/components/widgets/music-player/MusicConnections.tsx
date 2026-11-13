@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { GlassSurface } from '../../ui/GlassSurface';
 import type { WidgetProps } from '../../../features/widget-engine/types';
 import { useMusic } from '../../../hooks/useMusic';
-import { openMusic } from '../../../features/integrations/music';
+import { openMusic, openPlayer } from '../../../features/integrations/music';
 import { errorMessage } from '../../../lib/native';
 import { PlaybackControls } from '../../music/PlaybackControls';
 
@@ -42,6 +42,14 @@ export function MusicConnections({ themeId }: WidgetProps) {
       setNotice(errorMessage(error));
     }
   };
+  const openYouTubeMusic = async () => {
+    setNotice(null);
+    try {
+      await openPlayer({ kind: 'home' });
+    } catch (error) {
+      setNotice(errorMessage(error));
+    }
+  };
   return (
     <GlassSurface
       variant="inset"
@@ -54,6 +62,13 @@ export function MusicConnections({ themeId }: WidgetProps) {
       {account.status === 'connected' || selected ? (
         <div className="music-widget-connected">
           <PlaybackControls playback={playback} compact />
+          <button
+            className="music-library-button"
+            type="button"
+            onClick={() => void openYouTubeMusic()}
+          >
+            Open YouTube Music
+          </button>
           <button
             className="music-library-button"
             type="button"
@@ -79,6 +94,14 @@ export function MusicConnections({ themeId }: WidgetProps) {
           >
             <YouTubeMark />
             <span>Connect YouTube</span>
+          </button>
+          <button
+            className="music-connect-button"
+            type="button"
+            onClick={() => void openYouTubeMusic()}
+          >
+            <YouTubeMark />
+            <span>Open YouTube Music</span>
           </button>
         </div>
       )}
