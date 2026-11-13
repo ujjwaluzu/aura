@@ -320,6 +320,7 @@ mod native {
         let mut sessions: Vec<Session> = Vec::new();
         let mut next_id = 0u64;
         let mut selected: Option<String> = None;
+        let mut selected_source: Option<String> = None;
         let _ = tx.try_send(Message::Refresh);
         while let Ok(message) = rx.recv() {
             if service.stopped.load(Ordering::SeqCst) {
@@ -328,10 +329,13 @@ mod native {
             match message {
                 Message::Stop => break,
                 Message::Select(id, reply) => {
-                    let result = if id
+                    let selected_session = id
                         .as_ref()
-                        .is_none_or(|id| sessions.iter().any(|s| &s.id == id))
-                    {
+                        .and_then(|id| sessions.iter().find(|session| &session.id == id));
+                    let result = if id.is_none() || selected_session.is_some() {
+                        selected_source = selected_session
+                            .and_then(|session| session.native.SourceAppUserModelId().ok())
+                            .map(|source| source.to_string());
                         selected = id;
                         Ok(())
                     } else {
@@ -373,6 +377,19 @@ mod native {
             }
             if !sessions.iter().any(|s| Some(&s.id) == selected.as_ref()) {
                 selected = None;
+                if let Some(source) = selected_source.as_deref() {
+                    let mut replacements = sessions.iter().filter(|session| {
+                        session
+                            .native
+                            .SourceAppUserModelId()
+                            .is_ok_and(|candidate| candidate.to_string() == source)
+                    });
+                    if let Some(replacement) = replacements.next() {
+                        if replacements.next().is_none() {
+                            selected = Some(replacement.id.clone());
+                        }
+                    }
+                }
             }
             let snapshots = sessions
                 .iter_mut()
