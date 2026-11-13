@@ -291,6 +291,173 @@ html.settings-document,
 .settings-done:hover:enabled {
   background: #35405a;
 }
+.settings-music-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.settings-music-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #303540;
+  border-radius: 11px;
+  background: #191d24;
+}
+.settings-music-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.settings-music-card h3 {
+  margin: 0;
+  color: #eceef4;
+  font-size: 13px;
+  font-weight: 600;
+}
+.settings-music-card p {
+  margin: 5px 0 0;
+  color: #969eac;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.settings-music-status {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border: 1px solid #3d4553;
+  border-radius: 999px;
+  color: #b7bfcd;
+  font-size: 10px;
+}
+.settings-music-status.is-connected {
+  border-color: #315d4b;
+  color: #9ce0bd;
+  background: #1b3028;
+}
+.settings-music-status.is-expired,
+.settings-music-status.is-unavailable {
+  color: #f0b8b8;
+}
+.settings-music-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.settings-music-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 11px;
+  border: 1px solid #52617c;
+  border-radius: 7px;
+  background: #293142;
+  color: #edf0f9;
+  font-size: 11px;
+}
+.settings-music-actions button:hover:enabled {
+  background: #35405a;
+}
+.settings-music-actions button:disabled {
+  opacity: 0.55;
+}
+.settings-music-actions button.settings-music-secondary {
+  border-color: #353b47;
+  background: #20242c;
+  color: #c3c8d2;
+}
+.settings-music-actions button.is-selected {
+  border-color: #9eb5ff;
+  background: #29344a;
+  color: #dce5ff;
+}
+.settings-music-error {
+  color: #f0b8b8 !important;
+}
+.settings-music-note {
+  overflow-wrap: anywhere;
+}
+.settings-music-playback {
+  grid-column: 1 / -1;
+}
+.settings-music-playback .music-playback {
+  width: 100%;
+}
+.settings-music-playback .music-playback-compact .music-now-playing {
+  grid-template-columns: minmax(72px, 96px) minmax(0, 1fr);
+  min-height: 104px;
+}
+.settings-music-playback .music-playback-compact .music-artwork {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+.settings-music-playback .music-playback-compact .music-artwork img,
+.settings-music-playback .music-playback-compact .music-artwork-placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.settings-music-playback .music-playback-compact .music-player-details {
+  gap: 7px;
+}
+.settings-music-playback .music-playback-compact .music-progress {
+  margin-top: auto;
+}
+.settings-music-playback .music-playback-compact .music-controls {
+  flex-basis: 34px;
+}
+.settings-music-playback .music-playback-compact .music-volume {
+  max-width: 180px;
+}
+.settings-music-sessions {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.settings-music-sessions li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  padding: 10px;
+  border: 1px solid #2f3540;
+  border-radius: 8px;
+  background: #15181e;
+}
+.settings-music-session-main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.settings-music-session-main strong {
+  overflow: hidden;
+  color: #e6e8ee;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settings-music-session-main small,
+.settings-music-session-state,
+.settings-music-capabilities {
+  color: #969eac;
+  font-size: 10px;
+}
+.settings-music-session-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settings-music-session-state {
+  white-space: nowrap;
+}
+.settings-music-capabilities {
+  grid-column: 1 / -1;
+}
 @media (max-width: 700px) {
   .theme-grid,
   .layout-grid {
@@ -307,5 +474,11 @@ html.settings-document,
   }
   .settings-footer {
     padding: 10px 20px;
+  }
+  .settings-music-grid {
+    grid-template-columns: 1fr;
+  }
+  .settings-music-playback {
+    grid-column: auto;
   }
 }
