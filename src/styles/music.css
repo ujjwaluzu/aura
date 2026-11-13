@@ -314,11 +314,10 @@
   border-color: var(--color-accent);
 }
 .music-section-scroll {
-  overflow: auto;
+  overflow: clip;
   flex: 1;
   min-height: 0;
   padding: 20px 28px;
-  scrollbar-color: #414854 #171a20;
 }
 .settings-music-card {
   margin-bottom: 16px;
@@ -329,26 +328,6 @@
 }
 .music-account-card p + p {
   margin-top: 8px;
-}
-.music-diagnostics {
-  border: 1px solid #303540;
-  border-radius: 10px;
-  padding: 12px;
-}
-.music-diagnostics summary {
-  cursor: pointer;
-  min-height: 36px;
-  display: list-item;
-  padding: 8px 0;
-}
-.music-diagnostics pre {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  color: var(--color-secondary);
-  font-size: 11px;
-}
-.music-diagnostics button {
-  margin-right: 10px;
 }
 .music-library-view > .music-muted {
   margin-top: 24px;

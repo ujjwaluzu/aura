@@ -1,302 +1,7 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { layouts } from '../src/features/layouts/catalog';
 import { themes } from '../src/features/themes/catalog';
-
-async function mockMusic(
-  page: Page,
-  options: {
-    account?: string;
-    failedWrite?: boolean;
-    selected?: boolean;
-    failedBrowse?: boolean;
-    empty?: boolean;
-    connectError?: string;
-    accountError?: boolean;
-    playbackError?: boolean;
-    volumeError?: boolean;
-    artwork?: boolean;
-    accountLoading?: boolean;
-    playbackLoading?: boolean;
-    connectPending?: boolean;
-    sessionCount?: number;
-    failedSelect?: boolean;
-  } = {},
-) {
-  await page.addInitScript((options) => {
-    let account = {
-      status: options.account ?? 'connected',
-      name: 'Test Listener',
-      channelId: 'UCfixture',
-      message: null,
-      validationBuild: true,
-    };
-    let preferences = {
-      themeId: 'violet',
-      layoutId: 'clock-left-stats-music',
-      revision: 0,
-      warning: null,
-    };
-    const callbacks = new Map<number, (event: unknown) => void>();
-    const listeners = new Map<number, { event: string; handler: number }>();
-    let next = 1;
-    const calls: { command: string; args: Record<string, unknown> }[] = [];
-    const track = {
-      id: 'dQw4w9WgXcQ',
-      title:
-        'A very long track title for the compact desktop widget and playlist',
-      channelTitle: 'Test Artist',
-      position: 0,
-      duration: '3:12',
-      artworkUrl: null,
-      liked: false,
-      available: true,
-      itemId: 'first',
-    };
-    const playback = {
-      sessions: [
-        {
-          id: 'browser-1',
-          source: 'chrome.exe',
-          title: track.title,
-          artist: 'Test Artist',
-          playing: true,
-          positionSeconds: 35,
-          updatedAtUnixMs: Date.now(),
-          durationSeconds: 192,
-          artwork: options.artwork
-            ? 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect width="100" height="100" fill="%237e719f"/%3E%3C/svg%3E'
-            : null,
-          canPlay: true,
-          canPause: true,
-          canPrevious: false,
-          canNext: false,
-          canSeek: true,
-        },
-        {
-          id: 'browser-2',
-          source: 'msedge.exe',
-          title: 'A podcast in another browser',
-          artist: 'Other',
-          playing: false,
-          positionSeconds: 0,
-          updatedAtUnixMs: Date.now(),
-          durationSeconds: 99,
-          artwork: options.artwork
-            ? 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect width="100" height="100" fill="%237e719f"/%3E%3C/svg%3E'
-            : null,
-          canPlay: true,
-          canPause: false,
-          canPrevious: true,
-          canNext: true,
-          canSeek: true,
-        },
-      ],
-      selectedId: options.selected ? 'browser-1' : (null as string | null),
-      message: null,
-    };
-    if (options.sessionCount !== undefined)
-      playback.sessions = playback.sessions.slice(0, options.sessionCount);
-    const emit = (event: string, payload: unknown) => {
-      for (const [id, listener] of listeners)
-        if (listener.event === event)
-          callbacks.get(listener.handler)?.({ event, id, payload });
-    };
-    Object.assign(window, {
-      isTauri: true,
-      musicTest: {
-        calls,
-        emit,
-        setRating: (liked: boolean) => {
-          track.liked = liked;
-        },
-        setPreferences: (patch: Partial<typeof preferences>) => {
-          preferences = {
-            ...preferences,
-            ...patch,
-            revision: preferences.revision + 1,
-          };
-          emit('aura://preferences-changed', preferences);
-        },
-      },
-      __TAURI_INTERNALS__: {
-        metadata: {
-          currentWindow: {
-            label: location.search ? 'settings' : 'widget-host',
-          },
-        },
-        transformCallback: (callback: (event: unknown) => void) => {
-          const id = next++;
-          callbacks.set(id, callback);
-          return id;
-        },
-        unregisterCallback: (id: number) => callbacks.delete(id),
-        invoke: async (command: string, args: Record<string, unknown> = {}) => {
-          calls.push({ command, args });
-          if (command === 'plugin:event|listen') {
-            const id = next++;
-            listeners.set(id, {
-              event: args.event as string,
-              handler: args.handler as number,
-            });
-            return id;
-          }
-          if (command === 'plugin:event|unlisten') {
-            listeners.delete(args.eventId as number);
-            return;
-          }
-          if (command === 'get_preferences') return preferences;
-          if (command === 'get_foundation_info')
-            return {
-              protocolVersion: 1,
-              appName: 'Aura',
-              version: 'test',
-              platform: 'windows',
-              windowMode: 'transparent-host',
-            };
-          if (command === 'get_system_snapshot')
-            return {
-              cpuPercent: 20,
-              memoryPercent: 40,
-              usedMemoryBytes: 4,
-              totalMemoryBytes: 10,
-              sampledAtUnixMs: Date.now(),
-            };
-          if (command === 'music_account_status') {
-            if (options.accountLoading) return new Promise(() => {});
-            if (options.accountError)
-              throw { code: 'OFFLINE', message: 'Status request failed' };
-            return account;
-          }
-          if (command === 'music_playback_status') {
-            if (options.playbackLoading) return new Promise(() => {});
-            if (options.playbackError)
-              throw {
-                code: 'MEDIA_UNAVAILABLE',
-                message: 'Playback request failed',
-              };
-            return playback;
-          }
-          if (command === 'music_media_volume') {
-            if (options.volumeError)
-              throw {
-                code: 'BROWSER_VOLUME_UNAVAILABLE',
-                message: 'Volume failed',
-              };
-            return args.level ?? 0.5;
-          }
-          if (command === 'music_connect') {
-            if (options.connectPending) return new Promise(() => {});
-            if (options.connectError)
-              throw { code: 'OPEN_BROWSER', message: options.connectError };
-            account = { ...account, status: 'connected' };
-            emit('aura://music-account-changed', account);
-            return account;
-          }
-          if (command === 'music_disconnect') {
-            account = { ...account, status: 'disconnected', name: '' };
-            emit('aura://music-account-changed', account);
-            return account;
-          }
-          if (command === 'music_select_session') {
-            if (options.failedSelect)
-              throw {
-                code: 'MEDIA_UNAVAILABLE',
-                message: 'The player closed before selection.',
-              };
-            playback.selectedId = args.id as string | null;
-            emit('aura://playback-changed', playback);
-            return;
-          }
-          if (command === 'music_browse') {
-            if (options.failedBrowse)
-              throw { code: 'OFFLINE', message: 'YouTube Music is offline.' };
-            if (options.empty)
-              return {
-                tracks: [],
-                playlists: [],
-                playlist: null,
-                nextPageToken: null,
-              };
-            const query = args.query as {
-              kind: string;
-              id?: string;
-              pageToken?: string;
-            };
-            if (query.kind === 'playlists')
-              return {
-                tracks: [],
-                playlists: [
-                  {
-                    id: 'PLowned',
-                    title: 'My private playlist',
-                    editable: false,
-                    artworkUrl: null,
-                  },
-                  {
-                    id: 'PLother',
-                    title: 'Someone else’s playlist',
-                    editable: false,
-                    artworkUrl: null,
-                  },
-                ],
-                playlist: null,
-                nextPageToken: null,
-              };
-            return {
-              tracks:
-                query.kind === 'playlist'
-                  ? query.pageToken
-                    ? [
-                        track,
-                        {
-                          ...track,
-                          title: 'Third Song',
-                          itemId: 'third',
-                          position: 2,
-                        },
-                      ]
-                    : [
-                        track,
-                        { ...track, title: 'Second Song', itemId: 'second' },
-                      ]
-                  : [
-                      track,
-                      {
-                        ...track,
-                        title: 'Unavailable Song',
-                        id: null,
-                        itemId: null,
-                        available: false,
-                      },
-                    ],
-              playlists: [],
-              playlist:
-                query.kind === 'playlist'
-                  ? {
-                      id: query.id,
-                      title: 'Playlist details',
-                      editable: query.id === 'PLowned',
-                      artworkUrl: null,
-                    }
-                  : null,
-              nextPageToken: query.pageToken ? null : 'next-page',
-            };
-          }
-          if (command === 'music_change' && options.failedWrite)
-            throw {
-              code: 'OFFLINE',
-              message: 'The service did not confirm this change.',
-            };
-          if (command === 'music_change') {
-            const change = args.change as { kind: string; liked?: boolean };
-            if (change.kind === 'like') track.liked = change.liked === true;
-          }
-          return;
-        },
-      },
-    });
-  }, options);
-}
+import { mockMusic } from './fixtures/music';
 
 test('music preview is opaque and account authorization stays gated', async ({
   page,
@@ -569,6 +274,9 @@ test('playlist ownership governs rename, removal, reordering and destination sel
     .getByRole('button', { name: 'Back to playlists', exact: true })
     .click();
   await page.getByRole('button', { name: /My private playlist/ }).click();
+  await page
+    .getByRole('button', { name: 'Edit playlist', exact: true })
+    .click();
   await page.getByLabel('Playlist name', { exact: true }).fill('Renamed');
   await page.getByRole('button', { name: 'Rename', exact: true }).click();
   await page.getByRole('button', { name: 'Move Second Song up' }).click();
@@ -791,7 +499,7 @@ test('playback failure does not block a connected library account', async ({
   ).toBeVisible();
 });
 
-test('search, playlist drill-down and scroll position survive section switches', async ({
+test('search, playlist drill-down and result pages survive section switches', async ({
   page,
 }) => {
   await mockMusic(page);
@@ -805,30 +513,25 @@ test('search, playlist drill-down and scroll position survive section switches',
     .last()
     .click();
   await expect(page.getByRole('list', { name: 'Videos' })).toBeVisible();
-  const scroll = await page
-    .locator('.music-section-scroll:not([hidden])')
-    .evaluate((el) => {
-      el.scrollTop = 30;
-      return el.scrollTop;
-    });
+  const position = await page
+    .locator('nav[aria-label="Results pages"]:visible [role="status"]')
+    .innerText();
   await page.getByRole('button', { name: 'Playlists', exact: true }).click();
-  await expect(page.getByLabel('Playlist name', { exact: true })).toHaveValue(
-    'Playlist details',
-  );
+  await expect(
+    page.getByRole('button', { name: 'Edit playlist', exact: true }),
+  ).toBeVisible();
   await page.getByRole('tab', { name: 'Theme', exact: true }).click();
   await page.getByRole('tab', { name: 'Music', exact: true }).click();
-  await expect(page.getByLabel('Playlist name', { exact: true })).toHaveValue(
-    'Playlist details',
-  );
+  await expect(
+    page.getByRole('button', { name: 'Edit playlist', exact: true }),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page.getByLabel('Search videos')).toHaveValue(
     'remember this search',
   );
-  expect(
-    await page
-      .locator('.music-section-scroll:not([hidden])')
-      .evaluate((el) => el.scrollTop),
-  ).toBe(scroll);
+  await expect(
+    page.locator('nav[aria-label="Results pages"]:visible [role="status"]'),
+  ).toHaveText(position);
 });
 
 for (const layoutId of [

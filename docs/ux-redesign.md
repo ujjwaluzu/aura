@@ -32,7 +32,7 @@ excludes account identifiers, raw error messages, artwork, and credentials. Only
 error codes and timestamps are shared across windows for one hour, so Settings
 can show a widget failure even when it opens later.
 
-Search, playlist drill-down, and scroll positions stay mounted while switching
+Search, playlist drill-down, and result page positions are retained while switching
 sections or Settings tabs. Writes show success only after native confirmation;
 an uncertain write requires an explicit reload. Provider authorization, release
 gates, and official-player restrictions are unchanged.
@@ -41,7 +41,7 @@ gates, and official-player restrictions are unchanged.
 
 - TypeScript, ESLint, Prettier and Rust formatting checks passed.
 - Frontend production build and the Windows NSIS package build passed.
-- All 66 Chromium browser tests passed. They cover all 30 theme/layout combinations twice, with loaded and
+- All 78 Chromium browser tests passed. They cover all 30 theme/layout combinations twice, with loaded and
   missing artwork, long titles, essential control bounds, 28 px compact targets,
   and absence of widget scrollbars. Screenshots of the retained presentations, More,
   Theme, Layout, and the account screen were inspected.
@@ -73,6 +73,24 @@ and seeking stay disabled until a player is available. Account authorization doe
 not itself start browser playback. The official player and release gates remain
 in place. The follow-up browser checks cover direct selection, failed binding,
 transport, seek, volume, and ready/picker bounds across all 30 theme/layout pairs.
+
+## Fixed viewports without scrolling
+
+The widget and Settings both stay within their window. The widget follows the
+actual client height, including a one-pixel display rounding difference. Long
+native errors remain in a bounded banner with the full message in its tooltip.
+
+Theme and all six Layout choices fit at the minimum 720 x 560 Settings size.
+Player and account controls share the available space. Library result pages adapt
+to the window height; Previous and Next reach all loaded items without extra API
+requests. Load more still fetches the provider's next batch. Result page positions
+and search text survive switching sections.
+
+Playlist renaming and adding videos use fixed panels with Escape, keyboard focus
+containment and focus restoration. Diagnostics use text pages and keep the same
+credential-free copy action. Checks cover minimum and initial window sizes,
+account states, every item in a 50-video fixture, wheel and PageDown input, and
+visible control bounds. No app pane uses a scrolling container.
 
 ## Required before release
 

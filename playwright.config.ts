@@ -4,7 +4,9 @@ const native = Boolean(process.env.AURA_NATIVE_CDP);
 
 export default defineConfig({
   testDir: './tests',
-  testMatch: native ? 'native.spec.ts' : ['browser.spec.ts', 'music.spec.ts'],
+  testMatch: native
+    ? 'native.spec.ts'
+    : ['browser.spec.ts', 'music.spec.ts', 'viewport.spec.ts'],
   fullyParallel: !native,
   workers: native ? 1 : 2,
   reporter: 'list',

@@ -54,10 +54,9 @@ html.settings-document,
 }
 .settings-scroll {
   flex: 1;
-  overflow: auto;
+  overflow: clip;
   min-height: 0;
   padding: 24px 28px 28px;
-  scrollbar-color: #414854 #171a20;
 }
 .settings-section-heading {
   margin-bottom: 20px;

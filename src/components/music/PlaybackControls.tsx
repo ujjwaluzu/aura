@@ -418,7 +418,7 @@ export function PlaybackControls({
                     <SkipForward size={15} />
                   </IconButton>
                 </div>
-                {compact && (
+                {
                   <div
                     className="player-volume-inline"
                     title={
@@ -442,7 +442,7 @@ export function PlaybackControls({
                       </>
                     )}
                   </div>
-                )}
+                }
                 {compact && (
                   <button
                     type="button"
@@ -463,7 +463,6 @@ export function PlaybackControls({
               </>
             }
           />
-          {!compact && volumeControl}
         </div>
       ) : (
         <div className="player-empty">

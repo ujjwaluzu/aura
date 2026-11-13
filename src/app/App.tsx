@@ -161,7 +161,9 @@ function WidgetHost() {
         </div>
         {(error || connection.status === 'error') && (
           <div className="host-notice">
-            <p role="alert">{error ?? connection.error}</p>
+            <p role="alert" title={error ?? connection.error ?? undefined}>
+              {error ?? connection.error}
+            </p>
             {connection.status === 'error' && (
               <IconButton
                 label="Retry native connection"

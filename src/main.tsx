@@ -7,6 +7,7 @@ import './styles/globals.css';
 import './styles/themes.css';
 import './styles/settings.css';
 import './styles/music.css';
+import './styles/viewport.css';
 
 document.documentElement.classList.toggle(
   'settings-document',

@@ -1,0 +1,405 @@
+/* Desktop windows use fixed viewports; content is reached through sections and pages. */
+.settings-app {
+  height: 100%;
+  overflow: clip;
+}
+.settings-heading {
+  padding: 16px 24px;
+}
+.settings-tabs {
+  padding: 0 24px;
+  gap: 16px;
+}
+.settings-tabs button {
+  padding: 9px 1px;
+}
+.settings-footer {
+  padding: 8px 24px;
+  min-height: 48px;
+}
+.settings-scroll {
+  overflow: clip;
+  padding: 16px 24px;
+}
+.settings-section-heading {
+  margin-bottom: 14px;
+}
+.settings-app .theme-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.settings-app .layout-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.layout-group {
+  margin-bottom: 16px;
+}
+.layout-group h3 {
+  margin: 0 0 8px;
+}
+.settings-app .layout-option {
+  padding: 8px;
+}
+.layout-option .option-copy {
+  padding: 8px 2px 0;
+}
+.music-section-nav {
+  padding: 8px 24px;
+}
+.music-section-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  overflow: clip;
+  padding: 16px 24px;
+}
+.music-player-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+.music-player-grid .settings-music-card {
+  margin: 0;
+  padding: 12px;
+  min-height: 0;
+}
+.music-now-playing-card {
+  display: flex;
+  flex-direction: column;
+}
+.music-now-playing-card .settings-music-card-heading {
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+.music-now-playing-card h2 {
+  margin: 0;
+}
+.music-now-playing-card .settings-music-card-heading button {
+  font-size: 11px;
+  padding: 5px 8px;
+}
+.music-now-playing-card .playback-settings {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 6px;
+}
+.music-now-playing-card .music-session-label {
+  flex-shrink: 0;
+  gap: 4px;
+  font-size: 11px;
+}
+.music-now-playing-card .player-main {
+  flex: 1;
+  min-height: 0;
+}
+.music-now-playing-card .player-settings {
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  grid-template-columns: 64px minmax(0, 1fr);
+  grid-template-rows: minmax(30px, 1fr) 48px 36px;
+  gap: 4px 10px;
+}
+.player-settings .player-information strong {
+  font-size: 14px;
+  line-height: 18px;
+}
+.player-settings .player-information span {
+  font-size: 11px;
+  line-height: 12px;
+}
+.music-now-playing-card .player-artwork {
+  width: 64px;
+}
+.music-account-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.music-account-card h2 {
+  margin: 0;
+}
+.music-account-card .settings-music-actions {
+  margin-top: auto;
+  gap: 6px;
+}
+.music-account-card .settings-music-actions button {
+  padding: 5px 8px;
+  min-height: 36px;
+}
+.music-account-card p,
+.music-account-card p + p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.music-diagnostics-toggle {
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+.settings-dialog-panel {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: #191d24;
+  border: 1px solid var(--color-accent);
+  border-radius: 10px;
+  min-height: 0;
+  overflow: clip;
+}
+.settings-dialog-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.settings-dialog-panel > header h2 {
+  margin: 0;
+}
+.settings-dialog-panel > header .icon-button {
+  flex-shrink: 0;
+}
+.settings-dialog-panel .music-playlist-form {
+  margin: 0;
+}
+.music-recent-diagnostics {
+  flex: 1;
+  min-height: 0;
+}
+.paged-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+}
+.paged-text-body {
+  flex: 1;
+  min-height: 0;
+  overflow: clip;
+}
+.paged-text pre {
+  margin: 0;
+  white-space: pre;
+  font:
+    11px/18px Consolas,
+    monospace;
+  color: var(--color-secondary);
+}
+.page-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.page-controls span {
+  font-size: 11px;
+  color: var(--color-secondary);
+  white-space: nowrap;
+}
+.page-controls button {
+  padding: 5px 10px;
+}
+.diagnostics-footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex-shrink: 0;
+  font-size: 11px;
+}
+.music-library-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.music-library-view > p {
+  flex-shrink: 0;
+  line-height: 16px;
+  font-size: 11px;
+  margin: 0;
+}
+.music-toolbar {
+  margin: 0;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.music-toolbar button,
+.music-search select {
+  font-size: 11px;
+}
+.music-search {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+.music-search input {
+  flex-basis: auto;
+}
+.music-search select {
+  padding: 5px 8px;
+}
+.music-library-view > .music-playlist-form {
+  margin: 0;
+  flex-shrink: 0;
+}
+.music-playlist-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.music-playlist-tools button {
+  font-size: 11px;
+  padding: 5px 8px;
+}
+.music-playlist-tools .music-muted {
+  font-size: 10px;
+}
+.music-results {
+  flex: 1;
+  min-height: 0;
+  overflow: clip;
+}
+.music-results .music-playlist-grid {
+  gap: 8px;
+  grid-auto-rows: 72px;
+  align-content: start;
+}
+.music-results .music-playlist-tile {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-rows: 1fr 1fr;
+  gap: 2px 10px;
+  padding: 8px !important;
+  align-items: center !important;
+}
+.music-playlist-tile .music-artwork {
+  grid-column: 1;
+  grid-row: 1 / 3;
+}
+.music-playlist-tile strong {
+  grid-column: 2;
+  align-self: end;
+  font-size: 12px;
+}
+.music-playlist-tile > span:last-child {
+  grid-column: 2;
+  align-self: start;
+  font-size: 10px;
+}
+.music-results .music-track {
+  height: 60px;
+  min-height: 60px;
+  padding: 6px 0;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+.music-results .music-track-copy {
+  min-width: 0;
+}
+.music-results .music-track-actions {
+  flex-wrap: nowrap;
+}
+.music-results .music-track-actions button {
+  width: 36px;
+  min-width: 36px;
+  padding: 0;
+}
+.music-library-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.music-library-footer > button {
+  font-size: 11px;
+  padding: 5px 8px;
+}
+.music-add-panel {
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+.music-add-track {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.settings-error {
+  flex-shrink: 0;
+  font-size: 11px;
+  line-height: 16px;
+  max-height: 32px;
+  padding: 0 20px;
+  color: var(--color-error);
+  overflow: clip;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+@media (max-height: 620px) {
+  .settings-heading {
+    padding: 10px 20px;
+  }
+  .settings-tabs button {
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+  .settings-footer {
+    padding: 4px 20px;
+    min-height: 44px;
+  }
+  .settings-scroll,
+  .music-section-scroll {
+    padding: 12px 20px;
+  }
+  .settings-section-heading {
+    margin-bottom: 10px;
+  }
+  .layout-group {
+    margin-bottom: 12px;
+  }
+  .layout-group h3 {
+    margin-bottom: 6px;
+  }
+  .settings-app .layout-grid {
+    gap: 10px;
+  }
+  .music-section-nav {
+    padding: 6px 20px;
+  }
+  .music-now-playing-card .music-session-label {
+    font-size: 0;
+    gap: 0;
+  }
+  .music-session-label select {
+    font-size: 11px;
+  }
+}
+
+.music-account-status-copy {
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: clip;
+}

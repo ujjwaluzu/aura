@@ -24,6 +24,9 @@ import type {
   MusicTrack,
 } from '../../types/music';
 import { MusicArtwork } from './MusicArtwork';
+import { useElementSize } from '../../hooks/useElementSize';
+import { PageControls } from '../ui/PageControls';
+import { DialogPanel } from '../ui/DialogPanel';
 
 export function MusicLibrary({
   section,
@@ -48,6 +51,13 @@ export function MusicLibrary({
   const [title, setTitle] = useState('');
   const [rename, setRename] = useState('');
   const [addTrack, setAddTrack] = useState<MusicTrack | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [info, setInfo] = useState(false);
+  const {
+    ref: resultsRef,
+    width: resultsWidth,
+    height: resultsHeight,
+  } = useElementSize<HTMLDivElement>();
   const [ratings, setRatings] = useState<Record<string, boolean>>({});
   const isLiked = (track: MusicTrack) =>
     (track.id ? ratings[track.id] : undefined) ?? track.liked;
@@ -128,6 +138,7 @@ export function MusicLibrary({
       setNotice('YouTube confirmed your change.');
       setTitle('');
       setAddTrack(null);
+      setEditing(false);
       setQuery((current) =>
         current ? { ...current, pageToken: undefined } : current,
       );
@@ -155,7 +166,62 @@ export function MusicLibrary({
     }
   };
   const writeDisabled = writing || loading || uncertain;
+  const reloadView = () => {
+    setQuery((current) =>
+      current ? { ...current, pageToken: undefined } : current,
+    );
+    setReload((n) => n + 1);
+  };
+  const writeFeedback = (
+    <>
+      {error && (
+        <p className="music-inline-error" role="alert">
+          {error}
+        </p>
+      )}
+      {uncertain && (
+        <>
+          <p className="music-inline-error">
+            A change may have reached the service. Refresh to check the result
+            before editing again.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(false);
+              setAddTrack(null);
+              reloadView();
+            }}
+          >
+            Refresh result
+          </button>
+        </>
+      )}
+    </>
+  );
   const showing = connected && query !== null;
+  const playlistMode = query?.kind === 'playlists';
+  const columns = playlistMode
+    ? Math.max(1, Math.floor((resultsWidth + 8) / 248))
+    : 1;
+  const capacity =
+    Math.max(
+      1,
+      Math.floor(
+        (resultsHeight + (playlistMode ? 8 : 0)) / (playlistMode ? 80 : 60),
+      ),
+    ) * columns;
+  const total = playlistMode
+    ? (page?.playlists.length ?? 0)
+    : (page?.tracks.length ?? 0);
+  const pages = Math.max(1, Math.ceil(total / capacity));
+  const viewKey = JSON.stringify(
+    query ? { ...query, pageToken: undefined } : null,
+  );
+  const [navigation, setNavigation] = useState({ key: viewKey, index: 0 });
+  if (navigation.key !== viewKey) setNavigation({ key: viewKey, index: 0 });
+  const visiblePage = Math.min(navigation.index, pages - 1);
+  const start = visiblePage * capacity;
   return (
     <div className="music-library-view">
       {connected && (
@@ -192,12 +258,7 @@ export function MusicLibrary({
             <button
               type="button"
               disabled={loading || writing || !query}
-              onClick={() => {
-                setQuery((current) =>
-                  current ? { ...current, pageToken: undefined } : current,
-                );
-                setReload((n) => n + 1);
-              }}
+              onClick={reloadView}
             >
               Reload view
             </button>
@@ -207,12 +268,12 @@ export function MusicLibrary({
               {notice}
             </p>
           )}
-          {error && (
+          {error && !editing && !addTrack && (
             <p className="music-inline-error" role="alert">
               {error}
             </p>
           )}
-          {uncertain && (
+          {uncertain && !editing && !addTrack && (
             <p className="music-inline-error">
               A change may have reached the service. Reload this view before
               making another change.
@@ -273,240 +334,291 @@ export function MusicLibrary({
                 Open playlist on YouTube
               </button>
               {page.playlist.editable ? (
-                <>
-                  <form
-                    className="music-playlist-form"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      void mutate({
-                        kind: 'rename',
-                        id: page.playlist!.id,
-                        title: rename,
-                      });
-                    }}
-                  >
-                    <input
-                      aria-label="Playlist name"
-                      value={rename}
-                      maxLength={150}
-                      onChange={(event) => setRename(event.target.value)}
-                    />
-                    <button
-                      type="submit"
-                      disabled={
-                        writeDisabled ||
-                        !rename.trim() ||
-                        rename === page.playlist.title
-                      }
-                    >
-                      Rename
-                    </button>
-                  </form>
-                  <span className="music-muted">Editable playlist</span>
-                </>
+                <button type="button" onClick={() => setEditing(true)}>
+                  Edit playlist
+                </button>
               ) : (
                 <span className="music-muted">This playlist is read-only.</span>
               )}
             </div>
           )}
-          {loading && <p role="status">Loading YouTube content…</p>}
-          {showing && page && !loading && (
-            <>
-              <div className="music-playlist-grid">
-                {page.playlists.map((list) => (
-                  <button
-                    className="music-playlist-tile"
-                    type="button"
-                    key={list.id}
-                    onClick={() => {
-                      setPage(null);
-                      setQuery({ kind: 'playlist', id: list.id });
-                    }}
-                  >
-                    <MusicArtwork url={list.artworkUrl} />
-                    <strong>{list.title}</strong>
-                    <span>
-                      {list.editable
-                        ? 'Editable playlist'
-                        : 'Open playlist ? permissions checked inside'}
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <ol className="music-track-list" aria-label="Videos">
-                {page.tracks.map((track, index) => (
-                  <li
-                    className="music-track"
-                    key={`${track.itemId ?? track.id ?? 'unavailable'}-${index}`}
-                  >
-                    <MusicArtwork url={track.artworkUrl} />
-                    <div className="music-track-copy">
-                      <strong title={track.title}>{track.title}</strong>
+          <div className="music-results" ref={resultsRef}>
+            {loading && <p role="status">Loading YouTube content…</p>}
+            {showing && page && !loading && (
+              <>
+                <div
+                  className="music-playlist-grid"
+                  style={{
+                    gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                  }}
+                >
+                  {page.playlists.slice(start, start + capacity).map((list) => (
+                    <button
+                      className="music-playlist-tile"
+                      type="button"
+                      key={list.id}
+                      onClick={() => {
+                        setPage(null);
+                        setQuery({ kind: 'playlist', id: list.id });
+                      }}
+                    >
+                      <MusicArtwork url={list.artworkUrl} />
+                      <strong>{list.title}</strong>
                       <span>
-                        {track.channelTitle || 'Unknown channel'}
-                        {track.duration ? ` · ${track.duration}` : ''}
-                        {!track.available ? ' · Unavailable' : ''}
+                        {list.editable ? 'Editable playlist' : 'Open playlist'}
                       </span>
-                    </div>
-                    <div className="music-track-actions">
-                      <button
-                        type="button"
-                        aria-label={`Play ${track.title}`}
-                        disabled={!track.available || !track.id}
-                        onClick={() =>
-                          void play({ kind: 'track', id: track.id! })
-                        }
-                      >
-                        <Play size={15} />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Open ${track.title} on YouTube`}
-                        disabled={!track.available || !track.id}
-                        onClick={() =>
-                          void play({
-                            kind: 'track',
-                            id: track.id!,
-                            player: 'youtube',
-                          })
-                        }
-                      >
-                        <span aria-hidden="true">YT</span>
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`${isLiked(track) ? 'Unlike' : 'Like'} ${track.title}`}
-                        aria-pressed={isLiked(track) === true}
-                        disabled={writeDisabled || !track.id}
-                        onClick={() =>
-                          void mutate({
-                            kind: 'like',
-                            id: track.id!,
-                            liked: !isLiked(track),
-                          })
-                        }
-                      >
-                        <Heart
-                          size={15}
-                          fill={isLiked(track) ? 'currentColor' : 'none'}
-                        />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Add ${track.title} to playlist`}
-                        disabled={
-                          writeDisabled || !track.available || !track.id
-                        }
-                        onClick={() => setAddTrack(track)}
-                      >
-                        <ListPlus size={16} />
-                      </button>
-                      {page.playlist?.editable && (
-                        <>
-                          <button
-                            type="button"
-                            aria-label={`Move ${track.title} up`}
-                            disabled={
-                              writeDisabled ||
-                              index === 0 ||
-                              !track.itemId ||
-                              !page.tracks[index - 1]?.itemId
-                            }
-                            onClick={() =>
-                              void mutate({
-                                kind: 'move',
-                                id: page.playlist!.id,
-                                itemId: track.itemId!,
-                                direction: 'up',
-                              })
-                            }
+                    </button>
+                  ))}
+                </div>
+                {page.tracks.length > 0 && (
+                  <ol className="music-track-list" aria-label="Videos">
+                    {page.tracks
+                      .slice(start, start + capacity)
+                      .map((track, localIndex) => {
+                        const index = start + localIndex;
+                        return (
+                          <li
+                            className="music-track"
+                            key={`${track.itemId ?? track.id ?? 'unavailable'}-${index}`}
                           >
-                            <ArrowUp size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            aria-label={`Move ${track.title} down`}
-                            disabled={
-                              writeDisabled ||
-                              index === page.tracks.length - 1 ||
-                              !track.itemId ||
-                              !page.tracks[index + 1]?.itemId
-                            }
-                            onClick={() =>
-                              void mutate({
-                                kind: 'move',
-                                id: page.playlist!.id,
-                                itemId: track.itemId!,
-                                direction: 'down',
-                              })
-                            }
-                          >
-                            <ArrowDown size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            aria-label={`Remove ${track.title} from playlist`}
-                            disabled={writeDisabled || !track.itemId}
-                            onClick={() =>
-                              void mutate({
-                                kind: 'remove',
-                                id: page.playlist!.id,
-                                itemId: track.itemId!,
-                              })
-                            }
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-              {!page.tracks.length && !page.playlists.length && (
-                <p className="music-empty">
-                  No YouTube content here yet. Try a search or create a private
-                  playlist.
-                </p>
-              )}
-              {page.nextPageToken && (
+                            <MusicArtwork url={track.artworkUrl} />
+                            <div className="music-track-copy">
+                              <strong title={track.title}>{track.title}</strong>
+                              <span>
+                                {track.channelTitle || 'Unknown channel'}
+                                {track.duration ? ` · ${track.duration}` : ''}
+                                {!track.available ? ' · Unavailable' : ''}
+                              </span>
+                            </div>
+                            <div className="music-track-actions">
+                              <button
+                                type="button"
+                                aria-label={`Play ${track.title}`}
+                                disabled={!track.available || !track.id}
+                                onClick={() =>
+                                  void play({ kind: 'track', id: track.id! })
+                                }
+                              >
+                                <Play size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                aria-label={`Open ${track.title} on YouTube`}
+                                disabled={!track.available || !track.id}
+                                onClick={() =>
+                                  void play({
+                                    kind: 'track',
+                                    id: track.id!,
+                                    player: 'youtube',
+                                  })
+                                }
+                              >
+                                <span aria-hidden="true">YT</span>
+                              </button>
+                              <button
+                                type="button"
+                                aria-label={`${isLiked(track) ? 'Unlike' : 'Like'} ${track.title}`}
+                                aria-pressed={isLiked(track) === true}
+                                disabled={writeDisabled || !track.id}
+                                onClick={() =>
+                                  void mutate({
+                                    kind: 'like',
+                                    id: track.id!,
+                                    liked: !isLiked(track),
+                                  })
+                                }
+                              >
+                                <Heart
+                                  size={15}
+                                  fill={
+                                    isLiked(track) ? 'currentColor' : 'none'
+                                  }
+                                />
+                              </button>
+                              <button
+                                type="button"
+                                aria-label={`Add ${track.title} to playlist`}
+                                disabled={
+                                  writeDisabled || !track.available || !track.id
+                                }
+                                onClick={() => setAddTrack(track)}
+                              >
+                                <ListPlus size={16} />
+                              </button>
+                              {page.playlist?.editable && (
+                                <>
+                                  <button
+                                    type="button"
+                                    aria-label={`Move ${track.title} up`}
+                                    disabled={
+                                      writeDisabled ||
+                                      index === 0 ||
+                                      !track.itemId ||
+                                      !page.tracks[index - 1]?.itemId
+                                    }
+                                    onClick={() =>
+                                      void mutate({
+                                        kind: 'move',
+                                        id: page.playlist!.id,
+                                        itemId: track.itemId!,
+                                        direction: 'up',
+                                      })
+                                    }
+                                  >
+                                    <ArrowUp size={14} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    aria-label={`Move ${track.title} down`}
+                                    disabled={
+                                      writeDisabled ||
+                                      index === page.tracks.length - 1 ||
+                                      !track.itemId ||
+                                      !page.tracks[index + 1]?.itemId
+                                    }
+                                    onClick={() =>
+                                      void mutate({
+                                        kind: 'move',
+                                        id: page.playlist!.id,
+                                        itemId: track.itemId!,
+                                        direction: 'down',
+                                      })
+                                    }
+                                  >
+                                    <ArrowDown size={14} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    aria-label={`Remove ${track.title} from playlist`}
+                                    disabled={writeDisabled || !track.itemId}
+                                    onClick={() =>
+                                      void mutate({
+                                        kind: 'remove',
+                                        id: page.playlist!.id,
+                                        itemId: track.itemId!,
+                                      })
+                                    }
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
+                  </ol>
+                )}
+                {!page.tracks.length && !page.playlists.length && (
+                  <p className="music-empty">
+                    No YouTube content here yet. Try a search or create a
+                    private playlist.
+                  </p>
+                )}
+              </>
+            )}
+            {section === 'search' && !query && (
+              <p className="music-empty">
+                Choose Music or All videos, then submit a search to get started.
+              </p>
+            )}
+          </div>
+          <footer className="music-library-footer">
+            <PageControls
+              page={visiblePage}
+              pages={pages}
+              onPage={(index) => setNavigation({ key: viewKey, index })}
+              label="Results"
+            />
+            {page?.nextPageToken && (
+              <button
+                type="button"
+                disabled={writing || uncertain}
+                onClick={() =>
+                  query &&
+                  setQuery({ ...query, pageToken: page.nextPageToken! })
+                }
+              >
+                Load more
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setInfo(true)}
+              aria-label="YouTube library limits"
+            >
+              About
+            </button>
+          </footer>
+          {editing && page?.playlist && (
+            <DialogPanel
+              title="Edit playlist"
+              onClose={() => setEditing(false)}
+            >
+              {writeFeedback}
+              <form
+                className="music-playlist-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void mutate({
+                    kind: 'rename',
+                    id: page.playlist!.id,
+                    title: rename,
+                  });
+                }}
+              >
+                <input
+                  aria-label="Playlist name"
+                  value={rename}
+                  maxLength={150}
+                  onChange={(event) => setRename(event.target.value)}
+                />
                 <button
-                  type="button"
-                  disabled={writing || uncertain}
-                  onClick={() =>
-                    query &&
-                    setQuery({ ...query, pageToken: page.nextPageToken! })
+                  type="submit"
+                  disabled={
+                    writeDisabled ||
+                    !rename.trim() ||
+                    rename === page.playlist.title
                   }
                 >
-                  Load more
+                  Rename
                 </button>
-              )}
-            </>
+              </form>{' '}
+              <p className="music-muted">Editable playlist</p>
+            </DialogPanel>
           )}
-          {section === 'search' && !query && (
-            <p className="music-empty">
-              Choose Music or All videos, then submit a search to get started.
-            </p>
+          {info && (
+            <DialogPanel
+              title="YouTube library limits"
+              onClose={() => setInfo(false)}
+            >
+              <p>
+                These are YouTube playlists and videos, not the complete YouTube
+                Music library. Some videos cannot play in Music; use Open on
+                YouTube instead. Liked videos exposes up to the most recent
+                1,000 items supported by Google.
+              </p>
+            </DialogPanel>
           )}
           {addTrack && (
-            <AddToPlaylist
-              key={addTrack.id}
-              track={addTrack}
-              disabled={writeDisabled}
-              cancel={() => setAddTrack(null)}
-              add={(id) =>
-                void mutate({ kind: 'add', id, trackId: addTrack.id! })
-              }
-            />
+            <DialogPanel
+              title="Add to playlist"
+              onClose={() => setAddTrack(null)}
+            >
+              {writeFeedback}
+              <AddToPlaylist
+                key={addTrack.id}
+                track={addTrack}
+                disabled={writeDisabled}
+                cancel={() => setAddTrack(null)}
+                add={(id) =>
+                  void mutate({ kind: 'add', id, trackId: addTrack.id! })
+                }
+              />
+            </DialogPanel>
           )}
         </>
       )}
-      <p className="music-muted">
-        These are YouTube playlists and videos, not the complete YouTube Music
-        library. Some videos cannot play in Music; use Open on YouTube instead.
-        Liked Videos exposes up to the most recent 1,000 items supported by
-        Google.
-      </p>
     </div>
   );
 }
@@ -570,7 +682,9 @@ function AddToPlaylist({
   }, [target]);
   return (
     <section className="music-add-panel" aria-label="Add to playlist">
-      <h2>Add “{track.title}” to a playlist</h2>
+      <p className="music-add-track" title={track.title}>
+        {track.title}
+      </p>
       <select
         aria-label="Destination playlist"
         value={target}

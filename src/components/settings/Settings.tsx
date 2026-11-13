@@ -202,8 +202,16 @@ export function Settings() {
                       layout={option}
                     />
                     <span className="option-copy">
-                      <strong>{option.title}</strong>
-                      <small>{option.description}</small>
+                      <strong>
+                        {getLayout(option.id).focus
+                          ? `Clock ${option.side}`
+                          : option.title}
+                      </strong>
+                      <small>
+                        {getLayout(option.id).focus
+                          ? 'No CPU / RAM'
+                          : option.description}
+                      </small>
                     </span>
                     {preferences.layoutId === option.id && (
                       <span className="option-check" aria-hidden="true">
@@ -251,7 +259,11 @@ export function Settings() {
         </button>
       </footer>
       {(error || windowError) && (
-        <p className="settings-error" role="alert">
+        <p
+          className="settings-error"
+          role="alert"
+          title={error ?? windowError ?? undefined}
+        >
           {error ?? windowError}
         </p>
       )}

@@ -8,8 +8,16 @@ body,
 #root {
   margin: 0;
   min-width: 360px;
-  min-height: 100%;
+  height: 100%;
+  overflow: clip;
   background: transparent;
+}
+html:not(.settings-document),
+html:not(.settings-document) body,
+html:not(.settings-document) #root {
+  min-width: 0;
+  overflow: clip;
+  overscroll-behavior: none;
 }
 body {
   font-family: var(--font-sans);
@@ -74,6 +82,11 @@ input:focus-visible {
 }
 .widget-frame {
   padding: 10px;
+  height: 100%;
+  overflow: clip;
+}
+.widget-frame > .host-surface {
+  height: 100%;
 }
 .host-surface {
   position: relative;
@@ -271,9 +284,16 @@ input:focus-visible {
   align-items: center;
   gap: var(--space-2);
   max-height: 50px;
-  overflow: auto;
+  overflow: hidden;
   color: var(--color-error);
   font-size: 10px;
+}
+.host-notice p {
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 .host-notice .icon-button {
   flex-shrink: 0;
