@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Pause,
   Play,
@@ -40,9 +40,16 @@ export function PlaybackControls({
   const [now, setNow] = useState(0);
   const [volume, setVolume] = useState<number | null>(null);
   const [volumeForSession, setVolumeForSession] = useState<string | null>(null);
+  const volumeTimer = useRef<number | null>(null);
+  const pendingVolume = useRef<{ level: number; sessionId: string } | null>(
+    null,
+  );
   const sessionId = session?.id;
   useEffect(() => {
     let live = true;
+    if (volumeTimer.current !== null) window.clearTimeout(volumeTimer.current);
+    volumeTimer.current = null;
+    pendingVolume.current = null;
     if (sessionId)
       void mediaVolume()
         .then((value) => {
@@ -56,6 +63,8 @@ export function PlaybackControls({
         });
     return () => {
       live = false;
+      if (volumeTimer.current !== null)
+        window.clearTimeout(volumeTimer.current);
     };
   }, [sessionId]);
   const shownVolume = volumeForSession === sessionId ? volume : null;
@@ -100,6 +109,13 @@ export function PlaybackControls({
       setBusy(false);
     }
   };
+  const applyVolume = (level: number, targetSessionId: string) =>
+    void mediaVolume(level / 100)
+      .then((actual) => {
+        setVolume(actual * 100);
+        setVolumeForSession(targetSessionId);
+      })
+      .catch((e) => setError(errorMessage(e)));
   return (
     <div
       className={`music-playback ${compact ? 'music-playback-compact' : ''}`}
@@ -207,15 +223,27 @@ export function PlaybackControls({
                 disabled={shownVolume === null}
                 leftIcon={<Volume1 />}
                 rightIcon={<Volume2 />}
-                onChange={setVolume}
-                onChangeEnd={(level) =>
-                  void mediaVolume(level / 100)
-                    .then((actual) => {
-                      setVolume(actual * 100);
-                      setVolumeForSession(session.id);
-                    })
-                    .catch((e) => setError(errorMessage(e)))
-                }
+                onChange={(level) => {
+                  setVolume(level);
+                  pendingVolume.current = { level, sessionId: session.id };
+                  if (volumeTimer.current === null) {
+                    volumeTimer.current = window.setTimeout(() => {
+                      volumeTimer.current = null;
+                      const pending = pendingVolume.current;
+                      if (pending)
+                        void mediaVolume(pending.level / 100).catch((e) =>
+                          setError(errorMessage(e)),
+                        );
+                    }, 90);
+                  }
+                }}
+                onChangeEnd={(level) => {
+                  if (volumeTimer.current !== null)
+                    window.clearTimeout(volumeTimer.current);
+                  volumeTimer.current = null;
+                  pendingVolume.current = null;
+                  applyVolume(level, session.id);
+                }}
               />
             </div>
           )}

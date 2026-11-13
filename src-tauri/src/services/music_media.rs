@@ -121,8 +121,8 @@ mod native {
             Win32::{
                 Foundation::CloseHandle,
                 Media::Audio::{
-                    eMultimedia, eRender, IAudioSessionControl2, IAudioSessionManager2,
-                    IMMDeviceEnumerator, ISimpleAudioVolume, MMDeviceEnumerator,
+                    eRender, IAudioSessionControl2, IAudioSessionManager2, IMMDeviceEnumerator,
+                    ISimpleAudioVolume, MMDeviceEnumerator, DEVICE_STATE_ACTIVE,
                 },
                 System::{
                     Com::{CoCreateInstance, CLSCTX_ALL},
@@ -148,48 +148,51 @@ mod native {
         unsafe {
             let devices: IMMDeviceEnumerator =
                 CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)?;
-            let device = devices.GetDefaultAudioEndpoint(eRender, eMultimedia)?;
-            let manager: IAudioSessionManager2 = device.Activate(CLSCTX_ALL, None)?;
-            let sessions = manager.GetSessionEnumerator()?;
+            let endpoints = devices.EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE)?;
             let mut levels = Vec::new();
-            for index in 0..sessions.GetCount()? {
-                let control = sessions.GetSession(index)?;
-                let control2: IAudioSessionControl2 = match control.cast() {
-                    Ok(value) => value,
-                    Err(_) => continue,
-                };
-                let pid = match control2.GetProcessId() {
-                    Ok(value) if value != 0 => value,
-                    _ => continue,
-                };
-                let process = match OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) {
-                    Ok(value) => value,
-                    Err(_) => continue,
-                };
-                let mut path = [0u16; 1024];
-                let mut length = path.len() as u32;
-                let path_result = QueryFullProcessImageNameW(
-                    process,
-                    PROCESS_NAME_WIN32,
-                    PWSTR(path.as_mut_ptr()),
-                    &mut length,
-                );
-                let _ = CloseHandle(process);
-                if path_result.is_err()
-                    || !String::from_utf16_lossy(&path[..length as usize])
-                        .to_ascii_lowercase()
-                        .ends_with(executable)
-                {
-                    continue;
+            for endpoint_index in 0..endpoints.GetCount()? {
+                let endpoint = endpoints.Item(endpoint_index)?;
+                let manager: IAudioSessionManager2 = endpoint.Activate(CLSCTX_ALL, None)?;
+                let sessions = manager.GetSessionEnumerator()?;
+                for session_index in 0..sessions.GetCount()? {
+                    let control = sessions.GetSession(session_index)?;
+                    let control2: IAudioSessionControl2 = match control.cast() {
+                        Ok(value) => value,
+                        Err(_) => continue,
+                    };
+                    let pid = match control2.GetProcessId() {
+                        Ok(value) if value != 0 => value,
+                        _ => continue,
+                    };
+                    let process = match OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) {
+                        Ok(value) => value,
+                        Err(_) => continue,
+                    };
+                    let mut path = [0u16; 1024];
+                    let mut length = path.len() as u32;
+                    let path_result = QueryFullProcessImageNameW(
+                        process,
+                        PROCESS_NAME_WIN32,
+                        PWSTR(path.as_mut_ptr()),
+                        &mut length,
+                    );
+                    let _ = CloseHandle(process);
+                    if path_result.is_err()
+                        || !String::from_utf16_lossy(&path[..length as usize])
+                            .to_ascii_lowercase()
+                            .ends_with(executable)
+                    {
+                        continue;
+                    }
+                    let volume: ISimpleAudioVolume = match control.cast() {
+                        Ok(value) => value,
+                        Err(_) => continue,
+                    };
+                    if let Some(value) = level {
+                        volume.SetMasterVolume(value, std::ptr::null())?;
+                    }
+                    levels.push(volume.GetMasterVolume()?);
                 }
-                let volume: ISimpleAudioVolume = match control.cast() {
-                    Ok(value) => value,
-                    Err(_) => continue,
-                };
-                if let Some(value) = level {
-                    volume.SetMasterVolume(value, std::ptr::null())?;
-                }
-                levels.push(volume.GetMasterVolume()?);
             }
             if levels.is_empty() {
                 return Err(windows::core::Error::from_thread());

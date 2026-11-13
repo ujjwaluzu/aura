@@ -26,6 +26,7 @@ export function ElasticSlider({
   onChangeEnd,
 }: ElasticSliderProps) {
   const hit = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
   const [active, setActive] = useState(false);
   const clamp = (next: number) =>
     Math.min(max, Math.max(min, Math.round(next)));
@@ -80,19 +81,24 @@ export function ElasticSlider({
         onPointerDown={(event) => {
           if (disabled || event.button !== 0) return;
           event.currentTarget.setPointerCapture(event.pointerId);
+          dragging.current = true;
           setActive(true);
           update(event);
         }}
         onPointerMove={(event) => {
-          if (active) update(event);
+          if (dragging.current) update(event);
         }}
         onPointerUp={(event) => {
-          if (!active) return;
+          if (!dragging.current) return;
           const next = update(event);
+          dragging.current = false;
           setActive(false);
           onChangeEnd?.(next);
         }}
-        onPointerCancel={() => setActive(false)}
+        onPointerCancel={() => {
+          dragging.current = false;
+          setActive(false);
+        }}
       >
         <span className="elastic-slider-track">
           <span
