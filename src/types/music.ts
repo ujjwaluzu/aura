@@ -53,12 +53,14 @@ export interface PlaybackSession {
   artist: string;
   playing: boolean;
   positionSeconds: number;
+  updatedAtUnixMs: number;
   durationSeconds: number;
   artwork: string | null;
   canPlay: boolean;
   canPause: boolean;
   canPrevious: boolean;
   canNext: boolean;
+  canSeek: boolean;
 }
 export interface PlaybackState {
   sessions: PlaybackSession[];

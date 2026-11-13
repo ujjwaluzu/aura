@@ -9,6 +9,7 @@ enum Message {
     Refresh,
     Select(Option<String>, mpsc::SyncSender<Result<(), AppError>>),
     Control(MediaAction, mpsc::SyncSender<Result<(), AppError>>),
+    Seek(f64, mpsc::SyncSender<Result<(), AppError>>),
     Stop,
 }
 #[derive(Default)]
@@ -76,6 +77,15 @@ impl MediaService {
     pub fn control(&self, action: MediaAction) -> Result<(), AppError> {
         let (tx, rx) = mpsc::sync_channel(1);
         self.send(Message::Control(action, tx))?;
+        rx.recv_timeout(std::time::Duration::from_secs(10))
+            .map_err(|_| media_error())?
+    }
+    pub fn seek(&self, seconds: f64) -> Result<(), AppError> {
+        if !seconds.is_finite() || !(0.0..=172_800.0).contains(&seconds) {
+            return Err(media_error());
+        }
+        let (tx, rx) = mpsc::sync_channel(1);
+        self.send(Message::Seek(seconds, tx))?;
         rx.recv_timeout(std::time::Duration::from_secs(10))
             .map_err(|_| media_error())?
     }
@@ -164,6 +174,10 @@ mod native {
                     == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing,
                 position_seconds: ((timeline.Position()?.Duration - start).max(0) as f64)
                     / 10_000_000.0,
+                updated_at_unix_ms: std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64,
                 duration_seconds: ((timeline.EndTime()?.Duration - start).max(0) as f64)
                     / 10_000_000.0,
                 artwork: self.artwork.clone(),
@@ -171,6 +185,7 @@ mod native {
                 can_pause: controls.IsPauseEnabled()?,
                 can_previous: controls.IsPreviousEnabled()?,
                 can_next: controls.IsNextEnabled()?,
+                can_seek: controls.IsPlaybackPositionEnabled()?,
             })
         }
         fn control(&self, action: MediaAction) -> Result<(), AppError> {
@@ -197,6 +212,31 @@ mod native {
             } else {
                 Err(media_error())
             }
+        }
+        fn seek(&self, seconds: f64) -> Result<(), AppError> {
+            let controls = self
+                .native
+                .GetPlaybackInfo()
+                .and_then(|info| info.Controls())
+                .map_err(|_| media_error())?;
+            if !controls.IsPlaybackPositionEnabled().unwrap_or(false) {
+                return Err(media_error());
+            }
+            let timeline = self
+                .native
+                .GetTimelineProperties()
+                .map_err(|_| media_error())?;
+            let start = timeline.StartTime().map_err(|_| media_error())?.Duration;
+            let end = timeline.EndTime().map_err(|_| media_error())?.Duration;
+            let requested = start
+                .saturating_add((seconds * 10_000_000.0) as i64)
+                .clamp(start, end);
+            self.native
+                .TryChangePlaybackPositionAsync(requested)
+                .and_then(|op| op.join())
+                .map_err(|_| media_error())?
+                .then_some(())
+                .ok_or_else(media_error)
         }
     }
     impl Drop for Session {
@@ -295,6 +335,15 @@ mod native {
                         .and_then(|s| s.control(action));
                     let _ = reply.send(result);
                 }
+                Message::Seek(position, reply) => {
+                    let result = selected
+                        .as_ref()
+                        .and_then(|id| sessions.iter().find(|s| &s.id == id))
+                        .ok_or_else(media_error)
+                        .and_then(|s| s.seek(position));
+                    let _ = reply.send(result);
+                }
+
                 Message::Refresh => {}
             }
             let available = manager.GetSessions().map_err(|_| ())?;

@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pause, Play, SkipBack, SkipForward } from 'lucide-react';
 import type { MediaAction, PlaybackState } from '../../types/music';
-import { mediaControl, selectSession } from '../../features/integrations/music';
+import {
+  mediaControl,
+  mediaSeek,
+  selectSession,
+} from '../../features/integrations/music';
 import { errorMessage } from '../../lib/native';
 import { IconButton } from '../ui/IconButton';
 
@@ -19,6 +23,31 @@ export function PlaybackControls({
   const session = playback.sessions.find((s) => s.id === playback.selectedId);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [seekPosition, setSeekPosition] = useState<{
+    sessionId: string;
+    seconds: number;
+    snapshotAt: number;
+  } | null>(null);
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    if (!compact || !session?.playing) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 500);
+    return () => window.clearInterval(timer);
+  }, [compact, session?.id, session?.playing]);
+  const position =
+    (seekPosition &&
+    session &&
+    seekPosition.sessionId === session.id &&
+    session.updatedAtUnixMs <= seekPosition.snapshotAt
+      ? seekPosition.seconds
+      : null) ??
+    Math.min(
+      session?.durationSeconds ?? 0,
+      (session?.positionSeconds ?? 0) +
+        (session?.playing
+          ? Math.max(0, now - (session?.updatedAtUnixMs ?? now)) / 1000
+          : 0),
+    );
   const perform = async (action: MediaAction) => {
     setError(null);
     setBusy(true);
@@ -87,31 +116,40 @@ export function PlaybackControls({
             </div>
           </div>
           {compact && (
-            <div
+            <input
               className="music-progress"
-              role="progressbar"
+              type="range"
               aria-label="Track progress"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={
-                session.durationSeconds > 0
-                  ? Math.min(
-                      100,
-                      Math.max(
-                        0,
-                        (session.positionSeconds / session.durationSeconds) *
-                          100,
-                      ),
-                    )
-                  : 0
+              min={0}
+              max={Math.max(1, session.durationSeconds)}
+              step={1}
+              value={position}
+              style={{
+                background: `linear-gradient(90deg, var(--color-accent) ${session.durationSeconds > 0 ? (position / session.durationSeconds) * 100 : 0}%, rgba(255,255,255,.12) ${session.durationSeconds > 0 ? (position / session.durationSeconds) * 100 : 0}%)`,
+              }}
+              disabled={
+                !session.canSeek || busy || session.durationSeconds <= 0
               }
-            >
-              <span
-                style={{
-                  width: `${session.durationSeconds > 0 ? Math.min(100, Math.max(0, (session.positionSeconds / session.durationSeconds) * 100)) : 0}%`,
-                }}
-              />
-            </div>
+              onChange={(event) =>
+                setSeekPosition({
+                  sessionId: session.id,
+                  seconds: Number(event.target.value),
+                  snapshotAt: session.updatedAtUnixMs,
+                })
+              }
+              onPointerUp={() => {
+                if (seekPosition?.sessionId === session.id)
+                  void mediaSeek(seekPosition.seconds).catch((e) =>
+                    setError(errorMessage(e)),
+                  );
+              }}
+              onKeyUp={() => {
+                if (seekPosition?.sessionId === session.id)
+                  void mediaSeek(seekPosition.seconds).catch((e) =>
+                    setError(errorMessage(e)),
+                  );
+              }}
+            />
           )}
           <div className="music-transport">
             <IconButton

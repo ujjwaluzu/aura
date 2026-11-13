@@ -54,13 +54,15 @@ export function MusicConnections({ themeId }: WidgetProps) {
       {account.status === 'connected' || selected ? (
         <div className="music-widget-connected">
           <PlaybackControls playback={playback} compact />
-          <button
-            className="music-library-button"
-            type="button"
-            onClick={() => void showLibrary()}
-          >
-            Library
-          </button>
+          {!selected && (
+            <button
+              className="music-library-button"
+              type="button"
+              onClick={() => void showLibrary()}
+            >
+              Library
+            </button>
+          )}
         </div>
       ) : (
         <div className="music-connect-actions">

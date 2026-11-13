@@ -15,6 +15,7 @@
     "allow-music-playback-status",
     "allow-music-select-session",
     "allow-music-media-control",
+    "allow-music-media-seek",
     "allow-get-foundation-info",
     "allow-open-settings",
     "allow-get-system-snapshot",

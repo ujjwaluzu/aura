@@ -51,6 +51,8 @@ export const selectSession = (id: string | null) =>
   desktop<void>('music_select_session', { id });
 export const mediaControl = (action: MediaAction) =>
   desktop<void>('music_media_control', { action });
+export const mediaSeek = (positionSeconds: number) =>
+  desktop<void>('music_media_seek', { positionSeconds });
 
 /** Preserve duplicate playlist videos by their unique occurrence IDs. */
 export function appendMusicPage(

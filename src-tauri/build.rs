@@ -20,6 +20,7 @@ fn main() {
             "music_playback_status",
             "music_select_session",
             "music_media_control",
+            "music_media_seek",
         ]),
     ))
     .expect("failed to build Aura application metadata and capabilities");

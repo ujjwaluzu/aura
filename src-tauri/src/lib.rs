@@ -35,6 +35,7 @@ pub fn run() {
             commands::music::music_playback_status,
             commands::music::music_select_session,
             commands::music::music_media_control,
+            commands::music::music_media_seek,
         ])
         .on_window_event(|window, event| {
             // The host owns the application lifetime. Closing settings only

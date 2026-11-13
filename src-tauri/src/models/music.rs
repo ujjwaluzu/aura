@@ -133,12 +133,14 @@ pub struct PlaybackSession {
     pub artist: String,
     pub playing: bool,
     pub position_seconds: f64,
+    pub updated_at_unix_ms: u64,
     pub duration_seconds: f64,
     pub artwork: Option<String>,
     pub can_play: bool,
     pub can_pause: bool,
     pub can_previous: bool,
     pub can_next: bool,
+    pub can_seek: bool,
 }
 
 #[derive(Deserialize)]
