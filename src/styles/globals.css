@@ -267,6 +267,16 @@ input:focus-visible {
   padding: 12px;
   cursor: grab;
 }
+.music-connect-card-playing {
+  gap: 0;
+}
+.music-connect-card-playing .music-connect-notice {
+  min-height: 0;
+  margin: 0;
+}
+.music-connect-card-playing .music-widget-connected {
+  height: 100%;
+}
 .music-connect-actions {
   display: flex;
   flex-wrap: wrap;

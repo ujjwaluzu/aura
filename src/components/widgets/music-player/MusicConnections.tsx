@@ -46,7 +46,7 @@ export function MusicConnections({ themeId }: WidgetProps) {
     <GlassSurface
       variant="inset"
       opacity={0.35}
-      className="music-connect-card"
+      className={`music-connect-card ${selected ? 'music-connect-card-playing' : ''}`}
       aria-label="Music connections"
       data-theme={themeId}
       data-tauri-drag-region
