@@ -214,7 +214,11 @@ export function PlaybackControls({
           {compact && (
             <div
               className="music-volume"
-              title="Controls audio volume for this browser"
+              title={
+                shownVolume === null
+                  ? 'Select an active browser media session to enable volume.'
+                  : 'Controls audio volume for this browser.'
+              }
             >
               <ElasticSlider
                 label="Browser volume"
