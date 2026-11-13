@@ -21,7 +21,9 @@ than guessing another session from its source app. Track changes clear cached
 artwork, and thumbnail reads recheck metadata before installing their result.
 
 Widget presentations are horizontal, vertical, and music focus. They share the
-player presentation with static layout previews. More contains volume, a library link, and an in-card player chooser. Its overlay stays inside the card, supports Escape,
+player presentation with static layout previews. Volume is visible between the
+transport controls and More in every widget presentation, with a 28 px slider
+hit area, keyboard control, and inline recovery when volume is unavailable. More contains volume, a library link, and an in-card player chooser. Its overlay stays inside the card, supports Escape,
 outside dismissal and Tab navigation, and restores focus. Account setup remains
 in Settings. Diagnostic copying includes capability flags and error codes, and
 excludes account identifiers, raw error messages, artwork, and credentials. Only
@@ -37,7 +39,7 @@ gates, and official-player restrictions are unchanged.
 
 - TypeScript, ESLint, Prettier and Rust formatting checks passed.
 - Frontend production build and the Windows NSIS package build passed.
-- All 61 Chromium browser tests passed. They cover all 70 theme/layout combinations twice, with loaded and
+- All 64 Chromium browser tests passed. They cover all 70 theme/layout combinations twice, with loaded and
   missing artwork, long titles, essential control bounds, 28 px compact targets,
   and absence of widget scrollbars. Screenshots of all three presentations, More,
   Theme, Layout, and the account screen were inspected.
@@ -59,8 +61,8 @@ gates, and official-player restrictions are unchanged.
 
 Once the account is connected, the widget displays its playback card instead of
 an Open Music button. A sole reported Windows player supplies real track metadata
-and capabilities immediately. Transport, seek, and volume bind that session on a
-user action before sending their command. Multiple sessions are chosen inside the
+and capabilities immediately. Loading volume binds that sole session; transport,
+seek, and volume commands use the selected player. Multiple sessions are chosen inside the
 card. Aura keeps an explicit selection and asks again if the selected player
 closes. It does not infer a YouTube provider from a browser's app name.
 

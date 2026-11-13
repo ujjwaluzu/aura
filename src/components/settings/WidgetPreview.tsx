@@ -1,5 +1,11 @@
 ﻿import { useEffect, useRef, useState } from 'react';
-import { MoreHorizontal, Pause, SkipBack, SkipForward } from 'lucide-react';
+import {
+  MoreHorizontal,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Volume2,
+} from 'lucide-react';
 import type {
   LayoutDefinition,
   LayoutModule,
@@ -76,6 +82,10 @@ export function WidgetPreview({
                 <SkipBack size={15} />
                 <Pause size={15} />
                 <SkipForward size={15} />
+              </span>
+              <span className="player-volume-inline">
+                <Volume2 size={12} />
+                <span className="preview-progress" />
               </span>
               <MoreHorizontal size={16} />
             </>

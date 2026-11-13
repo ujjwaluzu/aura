@@ -5,6 +5,8 @@ import {
   Play,
   SkipBack,
   SkipForward,
+  Volume2,
+  VolumeX,
   X,
 } from 'lucide-react';
 import type { MediaAction, PlaybackState } from '../../types/music';
@@ -89,7 +91,7 @@ export function PlaybackControls({
   const boundSessionId = playback.selectedId;
 
   useEffect(() => {
-    if (!sessionId || (compact && !more)) return;
+    if (!sessionId) return;
     let live = true;
     const volumeRequest =
       boundSessionId === sessionId
@@ -112,7 +114,7 @@ export function PlaybackControls({
     return () => {
       live = false;
     };
-  }, [sessionId, boundSessionId, compact, more, volumeReload, reportError]);
+  }, [sessionId, boundSessionId, more, volumeReload, reportError]);
   useEffect(() => {
     if (!more) return;
     const focusTarget = trigger.current;
@@ -242,54 +244,55 @@ export function PlaybackControls({
     volume && volume.sessionId === sessionId ? volume.level : null;
   const shownVolumeError =
     volumeError?.sessionId === sessionId ? volumeError?.message : null;
+  const volumeStatus =
+    shownVolumeError ??
+    (!session
+      ? 'Choose a player for volume'
+      : shownVolume === null
+        ? 'Loading volume…'
+        : 'Browser volume');
+  const retryVolume = () => {
+    setVolumeError(null);
+    setVolume(null);
+    setVolumeReload((n) => n + 1);
+  };
+  const volumeSlider = (
+    <ElasticSlider
+      label="Browser volume"
+      max={100}
+      value={shownVolume ?? 0}
+      disabled={shownVolume === null || volumeBusy}
+      onChange={(level) => {
+        if (sessionId) setVolume({ sessionId, level });
+      }}
+      onChangeEnd={(level) => {
+        if (!sessionId) return;
+        setVolumeBusy(true);
+        void mediaVolume(level / 100)
+          .then(
+            (actual) => {
+              if (selectedId.current === sessionId) {
+                setVolume({ sessionId, level: actual * 100 });
+                setVolumeError(null);
+              }
+            },
+            (e: unknown) => {
+              if (selectedId.current === sessionId) {
+                setVolumeError({ sessionId, message: 'Volume unavailable' });
+                reportError(e);
+              }
+            },
+          )
+          .finally(() => setVolumeBusy(false));
+      }}
+    />
+  );
   const volumeControl = (
     <div className="player-volume">
-      <span>
-        {shownVolumeError ??
-          (!session
-            ? 'Choose a player for volume'
-            : shownVolume === null
-              ? 'Loading volume…'
-              : 'Browser volume')}
-      </span>
-      <ElasticSlider
-        label="Browser volume"
-        max={100}
-        value={shownVolume ?? 0}
-        disabled={shownVolume === null || volumeBusy}
-        onChange={(level) => {
-          if (sessionId) setVolume({ sessionId, level });
-        }}
-        onChangeEnd={(level) => {
-          if (!sessionId) return;
-          setVolumeBusy(true);
-          void mediaVolume(level / 100)
-            .then(
-              (actual) => {
-                if (selectedId.current === sessionId) {
-                  setVolume({ sessionId, level: actual * 100 });
-                  setVolumeError(null);
-                }
-              },
-              (e: unknown) => {
-                if (selectedId.current === sessionId) {
-                  setVolumeError({ sessionId, message: 'Volume unavailable' });
-                  reportError(e);
-                }
-              },
-            )
-            .finally(() => setVolumeBusy(false));
-        }}
-      />
+      <span>{volumeStatus}</span>
+      {volumeSlider}
       {shownVolumeError && (
-        <button
-          type="button"
-          onClick={() => {
-            setVolumeError(null);
-            setVolume(null);
-            setVolumeReload((n) => n + 1);
-          }}
-        >
+        <button type="button" onClick={retryVolume}>
           Retry volume
         </button>
       )}
@@ -317,7 +320,11 @@ export function PlaybackControls({
       )}
       {!compact && playback.message && <p role="status">{playback.message}</p>}
       {showPlayer ? (
-        <div className="player-main" inert={more}>
+        <div
+          className="player-main"
+          inert={more}
+          aria-hidden={more || undefined}
+        >
           <PlayerPresentation
             session={displaySession}
             presentation={presentation}
@@ -411,6 +418,31 @@ export function PlaybackControls({
                     <SkipForward size={15} />
                   </IconButton>
                 </div>
+                {compact && (
+                  <div
+                    className="player-volume-inline"
+                    title={
+                      shownVolume === null || shownVolumeError
+                        ? volumeStatus
+                        : `Browser volume: ${Math.round(shownVolume)}%`
+                    }
+                  >
+                    {shownVolumeError ? (
+                      <IconButton
+                        label="Retry volume"
+                        title="Volume unavailable. Retry volume"
+                        onClick={retryVolume}
+                      >
+                        <VolumeX size={14} />
+                      </IconButton>
+                    ) : (
+                      <>
+                        <Volume2 size={12} aria-hidden="true" />
+                        {volumeSlider}
+                      </>
+                    )}
+                  </div>
+                )}
                 {compact && (
                   <button
                     type="button"

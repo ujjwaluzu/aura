@@ -1419,3 +1419,52 @@ test('connected ready and picker controls fit every theme and arrangement', asyn
       }
     }
 });
+
+for (const layoutId of [
+  'clock-left-stats-music',
+  'music-left-clock-stats',
+  'music-focus-clock-left',
+]) {
+  test(`${layoutId}: inline volume sits between transport and More and works without opening actions`, async ({
+    page,
+  }) => {
+    await mockMusic(page, { selected: true });
+    await page.goto('/');
+    await page.evaluate(
+      (layoutId) =>
+        (
+          window as unknown as {
+            musicTest: { setPreferences: (p: unknown) => void };
+          }
+        ).musicTest.setPreferences({ layoutId }),
+      layoutId,
+    );
+    const volume = page.getByRole('slider', { name: 'Browser volume' });
+    await expect(volume).toHaveAttribute('aria-valuenow', '50');
+    const transport = await page.locator('.music-transport').boundingBox();
+    const slider = await volume.boundingBox();
+    const more = await page
+      .getByRole('button', { name: 'More music actions' })
+      .boundingBox();
+    expect(slider!.x).toBeGreaterThanOrEqual(transport!.x + transport!.width);
+    expect(slider!.x + slider!.width).toBeLessThanOrEqual(more!.x);
+    expect(slider!.width).toBeGreaterThanOrEqual(28);
+    expect(slider!.height).toBeGreaterThanOrEqual(28);
+    await volume.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(volume).toHaveAttribute('aria-valuenow', '51');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await page.screenshot({
+      path: `artifacts/widget-inline-volume-${layoutId}.png`,
+    });
+    const calls = await page.evaluate(
+      () =>
+        (window as unknown as { musicTest: { calls: unknown[] } }).musicTest
+          .calls,
+    );
+    expect(calls).toContainEqual({
+      command: 'music_media_volume',
+      args: { level: 0.51 },
+    });
+  });
+}

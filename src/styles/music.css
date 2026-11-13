@@ -521,6 +521,24 @@
   display: flex;
   align-items: center;
   gap: 3px;
+  flex-shrink: 0;
+}
+.player-volume-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0 8px;
+  color: var(--color-secondary);
+}
+.player-volume-inline > svg {
+  flex-shrink: 0;
+}
+.player-volume-inline .elastic-slider {
+  flex: 1;
+  min-width: 0;
 }
 .music-playback .icon-button {
   width: 28px;
