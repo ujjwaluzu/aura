@@ -675,7 +675,10 @@
 .host-surface[data-focus='music'] .music-connect-card {
   height: 100%;
   gap: 0;
-  padding: 10px 12px;
+  padding: 10px 12px 15px;
+}
+.secondary-slot > .music-connect-card.music-connect-card-playing {
+  padding-bottom: 10px;
 }
 .host-surface[data-focus='music'] .music-widget-connected {
   height: 100%;
