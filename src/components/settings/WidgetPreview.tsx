@@ -45,15 +45,29 @@ export function WidgetPreview({
       className="widget-preview"
       data-theme={theme}
       data-side={layout.side}
+      data-focus={layout.focus ? 'music' : undefined}
       aria-hidden="true"
     >
-      <div className="preview-primary">
-        <PreviewBlock module={layout.primary} />
-      </div>
-      <div className="preview-stack">
-        <PreviewBlock module={layout.top} />
-        <PreviewBlock module={layout.bottom} />
-      </div>
+      {layout.focus ? (
+        <>
+          <div className="preview-focus-clock">
+            <PreviewBlock module="clock" />
+          </div>
+          <div className="preview-focus-player">
+            <PreviewBlock module="music" />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="preview-primary">
+            <PreviewBlock module={layout.primary} />
+          </div>
+          <div className="preview-stack">
+            <PreviewBlock module={layout.top} />
+            <PreviewBlock module={layout.bottom} />
+          </div>
+        </>
+      )}
     </div>
   );
 }

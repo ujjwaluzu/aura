@@ -173,6 +173,37 @@ html.settings-document,
 .widget-preview[data-side='right'] .preview-stack {
   grid-column: 1;
 }
+.widget-preview[data-focus='music'] {
+  grid-template-columns: 0.38fr 1px 0.62fr;
+  gap: 5px;
+}
+.widget-preview[data-focus='music'][data-side='right'] {
+  grid-template-columns: 0.62fr 1px 0.38fr;
+}
+.preview-focus-clock {
+  grid-column: 1;
+  min-width: 0;
+}
+.preview-focus-player {
+  grid-column: 3;
+  min-width: 0;
+}
+.widget-preview[data-focus='music'][data-side='right'] .preview-focus-clock {
+  grid-column: 3;
+}
+.widget-preview[data-focus='music'][data-side='right'] .preview-focus-player {
+  grid-column: 1;
+}
+.preview-focus-player .preview-block {
+  position: relative;
+  background: hsl(var(--theme-hue) 25% 18%);
+}
+.preview-focus-player .preview-block::after {
+  content: '◀  ▶  ▶';
+  margin-left: auto;
+  color: hsl(var(--theme-hue) 60% 80%);
+  font-size: 7px;
+}
 .preview-block {
   display: flex;
   align-items: center;

@@ -105,35 +105,57 @@ function WidgetHost() {
         data-layout={preferences.layoutId}
         data-primary={layout.primary}
         data-side={layout.side}
+        data-focus={layout.focus ? 'music' : undefined}
       >
         <AmbientWave />
-        <div className="primary-slot">
-          <WidgetRenderer
-            instance={{
-              ...widgets[layout.primary],
-              themeId: preferences.themeId,
-            }}
-          />
-        </div>
-        <div className="widget-divider" aria-hidden="true" />
-        <div className="host-modules">
-          <div className="secondary-slot" data-module={layout.top}>
-            <WidgetRenderer
-              instance={{
-                ...widgets[layout.top],
-                themeId: preferences.themeId,
-              }}
-            />
-          </div>
-          <div className="secondary-slot" data-module={layout.bottom}>
-            <WidgetRenderer
-              instance={{
-                ...widgets[layout.bottom],
-                themeId: preferences.themeId,
-              }}
-            />
-          </div>
-        </div>
+        {layout.focus ? (
+          <>
+            <div className="focus-clock-slot">
+              <WidgetRenderer
+                instance={{
+                  ...clock,
+                  themeId: preferences.themeId,
+                }}
+              />
+            </div>
+            <div className="widget-divider" aria-hidden="true" />
+            <div className="focus-music-slot">
+              <WidgetRenderer
+                instance={{ ...music, themeId: preferences.themeId }}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="primary-slot">
+              <WidgetRenderer
+                instance={{
+                  ...widgets[layout.primary],
+                  themeId: preferences.themeId,
+                }}
+              />
+            </div>
+            <div className="widget-divider" aria-hidden="true" />
+            <div className="host-modules">
+              <div className="secondary-slot" data-module={layout.top}>
+                <WidgetRenderer
+                  instance={{
+                    ...widgets[layout.top],
+                    themeId: preferences.themeId,
+                  }}
+                />
+              </div>
+              <div className="secondary-slot" data-module={layout.bottom}>
+                <WidgetRenderer
+                  instance={{
+                    ...widgets[layout.bottom],
+                    themeId: preferences.themeId,
+                  }}
+                />
+              </div>
+            </div>
+          </>
+        )}
         <nav className="host-tools" aria-label="Window controls">
           <IconButton
             label="Always on top"

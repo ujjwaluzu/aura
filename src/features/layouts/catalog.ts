@@ -108,9 +108,31 @@ export const layouts = [
     title: 'Music right',
     description: 'CPU / RAM above clock',
   },
+  {
+    id: 'music-focus-clock-left',
+    primary: 'clock',
+    side: 'left',
+    top: 'music',
+    bottom: 'music',
+    focus: true,
+    title: 'Music focus · clock left',
+    description: 'Full music player with clock · no CPU / RAM',
+  },
+  {
+    id: 'music-focus-clock-right',
+    primary: 'clock',
+    side: 'right',
+    top: 'music',
+    bottom: 'music',
+    focus: true,
+    title: 'Music focus · clock right',
+    description: 'Full music player with clock · no CPU / RAM',
+  },
 ] as const;
 
-export type LayoutDefinition = (typeof layouts)[number];
+export type LayoutDefinition = (typeof layouts)[number] & {
+  readonly focus?: boolean;
+};
 export type LayoutId = LayoutDefinition['id'];
 export const getLayout = (id: LayoutId): LayoutDefinition =>
   layouts.find((layout) => layout.id === id) ?? layouts[0];

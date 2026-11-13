@@ -150,6 +150,18 @@ pub async fn music_media_seek(
         .await
         .map_err(|_| task_error())?
 }
+#[tauri::command]
+pub async fn music_media_volume(
+    window: WebviewWindow,
+    level: Option<f32>,
+    service: State<'_, Arc<MediaService>>,
+) -> Result<f32, AppError> {
+    allowed(window.label())?;
+    let service = service.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.volume(level))
+        .await
+        .map_err(|_| task_error())?
+}
 
 #[cfg(test)]
 mod tests {

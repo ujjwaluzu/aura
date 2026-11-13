@@ -53,6 +53,8 @@ export const mediaControl = (action: MediaAction) =>
   desktop<void>('music_media_control', { action });
 export const mediaSeek = (positionSeconds: number) =>
   desktop<void>('music_media_seek', { positionSeconds });
+export const mediaVolume = (level?: number) =>
+  desktop<number>('music_media_volume', { level: level ?? null });
 
 /** Preserve duplicate playlist videos by their unique occurrence IDs. */
 export function appendMusicPage(

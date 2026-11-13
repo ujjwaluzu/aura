@@ -27,6 +27,8 @@ pub enum LayoutId {
     MusicLeftStatsClock,
     MusicRightClockStats,
     MusicRightStatsClock,
+    MusicFocusClockLeft,
+    MusicFocusClockRight,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

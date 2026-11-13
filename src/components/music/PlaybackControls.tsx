@@ -1,13 +1,22 @@
 import { useEffect, useState } from 'react';
-import { Pause, Play, SkipBack, SkipForward } from 'lucide-react';
+import {
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
+  Volume1,
+  Volume2,
+} from 'lucide-react';
 import type { MediaAction, PlaybackState } from '../../types/music';
 import {
   mediaControl,
   mediaSeek,
+  mediaVolume,
   selectSession,
 } from '../../features/integrations/music';
 import { errorMessage } from '../../lib/native';
 import { IconButton } from '../ui/IconButton';
+import { ElasticSlider } from './ElasticSlider';
 
 function time(seconds: number) {
   const whole = Math.max(0, Math.floor(seconds));
@@ -29,6 +38,27 @@ export function PlaybackControls({
     snapshotAt: number;
   } | null>(null);
   const [now, setNow] = useState(0);
+  const [volume, setVolume] = useState<number | null>(null);
+  const [volumeForSession, setVolumeForSession] = useState<string | null>(null);
+  const sessionId = session?.id;
+  useEffect(() => {
+    let live = true;
+    if (sessionId)
+      void mediaVolume()
+        .then((value) => {
+          if (live) {
+            setVolume(value * 100);
+            setVolumeForSession(sessionId);
+          }
+        })
+        .catch(() => {
+          if (live) setVolumeForSession(null);
+        });
+    return () => {
+      live = false;
+    };
+  }, [sessionId]);
+  const shownVolume = volumeForSession === sessionId ? volume : null;
   useEffect(() => {
     if (!compact || !session?.playing) return;
     const timer = window.setInterval(() => setNow(Date.now()), 500);
@@ -111,40 +141,28 @@ export function PlaybackControls({
             </div>
           </div>
           {compact && (
-            <input
-              className="music-progress"
-              type="range"
-              aria-label="Track progress"
-              min={0}
-              max={Math.max(1, session.durationSeconds)}
-              step={1}
-              value={position}
-              style={{
-                background: `linear-gradient(90deg, var(--color-accent) ${session.durationSeconds > 0 ? (position / session.durationSeconds) * 100 : 0}%, rgba(255,255,255,.12) ${session.durationSeconds > 0 ? (position / session.durationSeconds) * 100 : 0}%)`,
-              }}
-              disabled={
-                !session.canSeek || busy || session.durationSeconds <= 0
-              }
-              onChange={(event) =>
-                setSeekPosition({
-                  sessionId: session.id,
-                  seconds: Number(event.target.value),
-                  snapshotAt: session.updatedAtUnixMs,
-                })
-              }
-              onPointerUp={() => {
-                if (seekPosition?.sessionId === session.id)
-                  void mediaSeek(seekPosition.seconds).catch((e) =>
+            <div className="music-progress">
+              <ElasticSlider
+                label="Track progress"
+                max={Math.max(1, session.durationSeconds)}
+                value={position}
+                disabled={
+                  !session.canSeek || busy || session.durationSeconds <= 0
+                }
+                onChange={(seconds) =>
+                  setSeekPosition({
+                    sessionId: session.id,
+                    seconds,
+                    snapshotAt: session.updatedAtUnixMs,
+                  })
+                }
+                onChangeEnd={(seconds) =>
+                  void mediaSeek(seconds).catch((e) =>
                     setError(errorMessage(e)),
-                  );
-              }}
-              onKeyUp={() => {
-                if (seekPosition?.sessionId === session.id)
-                  void mediaSeek(seekPosition.seconds).catch((e) =>
-                    setError(errorMessage(e)),
-                  );
-              }}
-            />
+                  )
+                }
+              />
+            </div>
           )}
           <div className="music-transport">
             <IconButton
@@ -177,6 +195,30 @@ export function PlaybackControls({
               </span>
             )}
           </div>
+          {compact && (
+            <div
+              className="music-volume"
+              title="Controls audio volume for this browser"
+            >
+              <ElasticSlider
+                label="Browser volume"
+                max={100}
+                value={shownVolume ?? 0}
+                disabled={shownVolume === null}
+                leftIcon={<Volume1 />}
+                rightIcon={<Volume2 />}
+                onChange={setVolume}
+                onChangeEnd={(level) =>
+                  void mediaVolume(level / 100)
+                    .then((actual) => {
+                      setVolume(actual * 100);
+                      setVolumeForSession(session.id);
+                    })
+                    .catch((e) => setError(errorMessage(e)))
+                }
+              />
+            </div>
+          )}
         </>
       ) : (
         <p className="music-session-empty">

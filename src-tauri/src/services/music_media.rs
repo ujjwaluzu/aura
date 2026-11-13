@@ -10,6 +10,7 @@ enum Message {
     Select(Option<String>, mpsc::SyncSender<Result<(), AppError>>),
     Control(MediaAction, mpsc::SyncSender<Result<(), AppError>>),
     Seek(f64, mpsc::SyncSender<Result<(), AppError>>),
+    Volume(Option<f32>, mpsc::SyncSender<Result<f32, AppError>>),
     Stop,
 }
 #[derive(Default)]
@@ -89,6 +90,15 @@ impl MediaService {
         rx.recv_timeout(std::time::Duration::from_secs(10))
             .map_err(|_| media_error())?
     }
+    pub fn volume(&self, level: Option<f32>) -> Result<f32, AppError> {
+        if level.is_some_and(|value| !value.is_finite() || !(0.0..=1.0).contains(&value)) {
+            return Err(media_error());
+        }
+        let (tx, rx) = mpsc::sync_channel(1);
+        self.send(Message::Volume(level, tx))?;
+        rx.recv_timeout(std::time::Duration::from_secs(5))
+            .map_err(|_| media_error())?
+    }
     pub fn shutdown(&self) {
         self.stopped.store(true, Ordering::SeqCst);
         let _ = self.send(Message::Stop);
@@ -105,6 +115,88 @@ fn media_error() -> AppError {
 mod native {
     use super::*;
     use windows::{Foundation::TypedEventHandler, Media::Control::*, Storage::Streams::DataReader};
+    fn browser_volume(source: &str, level: Option<f32>) -> windows::core::Result<f32> {
+        use windows::{
+            core::{Interface, PWSTR},
+            Win32::{
+                Foundation::CloseHandle,
+                Media::Audio::{
+                    eMultimedia, eRender, IAudioSessionControl2, IAudioSessionManager2,
+                    IMMDeviceEnumerator, ISimpleAudioVolume, MMDeviceEnumerator,
+                },
+                System::{
+                    Com::{CoCreateInstance, CLSCTX_ALL},
+                    Threading::{
+                        OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
+                        PROCESS_QUERY_LIMITED_INFORMATION,
+                    },
+                },
+            },
+        };
+        let lower = source.to_ascii_lowercase();
+        let executable = if lower.contains("chrome") {
+            "chrome.exe"
+        } else if lower.contains("edge") || lower.contains("msedge") {
+            "msedge.exe"
+        } else if lower.contains("firefox") {
+            "firefox.exe"
+        } else if lower.contains("brave") {
+            "brave.exe"
+        } else {
+            return Err(windows::core::Error::from_thread());
+        };
+        unsafe {
+            let devices: IMMDeviceEnumerator =
+                CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)?;
+            let device = devices.GetDefaultAudioEndpoint(eRender, eMultimedia)?;
+            let manager: IAudioSessionManager2 = device.Activate(CLSCTX_ALL, None)?;
+            let sessions = manager.GetSessionEnumerator()?;
+            let mut levels = Vec::new();
+            for index in 0..sessions.GetCount()? {
+                let control = sessions.GetSession(index)?;
+                let control2: IAudioSessionControl2 = match control.cast() {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                };
+                let pid = match control2.GetProcessId() {
+                    Ok(value) if value != 0 => value,
+                    _ => continue,
+                };
+                let process = match OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                };
+                let mut path = [0u16; 1024];
+                let mut length = path.len() as u32;
+                let path_result = QueryFullProcessImageNameW(
+                    process,
+                    PROCESS_NAME_WIN32,
+                    PWSTR(path.as_mut_ptr()),
+                    &mut length,
+                );
+                let _ = CloseHandle(process);
+                if path_result.is_err()
+                    || !String::from_utf16_lossy(&path[..length as usize])
+                        .to_ascii_lowercase()
+                        .ends_with(executable)
+                {
+                    continue;
+                }
+                let volume: ISimpleAudioVolume = match control.cast() {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                };
+                if let Some(value) = level {
+                    volume.SetMasterVolume(value, std::ptr::null())?;
+                }
+                levels.push(volume.GetMasterVolume()?);
+            }
+            if levels.is_empty() {
+                return Err(windows::core::Error::from_thread());
+            }
+            Ok(levels.iter().sum::<f32>() / levels.len() as f32)
+        }
+    }
     pub struct Session {
         pub id: String,
         pub native: GlobalSystemMediaTransportControlsSession,
@@ -383,6 +475,16 @@ mod native {
                         .and_then(|id| sessions.iter().find(|s| &s.id == id))
                         .ok_or_else(media_error)
                         .and_then(|s| s.seek(position));
+                    let _ = reply.send(result);
+                }
+                Message::Volume(level, reply) => {
+                    let result =
+                        selected_source
+                            .as_deref()
+                            .ok_or_else(media_error)
+                            .and_then(|source| {
+                                browser_volume(source, level).map_err(|_| media_error())
+                            });
                     let _ = reply.send(result);
                 }
 
