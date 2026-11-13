@@ -12,6 +12,23 @@
   "app": {
     "windows": [
       {
+        "label": "music",
+        "title": "Aura Music",
+        "url": "index.html?window=music",
+        "create": false,
+        "width": 960,
+        "height": 680,
+        "minWidth": 680,
+        "minHeight": 520,
+        "center": true,
+        "resizable": true,
+        "decorations": true,
+        "transparent": false,
+        "backgroundColor": "#111318",
+        "theme": "Dark",
+        "shadow": true
+      },
+      {
         "label": "widget-host",
         "title": "Aura",
         "url": "index.html",
@@ -46,7 +63,7 @@
       }
     ],
     "security": {
-      "capabilities": ["widget-host", "settings"],
+      "capabilities": ["widget-host", "settings", "music"],
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src ipc: http://ipc.localhost; object-src 'none'; base-uri 'self'; frame-src 'none'; form-action 'none'",
       "devCsp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src ipc: http://ipc.localhost http://127.0.0.1:1420 ws://127.0.0.1:1420; object-src 'none'; base-uri 'self'; frame-src 'none'; form-action 'none'"
     }

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-music-connect"
+description = "Enables the music_connect command without any pre-configured scope."
+commands.allow = ["music_connect"]
+
+[[permission]]
+identifier = "deny-music-connect"
+description = "Denies the music_connect command without any pre-configured scope."
+commands.deny = ["music_connect"]

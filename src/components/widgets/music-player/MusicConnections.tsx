@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { GlassSurface } from '../../ui/GlassSurface';
 import type { WidgetProps } from '../../../features/widget-engine/types';
+import { useMusic } from '../../../hooks/useMusic';
+import { openMusic } from '../../../features/integrations/music';
+import { errorMessage } from '../../../lib/native';
+import { PlaybackControls } from '../../music/PlaybackControls';
 
 function SpotifyMark() {
   return (
@@ -15,26 +19,29 @@ function SpotifyMark() {
   );
 }
 
-function YouTubeMusicMark() {
+function YouTubeMark() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="11" fill="#f34b5a" />
-      <circle
-        cx="12"
-        cy="12"
-        r="7.3"
-        fill="none"
-        stroke="white"
-        strokeWidth="1.2"
-      />
+      <rect x="1" y="4" width="22" height="16" rx="5" fill="#f34b5a" />
       <path d="m10 8 6 4-6 4Z" fill="white" />
     </svg>
   );
 }
 
-/** Provider entry points only. No authentication or connected state yet. */
 export function MusicConnections({ themeId }: WidgetProps) {
   const [notice, setNotice] = useState<string | null>(null);
+  const { account, playback } = useMusic();
+  const selected = playback.sessions.some(
+    (session) => session.id === playback.selectedId,
+  );
+  const showLibrary = async () => {
+    setNotice(null);
+    try {
+      await openMusic();
+    } catch (error) {
+      setNotice(errorMessage(error));
+    }
+  };
   return (
     <GlassSurface
       variant="inset"
@@ -44,24 +51,37 @@ export function MusicConnections({ themeId }: WidgetProps) {
       data-theme={themeId}
       data-tauri-drag-region
     >
-      <div className="music-connect-actions">
-        <button
-          className="music-connect-button"
-          type="button"
-          onClick={() => setNotice('Spotify connection is coming soon.')}
-        >
-          <SpotifyMark />
-          <span>Connect Spotify</span>
-        </button>
-        <button
-          className="music-connect-button"
-          type="button"
-          onClick={() => setNotice('YouTube Music connection is coming soon.')}
-        >
-          <YouTubeMusicMark />
-          <span>Connect YouTube Music</span>
-        </button>
-      </div>
+      {account.status === 'connected' || selected ? (
+        <div className="music-widget-connected">
+          <PlaybackControls playback={playback} compact />
+          <button
+            className="music-library-button"
+            type="button"
+            onClick={() => void showLibrary()}
+          >
+            Open Library
+          </button>
+        </div>
+      ) : (
+        <div className="music-connect-actions">
+          <button
+            className="music-connect-button"
+            type="button"
+            onClick={() => setNotice('Spotify connection is coming soon.')}
+          >
+            <SpotifyMark />
+            <span>Connect Spotify</span>
+          </button>
+          <button
+            className="music-connect-button"
+            type="button"
+            onClick={() => void showLibrary()}
+          >
+            <YouTubeMark />
+            <span>Connect YouTube</span>
+          </button>
+        </div>
+      )}
       <p className="music-connect-notice" role="status" aria-live="polite">
         {notice}
       </p>

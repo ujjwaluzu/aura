@@ -2,6 +2,33 @@ use tauri::{AppHandle, Manager, WebviewWindow, WebviewWindowBuilder};
 
 use crate::models::AppError;
 
+#[tauri::command]
+pub async fn open_music(app: AppHandle, window: WebviewWindow) -> Result<(), AppError> {
+    crate::commands::music::allowed(window.label())?;
+    if let Some(music) = app.get_webview_window("music") {
+        music.unminimize().map_err(AppError::window)?;
+        music.show().map_err(AppError::window)?;
+        return music.set_focus().map_err(AppError::window);
+    }
+    let config = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|config| config.label == "music")
+        .ok_or_else(|| AppError::new("WINDOW_CONFIG", "Aura Music is not configured."))?;
+    match WebviewWindowBuilder::from_config(&app, config)
+        .map_err(AppError::window)?
+        .build()
+    {
+        Ok(music) => music.set_focus().map_err(AppError::window),
+        Err(error) => app
+            .get_webview_window("music")
+            .map(|music| music.set_focus().map_err(AppError::window))
+            .unwrap_or_else(|| Err(AppError::window(error))),
+    }
+}
+
 // An async command avoids creating a WebView inside a synchronous WebView2 IPC
 // callback, which can deadlock on Windows.
 #[tauri::command]

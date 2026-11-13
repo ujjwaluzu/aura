@@ -1,0 +1,6 @@
+{
+  "youtubeDataApiValidated": true,
+  "publicDistributionApproved": false,
+  "windowsReleaseValidated": false,
+  "evidence": "2026-11-13: native official API verified the real channel, owned playlists, liked videos and music search. Disposable private playlist creation, rename, add/remove, duplicate occurrence reorder, rating change/restoration, token refresh, process restart and disconnect passed. The test playlist was left empty and the original rating restored. Public enablement remains blocked by Google verification/project quota approval and clean Windows installer, browser playback and resource acceptance. The unofficial integration is retired. See docs/youtube-music.md."
+}

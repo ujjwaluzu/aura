@@ -11,8 +11,15 @@ artifacts/
 .env
 .env.*
 !.env.example
+!.env.music.example
 .DS_Store
 Thumbs.db
+tools/music/.venv/
+tools/music/build/
+tools/music/dist/
+tools/music/*.spec
+**/__pycache__/
+src-tauri/binaries/*.exe
 .idea/
 .vscode/*
 !.vscode/extensions.json

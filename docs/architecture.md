@@ -90,8 +90,11 @@ snapshots do not add graph points, unavailable CPU samples split the line, and
 errors/unmount discard the buffer. There is no synthetic waveform or stored
 usage history.
 
-The music panel currently has two connection entry buttons with a local coming-soon
-response. It does not authenticate, open provider accounts or control playback.
+The music panel opens a separate Aura Music window and can show explicitly selected
+Windows media-session controls. Official YouTube Data API account browsing/editing and desktop OAuth are
+implemented behind a release gate. Spotify remains a future milestone. See
+[music setup and validation](youtube-music.md) for credentials, native API requests,
+the native boundary and the remaining provider/Windows release prerequisites.
 The weather reading in the visual reference is not represented by fabricated data.
 
 The components live under `components/widgets/clock`,

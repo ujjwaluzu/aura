@@ -19,6 +19,8 @@
     "tauri": "tauri",
     "desktop:dev": "tauri dev",
     "desktop:build": "tauri build -- --locked",
+    "music:validate": "node tools/music/dev.mjs",
+    "desktop:music:build": "tauri build -- --locked",
     "native:check": "cargo check --manifest-path src-tauri/Cargo.toml --locked",
     "native:lint": "cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings",
     "native:format": "cargo fmt --manifest-path src-tauri/Cargo.toml --check",

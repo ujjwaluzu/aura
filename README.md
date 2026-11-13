@@ -16,8 +16,10 @@ This repository contains only the desktop application.
   most once per second. Collection stops while the host is hidden or minimized.
 - Fixed glass treatment; no network dependency for clock or monitoring.
 - CPU/RAM sparklines use up to 32 actual recent samples, held only in UI memory.
-- Music panel with Connect Spotify and Connect YouTube Music entry buttons.
-  These currently report coming soon; account connection and playback are not implemented.
+- Music panel opens Aura Music: a native account/library window and official-player
+  bridge with event-driven Windows media-session selection and transport controls.
+  YouTube account features passed real-account developer validation and remain gated for public release requirements;
+  Spotify still reports coming soon. See [music setup and validation](docs/youtube-music.md).
 - Typed Rust metadata command, protocol validation, structured errors and retry UI.
 - Settings window created on demand and reused while open.
 - Theme tab with Violet, Ocean, Jade, Amber and Rose previews.
@@ -26,7 +28,7 @@ This repository contains only the desktop application.
 - Widget definition/instance contracts with clock, system monitor and music-entry components.
 - Scoped Tauri capabilities, local content and restrictive content security policy.
 
-Music, notes, per-widget drag/resize, multiple named layouts,
+Public music account enablement, notes, per-widget drag/resize, multiple named layouts,
 startup, native wallpaper blur and desktop-icon-layer integration are **not
 implemented**. The foundation is not a public production release.
 

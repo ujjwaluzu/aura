@@ -82,7 +82,7 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
     host.getByRole('button', { name: 'Connect Spotify' }),
   ).toBeVisible();
   await expect(
-    host.getByRole('button', { name: 'Connect YouTube Music' }),
+    host.getByRole('button', { name: 'Connect YouTube' }),
   ).toBeVisible();
   await expect(
     host.getByRole('region', { name: 'System usage' }),
@@ -125,6 +125,69 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
     true,
   );
   expect(rejected).toMatchObject({ code: 'PROTOCOL_MISMATCH' });
+
+  const account = await invoke<{ status: string }>(
+    host,
+    'music_account_status',
+  );
+  expect(account.status).toBe('unavailable');
+  const gatedConnect = await invoke(host, 'music_connect', {}, true);
+  expect(gatedConnect).toMatchObject({ code: 'MUSIC_UNAVAILABLE' });
+  const invalidPlayerLink = await invoke(
+    host,
+    'music_open_player',
+    { target: { kind: 'track', id: 'https://evil.test' } },
+    true,
+  );
+  expect(invalidPlayerLink).toMatchObject({ code: 'INVALID_INPUT' });
+  const musicEvent = context.waitForEvent('page');
+  await invoke(host, 'open_music');
+  const music = await musicEvent;
+  await expect(
+    music.getByRole('heading', { name: 'Bring your library closer' }),
+  ).toBeVisible();
+  await expect(music.locator('body')).toHaveCSS(
+    'background-color',
+    'rgb(17, 19, 24)',
+  );
+  await expect(
+    music.getByRole('button', { name: 'Connect YouTube', exact: true }),
+  ).toBeDisabled();
+  expect(
+    await invoke<{ status: string }>(music, 'music_account_status'),
+  ).toMatchObject({ status: 'unavailable' });
+  const sessions = await invoke<{
+    sessions: unknown[];
+    selectedId: string | null;
+  }>(music, 'music_playback_status');
+  expect(Array.isArray(sessions.sessions)).toBe(true);
+  expect(sessions.selectedId).toBeNull();
+  expect(
+    await invoke(
+      music,
+      'music_select_session',
+      { id: 'missing-session' },
+      true,
+    ),
+  ).toMatchObject({ code: 'MEDIA_UNAVAILABLE' });
+  const musicPreferencesDenied = await invoke(
+    music,
+    'set_preferences',
+    { patch: { themeId: 'ocean' } },
+    true,
+  );
+  expect(String(musicPreferencesDenied)).toMatch(/not allowed|denied/i);
+  await invoke(host, 'open_music');
+  expect(
+    context.pages().filter((page) => page.url().includes('window=music')),
+  ).toHaveLength(1);
+  await music.screenshot({ path: 'artifacts/aura-music-native.png' });
+  const musicClosed = music.waitForEvent('close');
+  await invoke(music, 'plugin:window|close', { label: 'music' }).catch(
+    () => {},
+  );
+  await musicClosed;
+  await expect(host.getByLabel('Current time')).toBeVisible();
 
   // DOM activation checks the React -> IPC -> native path; physical dragging,
   // hit testing and desktop composition remain manual QA.
@@ -244,6 +307,18 @@ test('real Rust IPC, window controls, settings isolation and host-owned shutdown
   expect(String(denied)).toMatch(/not allowed|not found|denied/i);
   const monitorDenied = await invoke(settings, 'get_system_snapshot', {}, true);
   expect(String(monitorDenied)).toMatch(/not allowed|not found|denied/i);
+  for (const command of [
+    'open_music',
+    'music_account_status',
+    'music_connect',
+    'music_disconnect',
+    'music_playback_status',
+  ]) {
+    const deniedMusic = await invoke(settings, command, {}, true);
+    expect(String(deniedMusic), command).toMatch(
+      /not allowed|not found|denied/i,
+    );
+  }
   await host
     .getByRole('button', { name: 'Open settings' })
     .dispatchEvent('click');

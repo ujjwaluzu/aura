@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-music-browse"
+description = "Enables the music_browse command without any pre-configured scope."
+commands.allow = ["music_browse"]
+
+[[permission]]
+identifier = "deny-music-browse"
+description = "Denies the music_browse command without any pre-configured scope."
+commands.deny = ["music_browse"]

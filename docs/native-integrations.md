@@ -1,7 +1,9 @@
 # Native integration investigation
 
-CPU/RAM monitoring is implemented. Media, startup and Explorer reparenting remain
-planned; those investigations do not imply implementation.
+CPU/RAM monitoring and the Windows media-session bridge are implemented. YouTube
+Music account features remain behind a validation gate; see
+[music setup and validation](youtube-music.md). Startup and Explorer reparenting
+remain planned.
 
 ## CPU and RAM
 
@@ -29,8 +31,10 @@ recent snapshots for sparklines; no history is written to disk.
 
 ## Universal music
 
-The current music panel is UI-only: its two provider buttons report that
-connection is coming soon. The native integration below remains planned.
+The music panel opens Aura Music, where users can select an available Windows
+media session. Metadata, timeline snapshots and supported controls use WinRT
+events. Account browsing and editing are gated separately. The notes below are
+background for this boundary; real Chrome/Edge provider QA remains pending.
 
 Use the Rust `windows` crate's `Windows.Media.Control` WinRT bindings for
 [`GlobalSystemMediaTransportControlsSessionManager`](https://learn.microsoft.com/en-us/uwp/api/windows.media.control.globalsystemmediatransportcontrolssessionmanager?view=winrt-26100).

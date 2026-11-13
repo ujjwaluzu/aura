@@ -10,4 +10,6 @@ export interface FoundationInfo {
 export interface NativeError {
   code: string;
   message: string;
+  httpStatus?: number;
+  providerReason?: string;
 }

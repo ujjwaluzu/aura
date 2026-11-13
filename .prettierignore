@@ -8,3 +8,7 @@ Cargo.lock
 test-results
 playwright-report
 artifacts
+tools/music/.venv
+tools/music/build
+tools/music/dist
+src-tauri/binaries

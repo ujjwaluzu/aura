@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-music-playback-status"
+description = "Enables the music_playback_status command without any pre-configured scope."
+commands.allow = ["music_playback_status"]
+
+[[permission]]
+identifier = "deny-music-playback-status"
+description = "Denies the music_playback_status command without any pre-configured scope."
+commands.deny = ["music_playback_status"]

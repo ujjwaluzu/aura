@@ -1,6 +1,12 @@
 ﻿# Foundation verification
 
-Executed on 13 November 2026 for the Theme and Layout settings milestone.
+The latest official YouTube API milestone passed 29 Rust tests, 27 browser tests,
+one native release WebView integration test and a separately enabled live token
+refresh test. Real-account browsing, disposable-playlist edits, rating restoration,
+restart and disconnect passed. See [the music verification record](youtube-music.md#verification-record)
+for current installer measurements and remaining public release gates.
+
+The historical foundation results below were executed on 13 November 2026 for the Theme and Layout settings milestone.
 The widget remains a 760 x 264 logical-pixel glass host. Settings is a separate,
 opaque 840 x 640 window with a native Windows frame.
 
@@ -60,7 +66,10 @@ rendering, not final wallpaper compositing. An initial tooling type check caught
 a NodeList iteration issue in the new browser test; it was corrected before the
 successful release build.
 
-## Build artifacts
+## Historical foundation build artifacts
+
+These measurements precede the music integration. The build paths below are
+reused; see the music verification record for the current installer.
 
 - `src-tauri/target/release/aura.exe`: 3,243,520 bytes.
 - `src-tauri/target/release/bundle/nsis/Aura_0.1.0_x64-setup.exe`: 1,217,413 bytes
@@ -109,6 +118,9 @@ Native wallpaper blur is not implemented.
 Clean-machine installer install/upgrade/uninstall, code signing, Windows 10,
 other GPUs/WebView2 versions, assistive technology, Remote Desktop and performance
 budgets remain untested. No public compatibility or resource promise is implied.
-Music buttons still report coming soon; account/media integration, weather,
-notes, multiple named layouts, startup registration and desktop-icon-layer
-integration remain unimplemented. Core features and local preferences work offline.
+The YouTube Music account and media implementation is described in
+[music setup and validation](youtube-music.md); its public account gate remains
+closed pending provider and clean-machine acceptance; real-account API validation
+passed (see the linked verification record). Spotify, weather, notes, multiple
+named layouts, startup registration and desktop-icon-layer integration remain
+unimplemented. Core features and local preferences work offline.

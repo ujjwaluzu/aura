@@ -325,7 +325,7 @@ test('reference layout places usage cards above two honest music entry points', 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   const spotify = page.getByRole('button', { name: 'Connect Spotify' });
-  const youtube = page.getByRole('button', { name: 'Connect YouTube Music' });
+  const youtube = page.getByRole('button', { name: 'Connect YouTube' });
   await expect(spotify).toBeVisible();
   await expect(youtube).toBeVisible();
   const cpu = await page.locator('.usage-card').first().boundingBox();
@@ -346,7 +346,7 @@ test('reference layout places usage cards above two honest music entry points', 
   await youtube.click();
   await expect(
     page.getByRole('region', { name: 'Music connections' }).getByRole('status'),
-  ).toHaveText('YouTube Music connection is coming soon.');
+  ).toHaveText('Open Aura’s desktop application to use music services.');
 });
 
 test('monitor errors show unavailable readings and recover through the retry control', async ({
@@ -457,7 +457,7 @@ test('all twelve layouts apply without clipped modules or connection buttons', a
       bounds.every((bound) => bound.inside && bound.noOverflow),
       layout.id,
     ).toBe(true);
-    for (const name of ['Connect Spotify', 'Connect YouTube Music']) {
+    for (const name of ['Connect Spotify', 'Connect YouTube']) {
       await expect(page.getByRole('button', { name })).toBeInViewport();
     }
   }

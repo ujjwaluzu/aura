@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-music-disconnect"
+description = "Enables the music_disconnect command without any pre-configured scope."
+commands.allow = ["music_disconnect"]
+
+[[permission]]
+identifier = "deny-music-disconnect"
+description = "Denies the music_disconnect command without any pre-configured scope."
+commands.deny = ["music_disconnect"]

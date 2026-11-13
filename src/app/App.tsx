@@ -14,6 +14,7 @@ import { musicDefinition } from '../components/widgets/music-player/definition';
 import { AmbientWave } from '../components/ui/AmbientWave';
 import { usePreferences } from '../hooks/usePreferences';
 import { getLayout } from '../features/layouts/catalog';
+import { MusicWindow } from '../components/music/MusicWindow';
 
 const clock: WidgetInstance = {
   id: 'host-clock',
@@ -46,6 +47,8 @@ const music: WidgetInstance = {
 };
 
 export function App() {
+  if (new URLSearchParams(window.location.search).get('window') === 'music')
+    return <MusicWindow />;
   return new URLSearchParams(window.location.search).get('window') ===
     'settings' ? (
     <Settings />
