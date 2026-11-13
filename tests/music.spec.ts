@@ -18,6 +18,8 @@ async function mockMusic(
     accountLoading?: boolean;
     playbackLoading?: boolean;
     connectPending?: boolean;
+    sessionCount?: number;
+    failedSelect?: boolean;
   } = {},
 ) {
   await page.addInitScript((options) => {
@@ -92,6 +94,8 @@ async function mockMusic(
       selectedId: options.selected ? 'browser-1' : (null as string | null),
       message: null,
     };
+    if (options.sessionCount !== undefined)
+      playback.sessions = playback.sessions.slice(0, options.sessionCount);
     const emit = (event: string, payload: unknown) => {
       for (const [id, listener] of listeners)
         if (listener.event === event)
@@ -194,6 +198,11 @@ async function mockMusic(
             return account;
           }
           if (command === 'music_select_session') {
+            if (options.failedSelect)
+              throw {
+                code: 'MEDIA_UNAVAILABLE',
+                message: 'The player closed before selection.',
+              };
             playback.selectedId = args.id as string | null;
             emit('aura://playback-changed', playback);
             return;
@@ -880,12 +889,25 @@ for (const layoutId of [
     await expect(more).toBeFocused();
     await more.click();
     await page.getByRole('button', { name: 'Change player' }).click();
+    await expect(
+      page.getByRole('dialog', { name: 'Choose playback player' }),
+    ).toBeVisible();
+    await page
+      .getByRole('combobox', { name: 'Choose playback player' })
+      .selectOption('browser-2');
+    await expect(
+      page.getByRole('button', { name: 'Resume playback' }),
+    ).toBeEnabled();
     const calls = await page.evaluate(
       () =>
         (window as unknown as { musicTest: { calls: unknown[] } }).musicTest
           .calls,
     );
     expect(calls).toContainEqual({
+      command: 'music_select_session',
+      args: { id: 'browser-2' },
+    });
+    expect(calls).not.toContainEqual({
       command: 'open_settings',
       args: { destination: 'music-player' },
     });
@@ -1065,10 +1087,13 @@ for (const layoutId of [
         message: 'The selected player closed. Choose a media session again.',
       }),
     );
-    await expect(page.getByText('No music playing')).toBeVisible();
+    await expect(page.getByText('Ready to play')).toBeVisible();
     await expect(
-      page.getByRole('button', { name: 'Open Music' }),
-    ).toBeVisible();
+      page.getByRole('button', { name: 'Start YouTube Music' }),
+    ).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Open Music' })).toHaveCount(
+      0,
+    );
   });
   test(`${layoutId}: playback loading has a distinct empty state`, async ({
     page,
@@ -1086,8 +1111,11 @@ for (const layoutId of [
     );
     await expect(page.getByText('Finding players…')).toBeVisible();
     await expect(
-      page.getByRole('button', { name: 'Open Music' }),
-    ).toBeVisible();
+      page.getByRole('button', { name: 'Start YouTube Music' }),
+    ).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Open Music' })).toHaveCount(
+      0,
+    );
   });
 }
 
@@ -1155,4 +1183,239 @@ test('Settings can inspect a widget failure after opening later', async ({
     localStorage.getItem('aura.music.recent-errors'),
   );
   expect(stored).not.toMatch(/Volume failed|Test Listener|UCfixture/);
+});
+
+for (const layoutId of [
+  'clock-left-stats-music',
+  'music-left-clock-stats',
+  'music-focus-clock-left',
+]) {
+  test(`${layoutId}: a connected account controls the sole player without opening Settings`, async ({
+    page,
+  }) => {
+    await mockMusic(page, { sessionCount: 1 });
+    await page.goto('/');
+    await page.evaluate(
+      (layoutId) =>
+        (
+          window as unknown as {
+            musicTest: { setPreferences: (p: unknown) => void };
+          }
+        ).musicTest.setPreferences({ layoutId }),
+      layoutId,
+    );
+    await expect(page.getByRole('button', { name: 'Open Music' })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByRole('button', { name: 'Pause playback' }),
+    ).toBeEnabled();
+    await page.getByRole('button', { name: 'Pause playback' }).click();
+    const calls = await page.evaluate(
+      () =>
+        (
+          window as unknown as {
+            musicTest: { calls: { command: string; args: unknown }[] };
+          }
+        ).musicTest.calls,
+    );
+    const select = calls.findIndex((c) => c.command === 'music_select_session');
+    const pause = calls.findIndex((c) => c.command === 'music_media_control');
+    expect(select).toBeGreaterThan(-1);
+    expect(pause).toBeGreaterThan(select);
+    expect(calls[pause]).toEqual({
+      command: 'music_media_control',
+      args: { action: 'pause' },
+    });
+    expect(calls.some((c) => c.command === 'open_settings')).toBe(false);
+    await page.screenshot({
+      path: `artifacts/widget-direct-controls-${layoutId}.png`,
+    });
+  });
+  test(`${layoutId}: connected users can choose a player inside the widget`, async ({
+    page,
+  }) => {
+    await mockMusic(page);
+    await page.goto('/');
+    await page.evaluate(
+      (layoutId) =>
+        (
+          window as unknown as {
+            musicTest: { setPreferences: (p: unknown) => void };
+          }
+        ).musicTest.setPreferences({ layoutId }),
+      layoutId,
+    );
+    await expect(page.getByRole('button', { name: 'Open Music' })).toHaveCount(
+      0,
+    );
+    await page.getByRole('button', { name: 'Choose playback player' }).click();
+    const picker = page.getByRole('combobox', {
+      name: 'Choose playback player',
+    });
+    await page.keyboard.press('Tab');
+    await expect(picker).toBeFocused();
+    await picker.selectOption('browser-2');
+    await expect(
+      page.getByRole('button', { name: 'Resume playback' }),
+    ).toBeEnabled();
+    await page.getByRole('button', { name: 'Next track' }).click();
+    const calls = await page.evaluate(
+      () =>
+        (window as unknown as { musicTest: { calls: unknown[] } }).musicTest
+          .calls,
+    );
+    expect(calls).toContainEqual({
+      command: 'music_media_control',
+      args: { action: 'next' },
+    });
+    expect(calls).not.toContainEqual({
+      command: 'open_settings',
+      args: { destination: 'music-player' },
+    });
+  });
+  test(`${layoutId}: Play starts the official player when no session exists`, async ({
+    page,
+  }) => {
+    await mockMusic(page, { sessionCount: 0 });
+    await page.goto('/');
+    await page.evaluate(
+      (layoutId) =>
+        (
+          window as unknown as {
+            musicTest: { setPreferences: (p: unknown) => void };
+          }
+        ).musicTest.setPreferences({ layoutId }),
+      layoutId,
+    );
+    await expect(page.getByText('Ready to play')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open Music' })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByRole('button', { name: 'Previous track' }),
+    ).toBeDisabled();
+    await expect(
+      page.getByRole('button', { name: 'Next track' }),
+    ).toBeDisabled();
+    await page.getByRole('button', { name: 'Start YouTube Music' }).click();
+    const calls = await page.evaluate(
+      () =>
+        (window as unknown as { musicTest: { calls: unknown[] } }).musicTest
+          .calls,
+    );
+    expect(calls).toContainEqual({
+      command: 'music_open_player',
+      args: { target: { kind: 'home' } },
+    });
+    await page.screenshot({ path: `artifacts/widget-ready-${layoutId}.png` });
+  });
+}
+
+test('a failed player selection never sends a playback command to another session', async ({
+  page,
+}) => {
+  await mockMusic(page, { sessionCount: 1, failedSelect: true });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Pause playback' }).click();
+  await expect(page.getByRole('alert')).toContainText('Playback action failed');
+  const calls = await page.evaluate(
+    () =>
+      (window as unknown as { musicTest: { calls: { command: string }[] } })
+        .musicTest.calls,
+  );
+  expect(calls.some((c) => c.command === 'music_select_session')).toBe(true);
+  expect(calls.some((c) => c.command === 'music_media_control')).toBe(false);
+});
+
+test('the sole player is bound before seeking and volume commands', async ({
+  page,
+}) => {
+  await mockMusic(page, { sessionCount: 1 });
+  await page.goto('/');
+  const progress = page.getByRole('slider', { name: 'Track progress' });
+  await progress.focus();
+  await page.keyboard.press('ArrowRight');
+  await page.getByRole('button', { name: 'More music actions' }).click();
+  await expect(
+    page.getByRole('slider', { name: 'Browser volume' }),
+  ).toHaveAttribute('aria-valuenow', '50');
+  await page.getByRole('slider', { name: 'Browser volume' }).focus();
+  await page.keyboard.press('ArrowRight');
+  const calls = await page.evaluate(
+    () =>
+      (
+        window as unknown as {
+          musicTest: { calls: { command: string; args: unknown }[] };
+        }
+      ).musicTest.calls,
+  );
+  const selection = calls.findIndex(
+    (c) => c.command === 'music_select_session',
+  );
+  expect(
+    calls.findIndex((c) => c.command === 'music_media_seek'),
+  ).toBeGreaterThan(selection);
+  expect(calls).toContainEqual({
+    command: 'music_media_volume',
+    args: { level: 0.51 },
+  });
+});
+
+test('connected ready and picker controls fit every theme and arrangement', async ({
+  page,
+}) => {
+  await mockMusic(page, { sessionCount: 0 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  for (const theme of themes)
+    for (const layout of layouts) {
+      await page.evaluate(
+        ({ themeId, layoutId }) =>
+          (
+            window as unknown as {
+              musicTest: { setPreferences: (p: unknown) => void };
+            }
+          ).musicTest.setPreferences({ themeId, layoutId }),
+        { themeId: theme.id, layoutId: layout.id },
+      );
+      await expect(page.getByLabel('Aura widget host')).toHaveAttribute(
+        'data-layout',
+        layout.id,
+      );
+      await expect(
+        page.getByRole('button', { name: 'Start YouTube Music' }),
+      ).toBeVisible();
+      for (const mode of ['ready', 'picker']) {
+        if (mode === 'picker') {
+          await page
+            .getByRole('button', { name: 'More music actions' })
+            .click();
+          await page.getByRole('button', { name: 'Change player' }).click();
+        }
+        const outside = await page
+          .locator('.music-connect-card')
+          .evaluate((el) => {
+            const box = el.getBoundingClientRect();
+            return (
+              Array.from(el.querySelectorAll('button, select, [role="slider"]'))
+                .filter((control) => !control.closest('[inert]'))
+                .some((control) => {
+                  const b = control.getBoundingClientRect();
+                  return (
+                    b.left < box.left ||
+                    b.right > box.right ||
+                    b.top < box.top ||
+                    b.bottom > box.bottom ||
+                    b.height < 28
+                  );
+                }) ||
+              el.scrollHeight > el.clientHeight ||
+              el.scrollWidth > el.clientWidth
+            );
+          });
+        expect(outside, `${theme.id}/${layout.id}/${mode}`).toBe(false);
+        if (mode === 'picker') await page.keyboard.press('Escape');
+      }
+    }
 });

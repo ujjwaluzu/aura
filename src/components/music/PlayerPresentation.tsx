@@ -11,7 +11,7 @@ export function PlayerPresentation({
   controls,
   time,
 }: {
-  session: PlaybackSession;
+  session: Pick<PlaybackSession, 'title' | 'artist' | 'source' | 'artwork'>;
   presentation: MusicPresentation;
   progress: ReactNode;
   controls: ReactNode;

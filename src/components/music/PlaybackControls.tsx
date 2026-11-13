@@ -13,6 +13,7 @@ import {
   mediaSeek,
   mediaVolume,
   selectSession,
+  openPlayer,
 } from '../../features/integrations/music';
 import { musicError, openSettings } from '../../lib/native';
 import { useMusic } from '../../hooks/useMusic';
@@ -36,11 +37,32 @@ export function PlaybackControls({
 }) {
   const music = useMusic();
   const reportError = music.reportError;
-  const session = playback.sessions.find((s) => s.id === playback.selectedId);
   const compact = presentation !== 'settings';
+  const connected = music.account.status === 'connected';
+  const session =
+    playback.sessions.find((s) => s.id === playback.selectedId) ??
+    (compact && connected && !playback.message && playback.sessions.length === 1
+      ? playback.sessions[0]
+      : undefined);
+  const showPlayer = Boolean(session) || (compact && connected);
+  const displaySession = session ?? {
+    title: music.playbackLoading
+      ? 'Finding players…'
+      : music.playbackError || playback.message?.includes('unavailable')
+        ? 'Player unavailable'
+        : playback.sessions.length
+          ? 'Choose a player'
+          : 'Ready to play',
+    artist: playback.sessions.length
+      ? 'Select a player to control playback'
+      : 'Start a song in YouTube Music',
+    source: 'YouTube Music',
+    artwork: null,
+  };
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [more, setMore] = useState(false);
+  const [panelMode, setPanelMode] = useState<'more' | 'players'>('more');
   const [seekPosition, setSeekPosition] = useState<{
     sessionId: string;
     seconds: number;
@@ -64,10 +86,16 @@ export function PlaybackControls({
     selectedId.current = playback.selectedId;
   }, [playback.selectedId]);
   const sessionId = session?.id;
+  const boundSessionId = playback.selectedId;
+
   useEffect(() => {
     if (!sessionId || (compact && !more)) return;
     let live = true;
-    void mediaVolume().then(
+    const volumeRequest =
+      boundSessionId === sessionId
+        ? mediaVolume()
+        : selectSession(sessionId).then(() => mediaVolume());
+    void volumeRequest.then(
       (level) => {
         if (live) {
           setVolume({ sessionId, level: level * 100 });
@@ -84,7 +112,7 @@ export function PlaybackControls({
     return () => {
       live = false;
     };
-  }, [sessionId, compact, more, volumeReload, reportError]);
+  }, [sessionId, boundSessionId, compact, more, volumeReload, reportError]);
   useEffect(() => {
     if (!more) return;
     const focusTarget = trigger.current;
@@ -107,7 +135,7 @@ export function PlaybackControls({
       }
       if (e.key === 'Tab') {
         const controls = panel.current?.querySelectorAll<HTMLElement>(
-          'button:not(:disabled), [role="slider"][tabindex="0"]',
+          'button:not(:disabled), select:not(:disabled), [role="slider"][tabindex="0"]',
         );
         if (!controls?.length) return;
         const first = controls[0]!;
@@ -128,7 +156,7 @@ export function PlaybackControls({
       document.removeEventListener('keydown', key);
       focusTarget?.focus();
     };
-  }, [more]);
+  }, [more, panelMode]);
   useEffect(() => {
     if (!session?.playing) return;
     const timer = window.setInterval(() => setNow(Date.now()), 500);
@@ -156,6 +184,8 @@ export function PlaybackControls({
     setError(null);
     setBusy(true);
     try {
+      if (session && playback.selectedId !== session.id)
+        await selectSession(session.id);
       await mediaControl(action);
     } catch (e) {
       fail(e);
@@ -168,6 +198,35 @@ export function PlaybackControls({
     setBusy(true);
     try {
       await selectSession(id || null);
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const startPlayback = async () => {
+    if (playback.sessions.length) {
+      setPanelMode('players');
+      setMore(true);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await openPlayer({ kind: 'home' });
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const chooseHere = async (id: string) => {
+    if (!id) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await selectSession(id);
+      setMore(false);
     } catch (e) {
       fail(e);
     } finally {
@@ -187,7 +246,11 @@ export function PlaybackControls({
     <div className="player-volume">
       <span>
         {shownVolumeError ??
-          (shownVolume === null ? 'Loading volume…' : 'Browser volume')}
+          (!session
+            ? 'Choose a player for volume'
+            : shownVolume === null
+              ? 'Loading volume…'
+              : 'Browser volume')}
       </span>
       <ElasticSlider
         label="Browser volume"
@@ -253,36 +316,44 @@ export function PlaybackControls({
         </label>
       )}
       {!compact && playback.message && <p role="status">{playback.message}</p>}
-      {session ? (
+      {showPlayer ? (
         <div className="player-main" inert={more}>
           <PlayerPresentation
-            session={session}
+            session={displaySession}
             presentation={presentation}
             progress={
               <ElasticSlider
                 label="Track progress"
-                max={Math.max(1, session.durationSeconds)}
+                max={Math.max(1, session?.durationSeconds ?? 0)}
                 value={position}
                 disabled={
-                  !session.canSeek || busy || session.durationSeconds <= 0
+                  !session?.canSeek || busy || session.durationSeconds <= 0
                 }
                 onChange={(seconds) =>
                   setSeekPosition({
-                    sessionId: session.id,
+                    sessionId: session?.id ?? '',
                     seconds,
-                    snapshotAt: session.updatedAtUnixMs,
+                    snapshotAt: session?.updatedAtUnixMs ?? 0,
                   })
                 }
-                onChangeEnd={(seconds) =>
-                  void mediaSeek(seconds).catch((e: unknown) => {
-                    setSeekPosition(null);
-                    fail(e);
-                  })
-                }
+                onChangeEnd={(seconds) => {
+                  if (!session) return;
+                  const select =
+                    playback.selectedId === session.id
+                      ? Promise.resolve()
+                      : selectSession(session.id);
+                  void select
+                    .then(() => mediaSeek(seconds))
+                    .catch((e: unknown) => {
+                      setSeekPosition(null);
+                      fail(e);
+                    });
+                }}
               />
             }
             time={
-              !compact && (
+              !compact &&
+              session && (
                 <span className="player-time">
                   {time(position)} elapsed ·{' '}
                   {time(Math.max(0, session.durationSeconds - position))}{' '}
@@ -295,28 +366,46 @@ export function PlaybackControls({
                 <div className="music-transport">
                   <IconButton
                     label="Previous track"
-                    disabled={busy || !session.canPrevious}
+                    disabled={busy || !session?.canPrevious}
                     onClick={() => void perform('previous')}
                   >
                     <SkipBack size={15} />
                   </IconButton>
                   <IconButton
                     label={
-                      session.playing ? 'Pause playback' : 'Resume playback'
+                      session
+                        ? session.playing
+                          ? 'Pause playback'
+                          : 'Resume playback'
+                        : playback.sessions.length
+                          ? 'Choose playback player'
+                          : 'Start YouTube Music'
                     }
                     disabled={
                       busy ||
-                      (session.playing ? !session.canPause : !session.canPlay)
+                      music.playbackLoading ||
+                      Boolean(
+                        session &&
+                        (session.playing
+                          ? !session.canPause
+                          : !session.canPlay),
+                      )
                     }
                     onClick={() =>
-                      void perform(session.playing ? 'pause' : 'play')
+                      session
+                        ? void perform(session.playing ? 'pause' : 'play')
+                        : void startPlayback()
                     }
                   >
-                    {session.playing ? <Pause size={15} /> : <Play size={15} />}
+                    {session?.playing ? (
+                      <Pause size={15} />
+                    ) : (
+                      <Play size={15} />
+                    )}
                   </IconButton>
                   <IconButton
                     label="Next track"
-                    disabled={busy || !session.canNext}
+                    disabled={busy || !session?.canNext}
                     onClick={() => void perform('next')}
                   >
                     <SkipForward size={15} />
@@ -331,7 +420,10 @@ export function PlaybackControls({
                     aria-label="More music actions"
                     aria-expanded={more}
                     aria-haspopup="dialog"
-                    onClick={() => setMore(true)}
+                    onClick={() => {
+                      setPanelMode('more');
+                      setMore(true);
+                    }}
                   >
                     <MoreHorizontal size={16} />
                   </button>
@@ -351,9 +443,25 @@ export function PlaybackControls({
                 : 'No music playing'}
           </span>
           {compact ? (
-            <button type="button" onClick={() => showSettings('music-player')}>
-              Open Music
-            </button>
+            playback.sessions.length ? (
+              <button
+                type="button"
+                ref={trigger}
+                onClick={() => {
+                  setPanelMode('players');
+                  setMore(true);
+                }}
+              >
+                Choose player
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => showSettings('music-player')}
+              >
+                Open Music
+              </button>
+            )
           ) : (
             <p>Start the official player, then select its session above.</p>
           )}
@@ -364,10 +472,16 @@ export function PlaybackControls({
           className="player-more-panel"
           ref={panel}
           role="dialog"
-          aria-label="More music actions"
+          aria-label={
+            panelMode === 'players'
+              ? 'Choose playback player'
+              : 'More music actions'
+          }
         >
           <div className="player-more-heading">
-            <strong>Music actions</strong>
+            <strong>
+              {panelMode === 'players' ? 'Choose player' : 'Music actions'}
+            </strong>
             <IconButton
               label="Close music actions"
               onClick={() => {
@@ -378,23 +492,44 @@ export function PlaybackControls({
               <X size={15} />
             </IconButton>
           </div>
-          <div className="player-more-content">
-            {volumeControl}
-            <div className="player-more-links">
-              <button
-                type="button"
-                onClick={() => showSettings('music-playlists')}
+          {panelMode === 'players' ? (
+            <label className="player-session-picker">
+              Windows media session
+              <select
+                aria-label="Choose playback player"
+                value={playback.selectedId ?? ''}
+                disabled={busy || !playback.sessions.length}
+                onChange={(event) => void chooseHere(event.target.value)}
               >
-                Library
-              </button>
-              <button
-                type="button"
-                onClick={() => showSettings('music-player')}
-              >
-                Change player
-              </button>
+                <option value="">
+                  {playback.sessions.length
+                    ? 'Choose a media session'
+                    : 'Start a song to find its player'}
+                </option>
+                {playback.sessions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.source} · {s.title || 'Untitled media'} ·{' '}
+                    {s.playing ? 'Playing' : 'Paused'}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <div className="player-more-content">
+              {volumeControl}
+              <div className="player-more-links">
+                <button
+                  type="button"
+                  onClick={() => showSettings('music-playlists')}
+                >
+                  Library
+                </button>
+                <button type="button" onClick={() => setPanelMode('players')}>
+                  Change player
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
       {error && (

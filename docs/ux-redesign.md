@@ -21,8 +21,7 @@ than guessing another session from its source app. Track changes clear cached
 artwork, and thumbnail reads recheck metadata before installing their result.
 
 Widget presentations are horizontal, vertical, and music focus. They share the
-player presentation with static layout previews. More contains volume and links
-to Library and Player. Its overlay stays inside the card, supports Escape,
+player presentation with static layout previews. More contains volume, a library link, and an in-card player chooser. Its overlay stays inside the card, supports Escape,
 outside dismissal and Tab navigation, and restores focus. Account setup remains
 in Settings. Diagnostic copying includes capability flags and error codes, and
 excludes account identifiers, raw error messages, artwork, and credentials. Only
@@ -38,7 +37,7 @@ gates, and official-player restrictions are unchanged.
 
 - TypeScript, ESLint, Prettier and Rust formatting checks passed.
 - Frontend production build and the Windows NSIS package build passed.
-- All 49 Chromium browser tests passed. They cover all 70 theme/layout combinations twice, with loaded and
+- All 61 Chromium browser tests passed. They cover all 70 theme/layout combinations twice, with loaded and
   missing artwork, long titles, essential control bounds, 28 px compact targets,
   and absence of widget scrollbars. Screenshots of all three presentations, More,
   Theme, Layout, and the account screen were inspected.
@@ -55,6 +54,21 @@ gates, and official-player restrictions are unchanged.
   it does not authorize, refresh, or modify a real account.
 - The packaged executable launched and remained responsive in a startup smoke
   check. This does not validate interactive Rust IPC or installer installation.
+
+## Direct widget playback follow-up
+
+Once the account is connected, the widget displays its playback card instead of
+an Open Music button. A sole reported Windows player supplies real track metadata
+and capabilities immediately. Transport, seek, and volume bind that session on a
+user action before sending their command. Multiple sessions are chosen inside the
+card. Aura keeps an explicit selection and asks again if the selected player
+closes. It does not infer a YouTube provider from a browser's app name.
+
+With no session, Play opens the official YouTube Music player; previous, next,
+and seeking stay disabled until a player is available. Account authorization does
+not itself start browser playback. The official player and release gates remain
+in place. The follow-up browser checks cover direct selection, failed binding,
+transport, seek, volume, and ready/picker bounds across all 70 theme/layout pairs.
 
 ## Required before release
 
