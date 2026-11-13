@@ -93,11 +93,6 @@ export function PlaybackControls({
       )}
       {session ? (
         <>
-          {compact && (
-            <span className="music-live-label">
-              {session.playing ? 'NOW PLAYING' : 'PAUSED'}
-            </span>
-          )}
           <div className="music-now-playing">
             {session.artwork ? (
               <img src={session.artwork} alt="" />
