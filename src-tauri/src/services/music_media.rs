@@ -481,13 +481,19 @@ mod native {
                     let _ = reply.send(result);
                 }
                 Message::Volume(level, reply) => {
-                    let result =
-                        selected_source
-                            .as_deref()
-                            .ok_or_else(media_error)
-                            .and_then(|source| {
-                                browser_volume(source, level).map_err(|_| media_error())
-                            });
+                    let result = match selected_source.as_deref() {
+                        Some(source) => browser_volume(source, level).map_err(|error| {
+                            eprintln!("Aura browser volume lookup failed for {source}: {error}");
+                            AppError::new(
+                                "BROWSER_VOLUME_UNAVAILABLE",
+                                format!("Windows could not access the audio session for {source}."),
+                            )
+                        }),
+                        None => Err(AppError::new(
+                            "BROWSER_VOLUME_UNAVAILABLE",
+                            "Select a Windows media session before adjusting browser volume.",
+                        )),
+                    };
                     let _ = reply.send(result);
                 }
 

@@ -40,6 +40,10 @@ export function PlaybackControls({
   const [now, setNow] = useState(0);
   const [volume, setVolume] = useState<number | null>(null);
   const [volumeForSession, setVolumeForSession] = useState<string | null>(null);
+  const [volumeError, setVolumeError] = useState<{
+    sessionId: string;
+    message: string;
+  } | null>(null);
   const volumeTimer = useRef<number | null>(null);
   const pendingVolume = useRef<{ level: number; sessionId: string } | null>(
     null,
@@ -56,10 +60,12 @@ export function PlaybackControls({
           if (live) {
             setVolume(value * 100);
             setVolumeForSession(sessionId);
+            setVolumeError(null);
           }
         })
-        .catch(() => {
-          if (live) setVolumeForSession(null);
+        .catch((error: unknown) => {
+          if (live)
+            setVolumeError({ sessionId, message: errorMessage(error) });
         });
     return () => {
       live = false;
@@ -68,6 +74,10 @@ export function PlaybackControls({
     };
   }, [sessionId]);
   const shownVolume = volumeForSession === sessionId ? volume : null;
+  const shownVolumeError =
+    volumeError && volumeError.sessionId === sessionId
+      ? volumeError.message
+      : null;
   useEffect(() => {
     if (!compact || !session?.playing) return;
     const timer = window.setInterval(() => setNow(Date.now()), 500);
@@ -114,8 +124,14 @@ export function PlaybackControls({
       .then((actual) => {
         setVolume(actual * 100);
         setVolumeForSession(targetSessionId);
+        setVolumeError(null);
       })
-      .catch((e) => setError(errorMessage(e)));
+      .catch((e) =>
+        setVolumeError({
+          sessionId: targetSessionId,
+          message: errorMessage(e),
+        }),
+      );
   return (
     <div
       className={`music-playback ${compact ? 'music-playback-compact' : ''}`}
@@ -216,15 +232,14 @@ export function PlaybackControls({
               className="music-volume"
               title={
                 shownVolume === null
-                  ? 'Select an active browser media session to enable volume.'
+                  ? (shownVolumeError ?? 'Browser volume is loading.')
                   : 'Controls audio volume for this browser.'
               }
             >
               <ElasticSlider
                 label="Browser volume"
                 max={100}
-                value={shownVolume ?? 0}
-                disabled={shownVolume === null}
+                value={shownVolume ?? 100}
                 leftIcon={<Volume1 />}
                 rightIcon={<Volume2 />}
                 onChange={(level) => {
@@ -235,9 +250,14 @@ export function PlaybackControls({
                       volumeTimer.current = null;
                       const pending = pendingVolume.current;
                       if (pending)
-                        void mediaVolume(pending.level / 100).catch((e) =>
-                          setError(errorMessage(e)),
-                        );
+                        void mediaVolume(pending.level / 100)
+                          .then(() => setVolumeError(null))
+                          .catch((e) =>
+                            setVolumeError({
+                              sessionId: pending.sessionId,
+                              message: errorMessage(e),
+                            }),
+                          );
                     }, 90);
                   }
                 }}
@@ -249,6 +269,11 @@ export function PlaybackControls({
                   applyVolume(level, session.id);
                 }}
               />
+              {shownVolumeError && (
+                <span className="music-volume-error" role="status">
+                  {shownVolumeError}
+                </span>
+              )}
             </div>
           )}
         </>

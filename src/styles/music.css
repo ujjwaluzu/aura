@@ -488,6 +488,15 @@
   width: 8px;
   height: 8px;
 }
+.music-volume-error {
+  display: block;
+  overflow: hidden;
+  color: #ffb6b6;
+  font-size: 9px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .music-playback-compact .music-transport .icon-button {
   width: 28px;
   height: 28px;
