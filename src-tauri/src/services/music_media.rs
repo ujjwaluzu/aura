@@ -114,6 +114,7 @@ mod native {
         artwork_loaded_key: String,
         artwork_retry_after: Option<std::time::Instant>,
         artwork_missing_since: Option<std::time::Instant>,
+        refresh_sender: mpsc::SyncSender<Message>,
     }
     impl Session {
         fn subscribe(
@@ -156,6 +157,7 @@ mod native {
                 artwork_loaded_key: String::new(),
                 artwork_retry_after: None,
                 artwork_missing_since: None,
+                refresh_sender: tx.clone(),
             }
         }
         fn snapshot(&mut self) -> windows::core::Result<PlaybackSession> {
@@ -168,8 +170,14 @@ mod native {
             let key = format!("{title}\0{artist}");
             if key != self.artwork_key {
                 self.artwork_key = key.clone();
-                self.artwork_retry_after = None;
-                self.artwork_missing_since = Some(std::time::Instant::now());
+                let now = std::time::Instant::now();
+                self.artwork_retry_after = Some(now + std::time::Duration::from_millis(750));
+                self.artwork_missing_since = Some(now);
+                let sender = self.refresh_sender.clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_millis(750));
+                    let _ = sender.try_send(Message::Refresh);
+                });
             }
             if self.artwork_loaded_key != key
                 && self
@@ -186,6 +194,12 @@ mod native {
                     now.duration_since(since) >= std::time::Duration::from_secs(30)
                 }) {
                     self.artwork = None;
+                } else {
+                    let sender = self.refresh_sender.clone();
+                    std::thread::spawn(move || {
+                        std::thread::sleep(std::time::Duration::from_secs(5));
+                        let _ = sender.try_send(Message::Refresh);
+                    });
                 }
             }
             let start = timeline.StartTime()?.Duration;
