@@ -25,6 +25,8 @@ import { WidgetArrangement } from '../features/layouts/WidgetArrangement';
 import { getLayout } from '../features/layouts/catalog';
 import { GithubWidget } from '../components/widgets/github/GithubWidget';
 import { GithubOverview } from '../components/widgets/github/GithubOverview';
+import { GithubWork } from '../components/widgets/github/GithubWork';
+import type { GithubWorkCategory } from '../types/github';
 import { useGithub } from '../hooks/useGithub';
 
 const clock: WidgetInstance = {
@@ -75,18 +77,37 @@ function WidgetHost() {
   const [pinned, setPinned] = useState(false);
   const [pinBusy, setPinBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState<'widgets' | 'github'>('widgets');
-  const github = useGithub(page === 'github');
+  const [requestedPage, setPage] = useState<'widgets' | 'github' | 'work'>(
+    'widgets',
+  );
+  const [workCategory, setWorkCategory] =
+    useState<GithubWorkCategory>('reviews');
+  const github = useGithub(
+    requestedPage === 'github',
+    requestedPage === 'work',
+  );
+  const connected =
+    !!github.state.account &&
+    !['reconnectRequired', 'disconnected', 'failed', 'unavailable'].includes(
+      github.state.status,
+    );
+  const page =
+    requestedPage === 'work' && !connected ? 'github' : requestedPage;
+  const pages = connected
+    ? (['widgets', 'github', 'work'] as const)
+    : (['widgets', 'github'] as const);
+  const pageIndex = pages.findIndex((entry) => entry === page);
+  if (page !== requestedPage) setPage(page);
   const previousPageButton = useRef<HTMLButtonElement>(null);
   const nextPageButton = useRef<HTMLButtonElement>(null);
   const navigated = useRef(false);
-  const changePage = (next: 'widgets' | 'github') => {
+  const changePage = (next: 'widgets' | 'github' | 'work') => {
     navigated.current = true;
     setPage(next);
   };
   useEffect(() => {
     if (!navigated.current) return;
-    (page === 'github' ? previousPageButton : nextPageButton).current?.focus();
+    (page === 'widgets' ? nextPageButton : previousPageButton).current?.focus();
   }, [page]);
   const pageNavigation = (
     <nav className="clock-page-nav" aria-label="Widget pages">
@@ -96,7 +117,7 @@ function WidgetHost() {
         aria-label="Previous widget page"
         title="Previous widget page"
         disabled={page === 'widgets'}
-        onClick={() => changePage('widgets')}
+        onClick={() => changePage(pages[pageIndex - 1]!)}
       >
         <ChevronLeft size={14} />
         Previous
@@ -106,14 +127,26 @@ function WidgetHost() {
         ref={nextPageButton}
         aria-label="Next widget page"
         title="Next widget page"
-        disabled={page === 'github'}
-        onClick={() => changePage('github')}
+        disabled={pageIndex === pages.length - 1}
+        onClick={() => changePage(pages[pageIndex + 1]!)}
       >
         Next
         <ChevronRight size={14} />
       </button>
-      <span className="sr-only" role="status" aria-label="Widget page">
-        {page === 'widgets' ? 'Page 1 of 2' : 'Page 2 of 2'}
+      <span
+        className="widget-page-label"
+        role="status"
+        aria-label="Widget page"
+      >
+        {page === 'widgets'
+          ? 'Widgets'
+          : page === 'work'
+            ? 'Work'
+            : connected
+              ? 'Activity'
+              : 'Connect GitHub'}{' '}
+        <span className="sr-only">Page </span>
+        {pageIndex + 1} of {pages.length}
       </span>
     </nav>
   );
@@ -162,7 +195,7 @@ function WidgetHost() {
         data-theme={preferences.themeId}
         data-layout={preferences.layoutId}
         data-primary={layout.primary}
-        data-side={page === 'github' ? 'left' : layout.side}
+        data-side={page !== 'widgets' ? 'left' : layout.side}
         data-focus={page === 'widgets' && layout.focus ? 'music' : undefined}
         data-page={page}
       >
@@ -187,6 +220,14 @@ function WidgetHost() {
                 />
               )
             }
+          />
+        ) : page === 'work' ? (
+          <GithubWork
+            key={github.state.account?.accountId}
+            github={github}
+            navigation={pageNavigation}
+            category={workCategory}
+            select={setWorkCategory}
           />
         ) : (
           <>

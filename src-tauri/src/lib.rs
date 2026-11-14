@@ -27,6 +27,8 @@ pub fn run() {
         .manage(Arc::new(services::music_media::MediaService::default()))
         .invoke_handler(tauri::generate_handler![
             commands::github::github_status,
+            commands::github::github_work_refresh,
+            commands::github::github_work_open,
             commands::github::github_start_authorization,
             commands::github::github_cancel_authorization,
             commands::github::github_refresh,

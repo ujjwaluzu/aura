@@ -18,6 +18,9 @@ export interface GithubCalendar {
   updatedAt: number;
 }
 export interface GithubState {
+  account: { accountId: string; login: string } | null;
+  workPermission: boolean;
+  work: GithubWorkCategoryState[];
   revision: number;
   status:
     | 'unavailable'
@@ -36,3 +39,29 @@ export interface GithubState {
   retryAt: number | null;
 }
 export type GithubDestination = 'verification' | 'profile' | 'authorization';
+
+export type GithubWorkCategory = 'reviews' | 'myPrs' | 'failingPrs' | 'issues';
+export interface GithubWorkItem {
+  id: string;
+  title: string;
+  repository: string;
+  number: number;
+  updatedAt: string;
+  draft: boolean;
+  reviewDecision: string | null;
+  checks: string | null;
+  private: boolean;
+}
+export interface GithubWorkCategoryState {
+  category: GithubWorkCategory;
+  status: 'loading' | 'ready' | 'empty' | 'permission' | 'error';
+  count: number | null;
+  items: GithubWorkItem[];
+  cursor: string | null;
+  hasNextPage: boolean;
+  limited: boolean;
+  loading: boolean;
+  stale: boolean;
+  updatedAt: number | null;
+  message: string | null;
+}

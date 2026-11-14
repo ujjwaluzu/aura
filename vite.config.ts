@@ -15,6 +15,8 @@ export default defineConfig({
         '**/tools/music/build/**',
         '**/tools/music/dist/**',
         '**/artifacts/**',
+        '**/src-tauri/**',
+        '**/test-results/**',
       ],
     },
   },

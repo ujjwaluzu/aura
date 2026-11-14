@@ -1,3 +1,4 @@
+/* global window */
 // Real WebView2/Rust smoke check. No tokens or raw provider errors are printed.
 import { chromium } from '@playwright/test';
 import assert from 'node:assert/strict';
@@ -32,7 +33,7 @@ try {
       await host.getByRole('button', { name: 'Next widget page' }).isEnabled()
     )
       await host.getByRole('button', { name: 'Next widget page' }).click();
-    if (state.status !== 'connected') {
+    if (state.status !== 'connected' || !state.workPermission) {
       await invoke('github_start_authorization');
       const deadline = Date.now() + 35_000;
       while (Date.now() < deadline) {
@@ -64,6 +65,7 @@ try {
       'connected',
       'Complete browser authorization first.',
     );
+    assert(state.workPermission, 'Approve Update GitHub permissions first.');
     const revision = state.revision;
     await invoke('github_refresh', { onlyIfStale: false });
     const deadline = Date.now() + 35_000;
@@ -115,6 +117,48 @@ try {
       }),
     );
     await host.screenshot({ path: 'artifacts/github-native.png' });
+    await invoke('github_work_refresh', {
+      onlyIfStale: false,
+      category: null,
+      more: false,
+    });
+    const workDeadline = Date.now() + 120_000;
+    while (Date.now() < workDeadline) {
+      state = await invoke('github_status');
+      if (
+        state.work.length === 4 &&
+        state.work.every(
+          (c) =>
+            !c.loading &&
+            c.updatedAt &&
+            c.updatedAt >= Math.floor(Date.now() / 1000) - 120,
+        )
+      )
+        break;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    assert(
+      state.work.every(
+        (c) => ['ready', 'empty'].includes(c.status) && !c.stale,
+      ),
+      'A Work API category failed or was rate limited.',
+    );
+    console.log(
+      JSON.stringify({
+        work: state.work.map((c) => ({
+          category: c.category,
+          status: c.status,
+          count: c.count,
+          cached: c.items.length,
+          limited: c.limited,
+        })),
+      }),
+    );
+    await host.getByRole('button', { name: 'Next widget page' }).click();
+    await host
+      .getByRole('region', { name: 'GitHub Work', exact: true })
+      .waitFor({ state: 'visible' });
+    await host.screenshot({ path: 'artifacts/github-work-native.png' });
   } else {
     console.log(
       JSON.stringify({

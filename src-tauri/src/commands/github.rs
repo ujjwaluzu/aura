@@ -52,6 +52,30 @@ pub fn github_refresh(
     Ok(service.refresh(only_if_stale))
 }
 #[tauri::command]
+pub fn github_work_refresh(
+    window: WebviewWindow,
+    only_if_stale: bool,
+    category: Option<WorkCategory>,
+    more: bool,
+    service: State<'_, Arc<GithubService>>,
+) -> Result<GithubState, AppError> {
+    allowed(window.label())?;
+    Ok(service.refresh_work(only_if_stale, category, more))
+}
+#[tauri::command]
+pub async fn github_work_open(
+    window: WebviewWindow,
+    category: WorkCategory,
+    id: Option<String>,
+    service: State<'_, Arc<GithubService>>,
+) -> Result<(), AppError> {
+    allowed(window.label())?;
+    let url = service.work_destination(category, id)?;
+    tauri::async_runtime::spawn_blocking(move || open_url(&url))
+        .await
+        .map_err(|_| AppError::new("GITHUB_BROWSER", "The browser could not open. Try again."))?
+}
+#[tauri::command]
 pub async fn github_disconnect(
     window: WebviewWindow,
     service: State<'_, Arc<GithubService>>,
@@ -92,6 +116,8 @@ mod tests {
             "refresh",
             "disconnect",
             "open-destination",
+            "work-refresh",
+            "work-open",
         ] {
             assert!(capability["permissions"]
                 .as_array()

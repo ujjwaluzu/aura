@@ -1,16 +1,10 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
-import {
-  GitBranch,
-  MoreHorizontal,
-  RefreshCw,
-  ExternalLink,
-} from 'lucide-react';
+import { GitBranch, RefreshCw, ExternalLink } from 'lucide-react';
+import { GithubAccountMenu, GithubAuthorization } from './GithubControls';
 import { GlassSurface } from '../../ui/GlassSurface';
 import {
   githubConnect,
-  githubCancel,
   githubRefresh,
-  githubDisconnect,
   githubOpen,
 } from '../../../features/integrations/github';
 import type { useGithub } from '../../../hooks/useGithub';
@@ -113,10 +107,7 @@ export function GithubWidget({
   github: ReturnType<typeof useGithub>;
 }) {
   const { state, error, run } = github;
-  const [menu, setMenu] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
-  const code = state.authorization?.userCode;
   const connecting =
     state.status === 'requesting' || state.status === 'authorizing';
   const act = async (fn: Parameters<typeof run>[0]) => {
@@ -127,20 +118,13 @@ export function GithubWidget({
       setBusy(false);
     }
   };
-  const copy = () =>
-    run(async () => {
-      await navigator.clipboard.writeText(code!);
-      setCopied(true);
-    });
   return (
     <section className="github-slot" aria-label="GitHub connection">
       <GlassSurface variant="inset" opacity={0.35} className="github-card">
         <header className="github-header">
           <span>
             <GitBranch size={14} />{' '}
-            {state.calendar
-              ? `@${state.calendar.login}`
-              : 'GitHub contributions'}
+            {state.account ? `@${state.account.login}` : 'GitHub contributions'}
           </span>
           <div className="github-actions">
             {state.calendar && state.status === 'reconnectRequired' && (
@@ -179,63 +163,10 @@ export function GithubWidget({
                 </button>
               </>
             )}
-            <div
-              className="github-account"
-              onBlur={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget)) setMenu(false);
-              }}
-            >
-              <button
-                type="button"
-                aria-label="GitHub account menu"
-                aria-expanded={menu}
-                aria-controls="github-account-actions"
-                onClick={() => setMenu(!menu)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') setMenu(false);
-                }}
-              >
-                <MoreHorizontal size={16} />
-              </button>
-              {menu && (
-                <div
-                  id="github-account-actions"
-                  className="github-menu"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') {
-                      setMenu(false);
-                      (
-                        e.currentTarget
-                          .previousElementSibling as HTMLButtonElement
-                      )?.focus();
-                    }
-                  }}
-                >
-                  <button
-                    type="button"
-                    disabled={!state.configured}
-                    onClick={() => {
-                      setMenu(false);
-                      void run(() => githubOpen('authorization'));
-                    }}
-                  >
-                    Manage GitHub authorization
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenu(false);
-                      void act(githubDisconnect);
-                    }}
-                  >
-                    Disconnect
-                  </button>
-                </div>
-              )}
-            </div>
+            <GithubAccountMenu github={github} />
           </div>
         </header>
-        {state.calendar && (
+        {state.calendar && !connecting && (
           <div className="github-calendar-content">
             <p className="github-total">
               <strong>
@@ -270,57 +201,11 @@ export function GithubWidget({
             </div>
           </div>
         )}
-        {connecting ? (
-          <div className="github-onboarding">
-            {code ? (
-              <>
-                <p>Enter this code on GitHub</p>
-                <strong className="github-code">{code}</strong>
-                <div className="github-connect-actions">
-                  <button type="button" onClick={() => void copy()}>
-                    {copied ? 'Copied' : 'Copy'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void run(() => githubOpen('verification'))}
-                  >
-                    Open GitHub
-                  </button>
-                  <button type="button" onClick={() => void act(githubCancel)}>
-                    Cancel
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <p>Requesting a GitHub verification code…</p>
-                <button type="button" onClick={() => void act(githubCancel)}>
-                  Cancel
-                </button>
-              </>
-            )}
-          </div>
-        ) : state.status !== 'connected' && !state.calendar ? (
-          <div className="github-onboarding">
-            <button
-              type="button"
-              className="github-connect-button"
-              disabled={busy}
-              onClick={() => void act(githubConnect)}
-            >
-              {state.status === 'reconnectRequired'
-                ? 'Reconnect GitHub'
-                : 'Connect GitHub'}
-            </button>
-            {!state.calendar && (
-              <p>Public and permitted private contribution counts.</p>
-            )}
-          </div>
+        {connecting || (state.status !== 'connected' && !state.calendar) ? (
+          <GithubAuthorization github={github} />
         ) : !state.calendar ? (
           <p className="github-loading" role="status">
-            {state.message
-              ? 'Waiting to load contributions…'
-              : 'Loading contributions…'}
+            Loading contributions...
           </p>
         ) : null}
         {(error || state.message) && (

@@ -5,10 +5,11 @@ import {
   githubPreview,
   githubStatus,
   githubRefresh,
+  githubWorkRefresh,
 } from '../features/integrations/github';
 import type { GithubState } from '../types/github';
 
-export function useGithub(active: boolean) {
+export function useGithub(active: boolean, workActive = false) {
   const [state, setState] = useState<GithubState>(githubPreview);
   const [error, setError] = useState<string | null>(null);
   const mounted = useRef(false);
@@ -83,5 +84,20 @@ export function useGithub(active: boolean) {
       disposed = true;
     };
   }, [active, accept]);
+  useEffect(() => {
+    let disposed = false;
+    if (workActive && isDesktop())
+      void githubWorkRefresh(true).then(
+        (next) => {
+          if (!disposed) accept(next);
+        },
+        () => {
+          if (!disposed) setError('Work is unavailable. Refresh to retry.');
+        },
+      );
+    return () => {
+      disposed = true;
+    };
+  }, [workActive, accept]);
   return { state, error, run };
 }

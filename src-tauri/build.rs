@@ -22,6 +22,8 @@ fn main() {
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
         tauri_build::AppManifest::new().commands(&[
             "github_status",
+            "github_work_refresh",
+            "github_work_open",
             "github_start_authorization",
             "github_cancel_authorization",
             "github_refresh",

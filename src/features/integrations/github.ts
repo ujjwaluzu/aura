@@ -1,9 +1,16 @@
 import { invoke } from '@tauri-apps/api/core';
 import { isDesktop } from '../../lib/native';
-import type { GithubDestination, GithubState } from '../../types/github';
+import type {
+  GithubDestination,
+  GithubState,
+  GithubWorkCategory,
+} from '../../types/github';
 
 export const githubPreview: GithubState = {
   revision: -1,
+  account: null,
+  workPermission: false,
+  work: [],
   status: 'unavailable',
   configured: false,
   refreshing: false,
@@ -30,3 +37,14 @@ export const githubRefresh = (onlyIfStale = false) =>
 export const githubDisconnect = () => desktop<GithubState>('github_disconnect');
 export const githubOpen = (destination: GithubDestination) =>
   desktop<void>('github_open_destination', { destination });
+
+export const githubWorkRefresh = (
+  onlyIfStale = false,
+  category: GithubWorkCategory | null = null,
+  more = false,
+) =>
+  desktop<GithubState>('github_work_refresh', { onlyIfStale, category, more });
+export const githubWorkOpen = (
+  category: GithubWorkCategory,
+  id: string | null = null,
+) => desktop<void>('github_work_open', { category, id });

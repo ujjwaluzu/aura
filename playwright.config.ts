@@ -11,6 +11,7 @@ export default defineConfig({
         'music.spec.ts',
         'viewport.spec.ts',
         'github.spec.ts',
+        'github-work.spec.ts',
       ],
   fullyParallel: !native,
   workers: native ? 1 : 2,

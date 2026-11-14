@@ -11,6 +11,10 @@ export async function mockGithub(
     theme?: string;
     end?: string;
     error?: string;
+    workPermission?: boolean;
+    workEmpty?: boolean;
+    workLimited?: boolean;
+    workError?: boolean;
   } = {},
 ) {
   await mockMusic(page);
@@ -60,6 +64,58 @@ export async function mockGithub(
       });
     }
     const state: GithubState = {
+      account:
+        options.status && options.status !== 'connected'
+          ? null
+          : { accountId: 'U_fixture', login: 'octocat' },
+      workPermission: options.workPermission ?? true,
+      work: (['reviews', 'myPrs', 'failingPrs', 'issues'] as const).map(
+        (category) => ({
+          category,
+          status:
+            options.workPermission === false
+              ? 'permission'
+              : options.workError
+                ? 'error'
+                : options.workEmpty
+                  ? 'empty'
+                  : 'ready',
+          count: options.workError ? null : options.workEmpty ? 0 : 34,
+          loading: false,
+          stale: options.stale ?? false,
+          items:
+            options.workError || options.workEmpty
+              ? []
+              : Array.from({ length: 30 }, (_, i) => ({
+                  id: `${category}-${i}`,
+                  title:
+                    i === 0
+                      ? 'A long title '.repeat(24)
+                      : `${category} item ${i + 1}`,
+                  repository:
+                    i % 2 ? 'private-team/internal' : 'octocat/public',
+                  number: i + 1,
+                  private: i % 2 === 1,
+                  updatedAt: new Date(Date.now() - i * 86400000).toISOString(),
+                  draft: i === 1,
+                  reviewDecision:
+                    i === 2 ? 'CHANGES_REQUESTED' : 'REVIEW_REQUIRED',
+                  checks:
+                    category === 'failingPrs'
+                      ? 'FAILURE'
+                      : i === 0
+                        ? null
+                        : 'PENDING',
+                })),
+          cursor: 'cursor-30',
+          hasNextPage: !options.workEmpty && !options.workError,
+          limited: options.workLimited ?? false,
+          updatedAt: options.workError ? null : Math.floor(Date.now() / 1000),
+          message: options.workError
+            ? 'Work could not refresh. Aura will retry automatically.'
+            : null,
+        }),
+      ),
       revision: 0,
       status: options.status ?? 'connected',
       configured: true,
@@ -116,6 +172,28 @@ export async function mockGithub(
         if (!args.onlyIfStale) updateToday();
         return structuredClone(state);
       }
+      if (cmd === 'github_work_open') return;
+      if (cmd === 'github_work_refresh') {
+        const cache = state.work.find((c) => c.category === args.category);
+        if (cache && args.more) {
+          cache.items.push(
+            ...Array.from({ length: 4 }, (_, i) => ({
+              ...cache.items[0],
+              id: `${cache.category}-${i + 30}`,
+              number: i + 31,
+              title: `Later page item ${i + 31}`,
+            })),
+          );
+          cache.hasNextPage = false;
+        }
+        if (!args.onlyIfStale)
+          for (const c of state.work) {
+            c.updatedAt = Math.floor(Date.now() / 1000);
+            c.stale = false;
+          }
+        emit();
+        return structuredClone(state);
+      }
       if (cmd === 'github_start_authorization') {
         state.status = 'authorizing';
         state.authorization = {
@@ -130,8 +208,14 @@ export async function mockGithub(
         cmd === 'github_cancel_authorization' ||
         cmd === 'github_disconnect'
       ) {
-        state.status = 'disconnected';
-        state.calendar = null;
+        const preserve =
+          cmd === 'github_cancel_authorization' && !!state.account;
+        state.status = preserve ? 'connected' : 'disconnected';
+        if (!preserve) {
+          state.calendar = null;
+          state.account = null;
+          state.work = [];
+        }
         state.authorization = null;
         state.message = null;
         emit();
@@ -142,6 +226,62 @@ export async function mockGithub(
         return {
           themeId: options.theme,
           layoutId: 'clock-left-stats-music',
+          account:
+            options.status && options.status !== 'connected'
+              ? null
+              : { accountId: 'U_fixture', login: 'octocat' },
+          workPermission: options.workPermission ?? true,
+          work: (['reviews', 'myPrs', 'failingPrs', 'issues'] as const).map(
+            (category) => ({
+              category,
+              status:
+                options.workPermission === false
+                  ? 'permission'
+                  : options.workError
+                    ? 'error'
+                    : options.workEmpty
+                      ? 'empty'
+                      : 'ready',
+              count: options.workError ? null : options.workEmpty ? 0 : 34,
+              loading: false,
+              stale: options.stale ?? false,
+              items:
+                options.workError || options.workEmpty
+                  ? []
+                  : Array.from({ length: 30 }, (_, i) => ({
+                      id: `${category}-${i}`,
+                      title:
+                        i === 0
+                          ? 'A long title '.repeat(24)
+                          : `${category} item ${i + 1}`,
+                      repository:
+                        i % 2 ? 'private-team/internal' : 'octocat/public',
+                      number: i + 1,
+                      private: i % 2 === 1,
+                      updatedAt: new Date(
+                        Date.now() - i * 86400000,
+                      ).toISOString(),
+                      draft: i === 1,
+                      reviewDecision:
+                        i === 2 ? 'CHANGES_REQUESTED' : 'REVIEW_REQUIRED',
+                      checks:
+                        category === 'failingPrs'
+                          ? 'FAILURE'
+                          : i === 0
+                            ? null
+                            : 'PENDING',
+                    })),
+              cursor: 'cursor-30',
+              hasNextPage: !options.workEmpty && !options.workError,
+              limited: options.workLimited ?? false,
+              updatedAt: options.workError
+                ? null
+                : Math.floor(Date.now() / 1000),
+              message: options.workError
+                ? 'Work could not refresh. Aura will retry automatically.'
+                : null,
+            }),
+          ),
           revision: 0,
           warning: null,
         };
@@ -157,10 +297,28 @@ export async function mockGithub(
         emit();
       },
       deny: () => {
-        state.status = 'failed';
+        state.status = state.account ? 'connected' : 'failed';
         state.authorization = null;
         state.message =
           'GitHub authorization was denied. Try connecting again.';
+        emit();
+      },
+      approve: () => {
+        state.status = 'connected';
+        state.account = { accountId: 'U_fixture', login: 'octocat' };
+        state.authorization = null;
+        state.workPermission = true;
+        state.message = null;
+        for (const c of state.work)
+          if (c.status === 'permission') c.status = 'ready';
+        emit();
+      },
+      workOffline: () => {
+        for (const c of state.work) {
+          c.stale = true;
+          c.status = 'error';
+          c.message = 'Work could not refresh. Aura will retry automatically.';
+        }
         emit();
       },
       oldEvent: () => {

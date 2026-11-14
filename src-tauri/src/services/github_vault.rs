@@ -2,7 +2,7 @@ use super::{
     github_api::{Failure, Tokens},
     music_vault::{protect, unprotect},
 };
-use crate::models::github::Calendar;
+use crate::models::github::{Calendar, GithubAccount, WorkCategoryState};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 
@@ -14,6 +14,10 @@ pub struct SavedAccount {
     pub account_id: String,
     pub tokens: Tokens,
     pub calendar: Option<Calendar>,
+    #[serde(default)]
+    pub identity: Option<GithubAccount>,
+    #[serde(default)]
+    pub work: Vec<WorkCategoryState>,
 }
 pub struct Vault(pub Option<PathBuf>);
 impl Vault {
@@ -21,15 +25,15 @@ impl Vault {
         let directory = self.0.as_ref().ok_or(Failure::Storage)?;
         let file = directory.join("github-account.bin");
         let encrypted = match fs::read(&file) {
-            Ok(data) if data.len() <= 262_144 => data,
+            Ok(data) if data.len() <= 8_388_608 => data,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
             _ => return Err(Failure::Storage),
         };
         let mut bytes = unprotect(&encrypted).map_err(|_| Failure::Storage)?;
         let saved = serde_json::from_slice::<SavedAccount>(&bytes);
         bytes.fill(0);
-        let saved = saved.map_err(|_| Failure::Storage)?;
-        if saved.version != 1
+        let mut saved = saved.map_err(|_| Failure::Storage)?;
+        if !(1..=2).contains(&saved.version)
             || saved.client_id != client_id
             || saved
                 .calendar
@@ -38,11 +42,27 @@ impl Vault {
         {
             return Err(Failure::Reconnect);
         }
+        if saved.identity.is_none() {
+            saved.identity = saved.calendar.as_ref().map(|c| GithubAccount {
+                account_id: c.account_id.clone(),
+                login: c.login.clone(),
+            });
+        }
+        if saved.identity.as_ref().is_some_and(|a| {
+            a.account_id != saved.account_id || !super::github_api::valid_login(&a.login)
+        }) {
+            return Err(Failure::Reconnect);
+        }
+        saved.version = 2;
         Ok(Some(saved))
     }
     pub fn save(&self, saved: &SavedAccount) -> Result<(), Failure> {
         let dir = self.0.as_ref().ok_or(Failure::Storage)?;
         let mut bytes = serde_json::to_vec(saved).map_err(|_| Failure::Storage)?;
+        if bytes.len() > 8_388_608 {
+            bytes.fill(0);
+            return Err(Failure::Storage);
+        }
         let encrypted = protect(&bytes).map_err(|_| Failure::Storage);
         bytes.fill(0);
         let encrypted = encrypted?;

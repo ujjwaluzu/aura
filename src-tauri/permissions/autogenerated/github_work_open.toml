@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-github-work-open"
+description = "Enables the github_work_open command without any pre-configured scope."
+commands.allow = ["github_work_open"]
+
+[[permission]]
+identifier = "deny-github-work-open"
+description = "Denies the github_work_open command without any pre-configured scope."
+commands.deny = ["github_work_open"]

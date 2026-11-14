@@ -1,10 +1,12 @@
-use crate::models::github::{Calendar, ContributionWeek};
+use crate::models::github::{
+    Calendar, ContributionWeek, GithubAccount, WorkCategory, WorkCategoryState, WorkItem,
+};
 use reqwest::blocking::{Client, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{io::Read, time::Duration};
 
-pub const SCOPE: &str = "read:user offline_access";
+pub const SCOPE: &str = "read:user repo offline_access";
 const TOKEN_URL: &str = "https://github.com/login/oauth/access_token";
 const QUERY: &str = "query { viewer { id login contributionsCollection { startedAt endedAt contributionCalendar { totalContributions weeks { contributionDays { date weekday contributionCount contributionLevel } } } } } }";
 
@@ -15,6 +17,8 @@ pub struct Tokens {
     pub refresh: Option<String>,
     pub expires_at: Option<u64>,
     pub refresh_expires_at: Option<u64>,
+    #[serde(default)]
+    pub scopes: Vec<String>,
 }
 #[derive(Clone)]
 pub struct DeviceCode {
@@ -32,6 +36,7 @@ pub enum Failure {
     Configuration,
     InvalidData,
     Storage,
+    Permission,
 }
 pub enum Poll {
     Pending,
@@ -43,6 +48,15 @@ pub trait GithubApi: Send + Sync {
     fn poll(&self, client_id: &str, device: &DeviceCode, now: u64) -> Result<Poll, Failure>;
     fn rotate(&self, client_id: &str, tokens: &Tokens, now: u64) -> Result<Tokens, Failure>;
     fn calendar(&self, tokens: &Tokens, now: u64) -> Result<Calendar, Failure>;
+    fn identity(&self, tokens: &Tokens, now: u64) -> Result<GithubAccount, Failure>;
+    fn work(
+        &self,
+        tokens: &Tokens,
+        login: &str,
+        category: WorkCategory,
+        cursor: Option<&str>,
+        now: u64,
+    ) -> Result<WorkCategoryState, Failure>;
 }
 pub struct OfficialApi(Client);
 impl OfficialApi {
@@ -201,6 +215,11 @@ pub fn tokens(value: &Value, now: u64) -> Result<Tokens, Failure> {
         return Err(Failure::Reconnect);
     }
     Ok(Tokens {
+        scopes: scopes
+            .split([',', ' '])
+            .filter(|s| !s.is_empty())
+            .map(String::from)
+            .collect(),
         access: access.into(),
         refresh: value["refresh_token"]
             .as_str()
@@ -290,11 +309,60 @@ impl GithubApi for OfficialApi {
             ],
             now,
         )?;
-        let result = tokens(&v, now)?;
+        let mut scoped = v.clone();
+        if v["scope"].is_null() {
+            scoped["scope"] = json!(if old.scopes.is_empty() {
+                "read:user".into()
+            } else {
+                old.scopes.join(",")
+            });
+        }
+        let result = tokens(&scoped, now)?;
         if result.refresh.is_none() {
             return Err(Failure::Reconnect);
         }
         Ok(result)
+    }
+    fn identity(&self, tokens: &Tokens, now: u64) -> Result<GithubAccount, Failure> {
+        let v = decode(
+            self.0
+                .post("https://api.github.com/graphql")
+                .bearer_auth(&tokens.access)
+                .json(&json!({"query":"query { viewer { id login } }"}))
+                .send(),
+            now,
+        )?;
+        if v["errors"]
+            .as_array()
+            .is_some_and(|errors| !errors.is_empty())
+        {
+            return Err(Failure::InvalidData);
+        }
+        let viewer = &v["data"]["viewer"];
+        Ok(GithubAccount {
+            account_id: viewer["id"]
+                .as_str()
+                .filter(|s| !s.is_empty())
+                .ok_or(Failure::InvalidData)?
+                .into(),
+            login: viewer["login"]
+                .as_str()
+                .filter(|s| valid_login(s))
+                .ok_or(Failure::InvalidData)?
+                .into(),
+        })
+    }
+    fn work(
+        &self,
+        tokens: &Tokens,
+        login: &str,
+        category: WorkCategory,
+        cursor: Option<&str>,
+        now: u64,
+    ) -> Result<WorkCategoryState, Failure> {
+        let v = decode(self.0.post("https://api.github.com/graphql")
+            .bearer_auth(&tokens.access).json(&json!({"query": WORK_QUERY, "variables": {"query": work_query(login, category), "cursor": cursor}})).send(), now)?;
+        parse_work(&v, category, now)
     }
     fn calendar(&self, tokens: &Tokens, now: u64) -> Result<Calendar, Failure> {
         let v = decode(
@@ -600,5 +668,247 @@ mod tests {
             Some(1445412480)
         );
         assert_eq!(retry_deadline("Fri, 29 Feb 2029 00:00:00 GMT", 0), None);
+    }
+}
+
+const WORK_QUERY: &str = r#"query($query: String!, $cursor: String) {
+  search(query: $query, type: ISSUE, first: 30, after: $cursor) {
+    issueCount pageInfo { hasNextPage endCursor }
+    nodes {
+      ... on PullRequest {
+        id title number updatedAt isDraft reviewDecision
+        repository { nameWithOwner isPrivate isArchived }
+        commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
+      }
+      ... on Issue {
+        id title number updatedAt repository { nameWithOwner isPrivate isArchived }
+      }
+    }
+  }
+}"#;
+pub fn work_query(login: &str, category: WorkCategory) -> String {
+    let filter = match category {
+        WorkCategory::Reviews => format!("is:pr review-requested:{login} sort:updated-asc"),
+        WorkCategory::MyPrs => format!("is:pr author:{login} sort:updated-desc"),
+        WorkCategory::FailingPrs => {
+            format!("is:pr author:{login} status:failure sort:updated-desc")
+        }
+        WorkCategory::Issues => format!("is:issue assignee:{login} sort:updated-asc"),
+    };
+    format!("is:open archived:false {filter}")
+}
+pub fn valid_repository(repository: &str) -> bool {
+    let parts: Vec<_> = repository.split('/').collect();
+    parts.len() == 2
+        && valid_login(parts[0])
+        && !parts[1].is_empty()
+        && parts[1].len() <= 100
+        && parts[1] != "."
+        && parts[1] != ".."
+        && parts[1]
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b))
+}
+pub fn parse_work(
+    v: &Value,
+    category: WorkCategory,
+    now: u64,
+) -> Result<WorkCategoryState, Failure> {
+    if let Some(errors) = v["errors"].as_array().filter(|e| !e.is_empty()) {
+        if errors.iter().any(|e| e["type"] == "RATE_LIMITED") {
+            return Err(Failure::Temporary(Some(now + 300)));
+        }
+        return Err(
+            if errors
+                .iter()
+                .any(|e| e["type"] == "FORBIDDEN" || e["type"] == "INSUFFICIENT_SCOPES")
+            {
+                Failure::Permission
+            } else {
+                Failure::InvalidData
+            },
+        );
+    }
+    let search = &v["data"]["search"];
+    let count = search["issueCount"]
+        .as_u64()
+        .and_then(|n| u32::try_from(n).ok())
+        .ok_or(Failure::InvalidData)?;
+    let next = search["pageInfo"]["hasNextPage"]
+        .as_bool()
+        .ok_or(Failure::InvalidData)?;
+    let cursor = search["pageInfo"]["endCursor"]
+        .as_str()
+        .filter(|s| s.len() <= 2048)
+        .map(String::from);
+    if next && cursor.is_none() {
+        return Err(Failure::InvalidData);
+    }
+    let nodes = search["nodes"]
+        .as_array()
+        .filter(|n| n.len() <= 30)
+        .ok_or(Failure::InvalidData)?;
+    let mut items = Vec::new();
+    let mut incomplete = nodes.is_empty() && count > 0 && !next;
+    for n in nodes {
+        if n.is_null() || n["repository"]["isArchived"] == true {
+            incomplete = true;
+            continue;
+        }
+        let repository = n["repository"]["nameWithOwner"]
+            .as_str()
+            .filter(|s| valid_repository(s))
+            .ok_or(Failure::InvalidData)?;
+        let updated = n["updatedAt"]
+            .as_str()
+            .filter(|s| (20..=32).contains(&s.len()) && s.is_ascii() && valid_date(&s[..10]))
+            .ok_or(Failure::InvalidData)?;
+        let item = WorkItem {
+            id: n["id"]
+                .as_str()
+                .filter(|s| !s.is_empty() && s.len() <= 256)
+                .ok_or(Failure::InvalidData)?
+                .into(),
+            title: n["title"]
+                .as_str()
+                .filter(|s| !s.is_empty() && s.len() <= 1024)
+                .ok_or(Failure::InvalidData)?
+                .into(),
+            repository: repository.into(),
+            number: n["number"]
+                .as_u64()
+                .and_then(|n| u32::try_from(n).ok())
+                .filter(|n| *n > 0)
+                .ok_or(Failure::InvalidData)?,
+            updated_at: updated.into(),
+            draft: n["isDraft"].as_bool().unwrap_or(false),
+            review_decision: n["reviewDecision"]
+                .as_str()
+                .filter(|s| s.len() <= 64)
+                .map(String::from),
+            checks: n["commits"]["nodes"][0]["commit"]["statusCheckRollup"]["state"]
+                .as_str()
+                .filter(|s| s.len() <= 64)
+                .map(String::from),
+            private: n["repository"]["isPrivate"]
+                .as_bool()
+                .ok_or(Failure::InvalidData)?,
+        };
+        // Search counts PRs, never jobs. An unknown rollup stays unknown; it is not a success.
+        if !items.iter().any(|i: &WorkItem| i.id == item.id) {
+            items.push(item);
+        }
+    }
+    Ok(WorkCategoryState {
+        category,
+        status: if count == 0 { "empty" } else { "ready" }.into(),
+        count: Some(count),
+        items,
+        cursor,
+        has_next_page: next,
+        limited: count > 1000 || incomplete,
+        loading: false,
+        stale: false,
+        updated_at: Some(now),
+        message: None,
+    })
+}
+
+#[cfg(test)]
+mod work_tests {
+    use super::*;
+    fn response() -> Value {
+        json!({"data":{"search":{"issueCount":1,"pageInfo":{"hasNextPage":false,"endCursor":"abc"},"nodes":[{
+            "id":"PR_fixture","title":"Private PR with a long title","number":42,"updatedAt":"2026-11-14T12:00:00Z",
+            "repository":{"nameWithOwner":"team/private.repo","isPrivate":true,"isArchived":false},
+            "isDraft":true,"reviewDecision":"CHANGES_REQUESTED",
+            "commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"FAILURE"}}}]}
+        }]}}})
+    }
+    #[test]
+    fn search_qualifiers_cover_account_open_non_archived_and_category_sorting() {
+        for c in WorkCategory::ALL {
+            let q = work_query("octocat", c);
+            assert!(q.contains("is:open archived:false"));
+            assert!(q.contains("octocat"));
+            assert_eq!(
+                q.contains("sort:updated-asc"),
+                matches!(c, WorkCategory::Reviews | WorkCategory::Issues)
+            );
+        }
+        assert!(work_query("octocat", WorkCategory::FailingPrs)
+            .contains("author:octocat status:failure"));
+        assert!(work_query("octocat", WorkCategory::Reviews).contains("review-requested:octocat"));
+    }
+    #[test]
+    fn one_failing_pr_is_one_item_with_current_head_rollup_and_private_metadata() {
+        let p = parse_work(&response(), WorkCategory::FailingPrs, 100).unwrap();
+        assert_eq!(p.count, Some(1));
+        assert_eq!(p.items.len(), 1);
+        assert!(p.items[0].private && p.items[0].draft);
+        assert_eq!(p.items[0].checks.as_deref(), Some("FAILURE"));
+        assert_eq!(
+            p.items[0].review_decision.as_deref(),
+            Some("CHANGES_REQUESTED")
+        );
+        let mut v = response();
+        v["data"]["search"]["nodes"][0]["commits"] = Value::Null;
+        assert!(parse_work(&v, WorkCategory::MyPrs, 100).unwrap().items[0]
+            .checks
+            .is_none());
+    }
+    #[test]
+    fn empty_partial_permission_unknown_and_search_limit_are_distinct() {
+        let mut v = response();
+        v["data"]["search"]["issueCount"] = json!(0);
+        v["data"]["search"]["nodes"] = json!([]);
+        let empty = parse_work(&v, WorkCategory::Issues, 0).unwrap();
+        assert_eq!(empty.status, "empty");
+        assert_eq!(empty.count, Some(0));
+        assert!(parse_work(&json!({"data":{"search":null}}), WorkCategory::Issues, 0).is_err());
+        assert!(matches!(
+            parse_work(
+                &json!({"errors":[{"type":"FORBIDDEN"}]}),
+                WorkCategory::Issues,
+                0
+            ),
+            Err(Failure::Permission)
+        ));
+        v = response();
+        v["data"]["search"]["issueCount"] = json!(1001);
+        assert!(parse_work(&v, WorkCategory::Reviews, 0).unwrap().limited);
+        v["data"]["search"]["nodes"] = json!([null]);
+        assert!(parse_work(&v, WorkCategory::Reviews, 0).unwrap().limited);
+        v["data"]["search"]["pageInfo"]["hasNextPage"] = json!(true);
+        v["data"]["search"]["pageInfo"]["endCursor"] = Value::Null;
+        assert!(parse_work(&v, WorkCategory::Reviews, 0).is_err());
+    }
+    #[test]
+    fn repository_identifiers_cannot_escape_github_destinations() {
+        for repository in ["a/b", "a/repo.name", "a/repo-name"] {
+            assert!(valid_repository(repository));
+        }
+        for repository in [
+            "https://evil.example",
+            "a/..",
+            "a/a?x",
+            "a/b/c",
+            "a/",
+            "a/%2e",
+        ] {
+            assert!(!valid_repository(repository));
+        }
+        let mut v = response();
+        v["data"]["search"]["nodes"][0]["repository"]["nameWithOwner"] = json!("a/../evil");
+        assert!(parse_work(&v, WorkCategory::Reviews, 0).is_err());
+    }
+    #[test]
+    fn granted_scopes_are_stored_without_assuming_requested_repo_was_granted() {
+        let v = json!({"access_token":"fixture", "scope":"read:user,repo,offline_access", "token_type":"bearer"});
+        assert!(tokens(&v, 0).unwrap().scopes.iter().any(|s| s == "repo"));
+        let mut v = v;
+        v["scope"] = json!("read:user");
+        assert!(!tokens(&v, 0).unwrap().scopes.iter().any(|s| s == "repo"));
+        assert_eq!(SCOPE, "read:user repo offline_access");
     }
 }

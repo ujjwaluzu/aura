@@ -5,6 +5,8 @@
   "windows": ["widget-host"],
   "permissions": [
     "allow-github-status",
+    "allow-github-work-refresh",
+    "allow-github-work-open",
     "allow-github-start-authorization",
     "allow-github-cancel-authorization",
     "allow-github-refresh",

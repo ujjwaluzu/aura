@@ -15,9 +15,13 @@ This repository contains only the desktop application.
 - CPU and physical RAM monitoring through Rust/sysinfo, sampled on demand at
   most once per second. Collection stops while the host is hidden or minimized.
 - Fixed glass treatment; no network dependency for clock or monitoring.
-- A second page pairs a GitHub activity overview with a contribution calendar,
+- Activity pairs a GitHub overview with a contribution calendar,
   refreshed by a native service every five minutes. Connect through
   GitHub's browser device flow; credentials and cached counts use Windows DPAPI.
+  Work adds review requests, authored PRs, PRs with failing current checks and assigned
+  issues using the same connection, encrypted cache and five-minute refresh.
+  The `repo` grant includes write access; Aura only reads GitHub data. Existing
+  connections can update permissions without losing Activity on cancellation.
   See [GitHub setup and validation](docs/github.md).
 - CPU/RAM sparklines use up to 32 actual recent samples, held only in UI memory.
 - Music panel opens Aura Music: a native account/library window and official-player
