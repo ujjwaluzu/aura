@@ -1,6 +1,20 @@
 ﻿import { useState, type ReactNode } from 'react';
-import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  CircleDot,
+  Clock3,
+  ExternalLink,
+  GitPullRequest,
+  HelpCircle,
+  LockKeyhole,
+  RefreshCw,
+  XCircle,
+} from 'lucide-react';
 import { GlassSurface } from '../../ui/GlassSurface';
+import { DialogPanel } from '../../ui/DialogPanel';
 import {
   GithubAccountMenu,
   GithubAuthorization,
@@ -18,6 +32,10 @@ const workCategories: { id: GithubWorkCategory; label: string }[] = [
   { id: 'failingPrs', label: 'Failing PRs' },
   { id: 'issues', label: 'Issues' },
 ];
+const compactCount = new Intl.NumberFormat(undefined, {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
 function age(updated: string) {
   const minutes = Math.max(
     0,
@@ -31,26 +49,125 @@ function age(updated: string) {
         ? `${Math.floor(minutes / 60)}h ago`
         : `${Math.floor(minutes / 1440)}d ago`;
 }
-function status(item: GithubWorkItem, category: GithubWorkCategory) {
-  if (category === 'issues') return 'Assigned';
-  const checks =
-    (
-      {
-        SUCCESS: 'Checks passing',
-        FAILURE: 'Checks failing',
-        ERROR: 'Checks failing',
-        PENDING: 'Checks pending',
-        EXPECTED: 'Checks expected',
-      } as Record<string, string>
-    )[item.checks ?? ''] ?? 'Checks unknown';
-  const review = (
+function checkStatus(checks: string | null) {
+  switch (checks) {
+    case 'SUCCESS':
+      return {
+        label: 'Passing',
+        description: 'Checks passing',
+        tone: 'positive',
+        Icon: CheckCircle2,
+      };
+    case 'FAILURE':
+    case 'ERROR':
+      return {
+        label: 'Failing',
+        description: 'Checks failing',
+        tone: 'negative',
+        Icon: XCircle,
+      };
+    case 'PENDING':
+    case 'EXPECTED':
+      return {
+        label: 'Pending',
+        description:
+          checks === 'EXPECTED' ? 'Checks expected' : 'Checks pending',
+        tone: 'pending',
+        Icon: Clock3,
+      };
+    default:
+      return {
+        label: 'Unknown',
+        description: 'Checks unknown',
+        tone: 'muted',
+        Icon: HelpCircle,
+      };
+  }
+}
+function reviewStatus(item: GithubWorkItem) {
+  if (item.draft) return 'Draft';
+  return (
     {
       APPROVED: 'Approved',
       CHANGES_REQUESTED: 'Changes requested',
       REVIEW_REQUIRED: 'Review required',
     } as Record<string, string>
   )[item.reviewDecision ?? ''];
-  return [item.draft ? 'Draft' : review, checks].filter(Boolean).join(' · ');
+}
+function WorkRow({
+  item,
+  category,
+  open,
+}: {
+  item: GithubWorkItem;
+  category: GithubWorkCategory;
+  open: () => void;
+}) {
+  const issue = category === 'issues';
+  const checks = checkStatus(item.checks);
+  const review = reviewStatus(item);
+  const ItemIcon = issue ? CircleDot : GitPullRequest;
+  return (
+    <button
+      className="github-work-row"
+      type="button"
+      title={item.title}
+      onClick={open}
+    >
+      <ItemIcon
+        size={14}
+        className="github-work-item-icon"
+        aria-hidden="true"
+      />
+      <strong className="github-work-title">{item.title}</strong>
+      <time
+        className="github-work-age"
+        dateTime={item.updatedAt}
+        title={new Date(item.updatedAt).toLocaleString()}
+      >
+        {age(item.updatedAt)}
+      </time>
+      <span className="github-work-meta">
+        <span
+          className="github-work-repository"
+          title={`${item.repository} #${item.number}${item.private ? ' · Private' : ''}`}
+        >
+          <span className="github-work-repository-name">{item.repository}</span>
+          <span className="github-work-number">#{item.number}</span>
+          {item.private && (
+            <>
+              <LockKeyhole size={10} aria-hidden="true" />
+              <span className="sr-only">Private</span>
+            </>
+          )}
+        </span>
+        <span className="github-work-statuses">
+          {issue ? (
+            <span className="github-work-review">Assigned</span>
+          ) : (
+            <>
+              {review && (
+                <span className="github-work-review" title={review}>
+                  {review}
+                </span>
+              )}
+              <span
+                className="github-work-checks"
+                data-tone={checks.tone}
+                title={checks.description}
+              >
+                <checks.Icon size={11} aria-hidden="true" />
+                <span>
+                  <span className="sr-only">Checks </span>
+                  {checks.label.toLowerCase()}
+                </span>
+              </span>
+            </>
+          )}
+        </span>
+      </span>
+    </button>
+  );
 }
 export function GithubWork({
   github,
@@ -67,6 +184,7 @@ export function GithubWork({
   const [pages, setPages] = useState<
     Partial<Record<GithubWorkCategory, number>>
   >({});
+  const [details, setDetails] = useState(false);
   const cache = state.work.find((c) => c.category === category);
   const maxPage = Math.max(0, Math.ceil((cache?.items.length ?? 0) / 3) - 1);
   const page = Math.min(pages[category] ?? 0, maxPage);
@@ -74,19 +192,28 @@ export function GithubWork({
   const connecting =
     state.status === 'requesting' || state.status === 'authorizing';
   const permission = !state.workPermission || cache?.status === 'permission';
+  const refreshing = state.work.some((c) => c.loading);
+  const message =
+    error ??
+    cache?.message ??
+    (connecting || permission ? state.message : null);
+  const updated = cache?.updatedAt
+    ? new Date(cache.updatedAt * 1000).toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : '—';
+  const refresh = () => run(() => githubWorkRefresh());
   const selectPage = (next: number) =>
     setPages((previous) => ({ ...previous, [category]: next }));
   const next = async () => {
-    if (page < maxPage) {
-      selectPage(page + 1);
-      return;
-    }
     selectPage(page + 1);
-    await run(() => githubWorkRefresh(false, category, true));
+    if (page >= maxPage)
+      await run(() => githubWorkRefresh(false, category, true));
   };
   return (
     <>
-      <div className="primary-slot github-overview-slot">
+      <div className="primary-slot github-work-sidebar">
         <section
           className="github-work-overview"
           aria-label="GitHub Work categories"
@@ -95,19 +222,27 @@ export function GithubWork({
           <div className="github-work-tiles">
             {workCategories.map(({ id, label }) => {
               const c = state.work.find((entry) => entry.category === id);
+              const compact = c?.count != null && c.count >= 10000;
               return (
                 <button
                   key={id}
                   type="button"
                   aria-pressed={category === id}
                   onClick={() => select(id)}
+                  title={`${label}: ${c?.count?.toLocaleString() ?? 'unavailable'}${c?.stale ? ' · Stale' : ''}`}
                 >
                   <span>{label}</span>
                   <strong>
-                    {c?.count == null ? '—' : c.count.toLocaleString()}
+                    {c?.count == null
+                      ? '—'
+                      : compact
+                        ? compactCount.format(c.count)
+                        : c.count.toLocaleString()}
                   </strong>
                   <span className="sr-only">
-                    {c?.count == null ? 'unavailable' : c.stale ? 'stale' : ''}
+                    {c?.count == null
+                      ? 'unavailable'
+                      : `${compact ? `(${c.count.toLocaleString()})` : ''}${c.stale ? ' stale' : ''}`}
                   </span>
                 </button>
               );
@@ -117,36 +252,54 @@ export function GithubWork({
         {navigation}
       </div>
       <div className="widget-divider" aria-hidden="true" />
-      <section className="github-slot" aria-label="GitHub Work">
+      <section
+        className="github-slot github-work-slot"
+        aria-label="GitHub Work"
+      >
         <GlassSurface
           variant="inset"
           opacity={0.35}
           className="github-card github-work-card"
         >
           <header className="github-header">
-            <span>
-              {workCategories.find((c) => c.id === category)?.label}{' '}
-              <small>@{state.account?.login}</small>
-            </span>
+            <div className="github-work-heading">
+              <h3>{workCategories.find((c) => c.id === category)?.label}</h3>
+              <span
+                className="github-work-account"
+                title={`@${state.account?.login}`}
+              >
+                @{state.account?.login}
+              </span>
+            </div>
             <div className="github-actions">
+              {(message || cache?.stale) && (
+                <button
+                  type="button"
+                  className="github-work-health"
+                  aria-label="Show Work status"
+                  aria-haspopup="dialog"
+                  aria-expanded={details}
+                  title={
+                    message ?? 'Showing cached Work data. Refresh to update.'
+                  }
+                  onClick={() => setDetails(true)}
+                >
+                  <AlertCircle size={12} />
+                  <span>
+                    {cache?.stale ? 'Stale' : permission ? 'Access' : 'Error'}
+                  </span>
+                </button>
+              )}
               <button
                 type="button"
                 aria-label="Refresh GitHub Work"
-                title="Refresh Work"
-                disabled={
-                  connecting ||
-                  !state.workPermission ||
-                  state.work.some((c) => c.loading)
-                }
-                onClick={() => void run(() => githubWorkRefresh())}
+                title={refreshing ? 'Refreshing Work…' : 'Refresh Work'}
+                disabled={connecting || !state.workPermission || refreshing}
+                onClick={() => void refresh()}
               >
                 <RefreshCw
                   size={13}
-                  className={
-                    state.work.some((c) => c.loading)
-                      ? 'github-spinning'
-                      : undefined
-                  }
+                  className={refreshing ? 'github-spinning' : undefined}
                 />
               </button>
               <GithubAccountMenu github={github} />
@@ -161,41 +314,54 @@ export function GithubWork({
                 aria-busy={cache?.loading ?? false}
               >
                 {items.map((item) => (
-                  <button
-                    className="github-work-row"
-                    type="button"
+                  <WorkRow
                     key={item.id}
-                    title={item.title}
-                    onClick={() =>
+                    item={item}
+                    category={category}
+                    open={() =>
                       void run(() => githubWorkOpen(category, item.id))
                     }
-                  >
-                    <strong>{item.title}</strong>
-                    <span className="github-work-meta">
-                      <span>
-                        {item.repository} #{item.number}
-                        {item.private ? ' · Private' : ''}
-                      </span>
-                      <time dateTime={item.updatedAt}>
-                        {age(item.updatedAt)}
-                      </time>
-                    </span>
-                    <span className="github-work-status">
-                      {status(item, category)}
-                    </span>
-                  </button>
+                  />
                 ))}
                 {!items.length && (
-                  <p className="github-work-empty" role="status">
-                    {cache?.count === 0 && cache.status === 'empty'
-                      ? 'You’re all caught up.'
-                      : cache?.loading || cache?.status === 'loading' || !cache
-                        ? 'Loading Work…'
-                        : 'Work is unavailable. Refresh to retry.'}
-                  </p>
+                  <div className="github-work-empty" role="status">
+                    {cache?.count === 0 && cache.status === 'empty' ? (
+                      <>
+                        <CheckCircle2 size={22} aria-hidden="true" />
+                        <p>You’re all caught up.</p>
+                        <small>
+                          No{' '}
+                          {category === 'issues'
+                            ? 'assigned issues'
+                            : category === 'reviews'
+                              ? 'review requests'
+                              : category === 'failingPrs'
+                                ? 'failing pull requests'
+                                : 'open pull requests'}{' '}
+                          right now.
+                        </small>
+                      </>
+                    ) : cache?.loading ||
+                      cache?.status === 'loading' ||
+                      !cache ? (
+                      <>
+                        <RefreshCw
+                          size={20}
+                          className="github-spinning"
+                          aria-hidden="true"
+                        />
+                        <p>Loading Work…</p>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle size={22} aria-hidden="true" />
+                        <p>Work is unavailable. Refresh to retry.</p>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
-              <div className="github-work-footer">
+              <footer className="github-work-footer">
                 <div
                   className="github-work-pagination"
                   aria-label="Work result pages"
@@ -206,7 +372,7 @@ export function GithubWork({
                     disabled={page === 0}
                     onClick={() => selectPage(page - 1)}
                   >
-                    <ChevronLeft size={12} />
+                    <ChevronLeft size={13} />
                   </button>
                   <span aria-live="polite">
                     {items.length
@@ -222,44 +388,85 @@ export function GithubWork({
                     }
                     onClick={() => void next()}
                   >
-                    <ChevronRight size={12} />
+                    <ChevronRight size={13} />
                   </button>
                 </div>
+                <span
+                  className="github-update github-work-updated"
+                  title={`Last updated ${updated}. Aura refreshes Work every 5 minutes.`}
+                >
+                  <span>Updated</span>
+                  <time
+                    dateTime={
+                      cache?.updatedAt
+                        ? new Date(cache.updatedAt * 1000).toISOString()
+                        : undefined
+                    }
+                  >
+                    {updated}
+                  </time>
+                  {cache?.loading && <span className="sr-only">Updating</span>}
+                </span>
                 <button
                   type="button"
                   className="github-view-all"
-                  title="GitHub search returns up to 1,000 items. Results follow repository access, organization restrictions and GitHub’s search index."
+                  aria-label={`${cache?.limited ? 'Limited · ' : ''}View all on GitHub`}
+                  title={
+                    cache?.limited
+                      ? 'Coverage is limited. View all on GitHub; search returns up to 1,000 items and follows your repository access.'
+                      : 'View all on GitHub'
+                  }
                   onClick={() => void run(() => githubWorkOpen(category))}
                 >
-                  {cache?.limited ? 'Limited · ' : ''}View all on GitHub
+                  {cache?.limited && (
+                    <span className="github-work-limit">Limited · </span>
+                  )}
+                  View all
+                  <span className="github-work-link-label"> on GitHub</span>
+                  <ExternalLink size={11} aria-hidden="true" />
                 </button>
-              </div>
-              <div className="github-update">
-                <span>
-                  Last updated{' '}
-                  {cache?.updatedAt
-                    ? new Date(cache.updatedAt * 1000).toLocaleTimeString(
-                        undefined,
-                        { hour: '2-digit', minute: '2-digit' },
-                      )
-                    : '—'}
-                  {cache?.stale ? ' · Stale' : ''}
-                  {cache?.loading ? ' · Updating' : ''}
-                </span>
-                <span>Refreshes every 5 min</span>
-              </div>
+              </footer>
             </>
           )}
-          {(error ||
-            cache?.message ||
-            (connecting || permission ? state.message : null)) && (
-            <p
-              className="github-message"
-              role="status"
-              title={error ?? cache?.message ?? state.message ?? undefined}
-            >
-              {error ?? cache?.message ?? state.message}
+          {!connecting && permission && message && (
+            <p className="github-work-access-message" role="status">
+              {message}
             </p>
+          )}
+          {details && (
+            <DialogPanel title="Work status" onClose={() => setDetails(false)}>
+              <p
+                className="github-work-status-message"
+                role="status"
+                tabIndex={0}
+              >
+                {message ??
+                  'These are your last saved Work results. Refresh to check for updates.'}
+              </p>
+              <p className="github-work-status-update">
+                Last updated {updated}. Aura refreshes every 5 minutes.
+              </p>
+              <div className="github-work-status-actions">
+                <button
+                  type="button"
+                  disabled={connecting || !state.workPermission || refreshing}
+                  onClick={() => {
+                    setDetails(false);
+                    void refresh();
+                  }}
+                >
+                  Refresh Work
+                </button>
+                {state.workPermission && (
+                  <button
+                    type="button"
+                    onClick={() => void run(() => githubWorkOpen(category))}
+                  >
+                    Open on GitHub
+                  </button>
+                )}
+              </div>
+            </DialogPanel>
           )}
         </GlassSurface>
       </section>

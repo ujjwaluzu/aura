@@ -15,6 +15,11 @@ export async function mockGithub(
     workEmpty?: boolean;
     workLimited?: boolean;
     workError?: boolean;
+    workCount?: number;
+    workMessage?: string;
+    workLoading?: boolean;
+    longWorkFields?: boolean;
+    login?: string;
   } = {},
 ) {
   await mockMusic(page);
@@ -67,7 +72,7 @@ export async function mockGithub(
       account:
         options.status && options.status !== 'connected'
           ? null
-          : { accountId: 'U_fixture', login: 'octocat' },
+          : { accountId: 'U_fixture', login: options.login ?? 'octocat' },
       workPermission: options.workPermission ?? true,
       work: (['reviews', 'myPrs', 'failingPrs', 'issues'] as const).map(
         (category) => ({
@@ -75,13 +80,19 @@ export async function mockGithub(
           status:
             options.workPermission === false
               ? 'permission'
-              : options.workError
+              : options.workError || options.workMessage
                 ? 'error'
-                : options.workEmpty
-                  ? 'empty'
-                  : 'ready',
-          count: options.workError ? null : options.workEmpty ? 0 : 34,
-          loading: false,
+                : options.workLoading
+                  ? 'loading'
+                  : options.workEmpty
+                    ? 'empty'
+                    : 'ready',
+          count: options.workError
+            ? null
+            : options.workEmpty
+              ? 0
+              : (options.workCount ?? 34),
+          loading: options.workLoading ?? false,
           stale: options.stale ?? false,
           items:
             options.workError || options.workEmpty
@@ -92,9 +103,12 @@ export async function mockGithub(
                     i === 0
                       ? 'A long title '.repeat(24)
                       : `${category} item ${i + 1}`,
-                  repository:
-                    i % 2 ? 'private-team/internal' : 'octocat/public',
-                  number: i + 1,
+                  repository: options.longWorkFields
+                    ? 'an-organization-with-a-long-name/private-repository-with-a-very-long-name'
+                    : i % 2
+                      ? 'private-team/internal'
+                      : 'octocat/public',
+                  number: options.longWorkFields ? 123456 + i : i + 1,
                   private: i % 2 === 1,
                   updatedAt: new Date(Date.now() - i * 86400000).toISOString(),
                   draft: i === 1,
@@ -111,9 +125,11 @@ export async function mockGithub(
           hasNextPage: !options.workEmpty && !options.workError,
           limited: options.workLimited ?? false,
           updatedAt: options.workError ? null : Math.floor(Date.now() / 1000),
-          message: options.workError
-            ? 'Work could not refresh. Aura will retry automatically.'
-            : null,
+          message:
+            options.workMessage ??
+            (options.workError
+              ? 'Work could not refresh. Aura will retry automatically.'
+              : null),
         }),
       ),
       revision: 0,
