@@ -6,7 +6,12 @@ export default defineConfig({
   testDir: './tests',
   testMatch: native
     ? 'native.spec.ts'
-    : ['browser.spec.ts', 'music.spec.ts', 'viewport.spec.ts'],
+    : [
+        'browser.spec.ts',
+        'music.spec.ts',
+        'viewport.spec.ts',
+        'github.spec.ts',
+      ],
   fullyParallel: !native,
   workers: native ? 1 : 2,
   reporter: 'list',

@@ -1,4 +1,5 @@
 mod foundation;
+pub mod github;
 pub mod music;
 mod preferences;
 mod system_monitor;

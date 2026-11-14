@@ -1,4 +1,7 @@
 pub mod foundation;
+pub mod github;
+pub mod github_api;
+pub mod github_vault;
 pub mod music;
 pub mod music_media;
 pub mod music_oauth;

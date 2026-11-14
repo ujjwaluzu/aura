@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-github-open-destination"
+description = "Enables the github_open_destination command without any pre-configured scope."
+commands.allow = ["github_open_destination"]
+
+[[permission]]
+identifier = "deny-github-open-destination"
+description = "Denies the github_open_destination command without any pre-configured scope."
+commands.deny = ["github_open_destination"]

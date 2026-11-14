@@ -12,6 +12,7 @@ artifacts/
 .env.*
 !.env.example
 !.env.music.example
+!.env.github.example
 .DS_Store
 Thumbs.db
 tools/music/.venv/

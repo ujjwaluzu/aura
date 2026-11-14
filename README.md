@@ -15,6 +15,10 @@ This repository contains only the desktop application.
 - CPU and physical RAM monitoring through Rust/sysinfo, sampled on demand at
   most once per second. Collection stops while the host is hidden or minimized.
 - Fixed glass treatment; no network dependency for clock or monitoring.
+- A second page keeps the clock beside the signed-in user's GitHub contribution
+  calendar, refreshed by a native service every five minutes. Connect through
+  GitHub's browser device flow; credentials and cached counts use Windows DPAPI.
+  See [GitHub setup and validation](docs/github.md).
 - CPU/RAM sparklines use up to 32 actual recent samples, held only in UI memory.
 - Music panel opens Aura Music: a native account/library window and official-player
   bridge with event-driven Windows media-session selection and transport controls.

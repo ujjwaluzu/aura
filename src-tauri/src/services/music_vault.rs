@@ -142,19 +142,19 @@ fn crypt(bytes: &[u8], encrypt: bool) -> Result<Vec<u8>, AppError> {
     }
 }
 #[cfg(windows)]
-fn protect(bytes: &[u8]) -> Result<Vec<u8>, AppError> {
+pub(super) fn protect(bytes: &[u8]) -> Result<Vec<u8>, AppError> {
     crypt(bytes, true)
 }
 #[cfg(windows)]
-fn unprotect(bytes: &[u8]) -> Result<Vec<u8>, AppError> {
+pub(super) fn unprotect(bytes: &[u8]) -> Result<Vec<u8>, AppError> {
     crypt(bytes, false)
 }
 #[cfg(not(windows))]
-fn protect(_: &[u8]) -> Result<Vec<u8>, AppError> {
+pub(super) fn protect(_: &[u8]) -> Result<Vec<u8>, AppError> {
     Err(error())
 }
 #[cfg(not(windows))]
-fn unprotect(_: &[u8]) -> Result<Vec<u8>, AppError> {
+pub(super) fn unprotect(_: &[u8]) -> Result<Vec<u8>, AppError> {
     Err(error())
 }
 

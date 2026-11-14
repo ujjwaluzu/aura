@@ -587,7 +587,9 @@ test('clock navigation opens the GitHub view and restores the chosen layout', as
   await expect(next).toBeDisabled();
   await page.getByRole('button', { name: 'Connect GitHub' }).click();
   await expect(
-    page.getByText('GitHub connection is coming soon.'),
+    page.getByText('Open Aura’s desktop application to connect GitHub.', {
+      exact: true,
+    }),
   ).toBeVisible();
   await page.screenshot({ path: 'artifacts/widget-github-page.png' });
   await previous.click();

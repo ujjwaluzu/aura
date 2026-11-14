@@ -14,11 +14,24 @@ pub fn run() {
             app.manage(Arc::new(services::music::MusicService::new(
                 app.path().app_config_dir().ok(),
             )));
+            app.manage(
+                services::github::GithubService::new(
+                    app.path().app_config_dir().ok(),
+                    app.handle().clone(),
+                )
+                .map_err(|e| std::io::Error::other(e.message))?,
+            );
             Ok(())
         })
         .manage(Arc::new(services::system_monitor::SystemMonitor::default()))
         .manage(Arc::new(services::music_media::MediaService::default()))
         .invoke_handler(tauri::generate_handler![
+            commands::github::github_status,
+            commands::github::github_start_authorization,
+            commands::github::github_cancel_authorization,
+            commands::github::github_refresh,
+            commands::github::github_disconnect,
+            commands::github::github_open_destination,
             commands::foundation::get_foundation_info,
             commands::windows::open_settings,
             commands::system_monitor::get_system_snapshot,
@@ -43,6 +56,9 @@ pub fn run() {
             // destroys that window; quitting the host also closes settings.
             if window.label() == "widget-host" && matches!(event, tauri::WindowEvent::Destroyed) {
                 window
+                    .state::<Arc<services::github::GithubService>>()
+                    .shutdown();
+                window
                     .state::<Arc<services::music::MusicService>>()
                     .shutdown();
                 window
@@ -55,6 +71,8 @@ pub fn run() {
         .expect("Aura could not start")
         .run(|app, event| {
             if matches!(event, tauri::RunEvent::Exit) {
+                app.state::<Arc<services::github::GithubService>>()
+                    .shutdown();
                 app.state::<Arc<services::music::MusicService>>().shutdown();
                 app.state::<Arc<services::music_media::MediaService>>()
                     .shutdown();

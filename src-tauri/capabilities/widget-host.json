@@ -4,6 +4,12 @@
   "description": "Only the host may query foundation metadata, open settings, and issue topmost window commands.",
   "windows": ["widget-host"],
   "permissions": [
+    "allow-github-status",
+    "allow-github-start-authorization",
+    "allow-github-cancel-authorization",
+    "allow-github-refresh",
+    "allow-github-disconnect",
+    "allow-github-open-destination",
     "allow-open-music",
     "allow-music-account-status",
     "allow-music-connect",

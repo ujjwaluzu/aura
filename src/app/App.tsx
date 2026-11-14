@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
-  GitBranch,
   Pin,
   RefreshCw,
   Settings2,
@@ -24,6 +23,8 @@ import { AmbientWave } from '../components/ui/AmbientWave';
 import { usePreferences } from '../hooks/usePreferences';
 import { WidgetArrangement } from '../features/layouts/WidgetArrangement';
 import { getLayout } from '../features/layouts/catalog';
+import { GithubWidget } from '../components/widgets/github/GithubWidget';
+import { useGithub } from '../hooks/useGithub';
 
 const clock: WidgetInstance = {
   id: 'host-clock',
@@ -74,7 +75,7 @@ function WidgetHost() {
   const [pinBusy, setPinBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<'widgets' | 'github'>('widgets');
-  const [githubNotice, setGithubNotice] = useState<string | null>(null);
+  const github = useGithub(page === 'github');
   const previousPageButton = useRef<HTMLButtonElement>(null);
   const nextPageButton = useRef<HTMLButtonElement>(null);
   const navigated = useRef(false);
@@ -187,27 +188,7 @@ function WidgetHost() {
           <>
             <div className="primary-slot">{clockPanel}</div>
             <div className="widget-divider" aria-hidden="true" />
-            <section className="github-slot" aria-label="GitHub connection">
-              <GlassSurface
-                variant="inset"
-                opacity={0.35}
-                className="github-connect-card"
-              >
-                <button
-                  type="button"
-                  className="github-connect-button"
-                  onClick={() =>
-                    setGithubNotice('GitHub connection is coming soon.')
-                  }
-                >
-                  <GitBranch size={18} />
-                  Connect GitHub
-                </button>
-                <p className="github-connect-notice" role="status">
-                  {githubNotice}
-                </p>
-              </GlassSurface>
-            </section>
+            <GithubWidget github={github} />
           </>
         )}
         <nav className="host-tools" aria-label="Window controls">

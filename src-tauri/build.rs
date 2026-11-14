@@ -1,9 +1,32 @@
 fn main() {
+    println!("cargo:rerun-if-env-changed=AURA_GITHUB_CLIENT_ID");
+    println!("cargo:rerun-if-changed=../.env.github.local");
+    let github_client = std::env::var("AURA_GITHUB_CLIENT_ID").ok().or_else(|| {
+        std::fs::read_to_string("../.env.github.local")
+            .ok()?
+            .lines()
+            .find_map(|line| {
+                line.trim()
+                    .strip_prefix("AURA_GITHUB_CLIENT_ID=")
+                    .map(|value| value.trim().to_owned())
+            })
+    });
+    if let Some(client) =
+        github_client.filter(|s| !s.is_empty() && s.bytes().all(|b| b.is_ascii_alphanumeric()))
+    {
+        println!("cargo:rustc-env=AURA_GITHUB_CLIENT_ID={client}");
+    }
     println!("cargo:rerun-if-env-changed=AURA_MUSIC_CLIENT_ID");
     println!("cargo:rerun-if-env-changed=AURA_MUSIC_CLIENT_SECRET");
     println!("cargo:rerun-if-changed=music-release-gate.json");
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
         tauri_build::AppManifest::new().commands(&[
+            "github_status",
+            "github_start_authorization",
+            "github_cancel_authorization",
+            "github_refresh",
+            "github_disconnect",
+            "github_open_destination",
             "get_foundation_info",
             "open_settings",
             "get_system_snapshot",

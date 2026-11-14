@@ -8,6 +8,7 @@ import './styles/themes.css';
 import './styles/settings.css';
 import './styles/music.css';
 import './styles/viewport.css';
+import './styles/github.css';
 
 document.documentElement.classList.toggle(
   'settings-document',
