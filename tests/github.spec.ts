@@ -149,7 +149,11 @@ for (const theme of ['violet', 'ocean', 'jade', 'amber', 'rose']) {
       const card = document
         .querySelector('.github-card')!
         .getBoundingClientRect();
+      const tools = document
+        .querySelector('.host-tools')!
+        .getBoundingClientRect();
       return (
+        card.top < tools.bottom + 4 ||
         Array.from(
           document.querySelectorAll<HTMLElement>(
             '.github-card button, .github-month, .github-footnote, .github-message, .github-update',

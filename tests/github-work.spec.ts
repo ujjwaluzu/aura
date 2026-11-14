@@ -23,6 +23,14 @@ async function signal(page: Page, name: 'approve' | 'deny' | 'workOffline') {
 async function expectWorkToFit(page: Page) {
   const violations = await page.evaluate(() => {
     const failures: string[] = [];
+    const panel = document
+      .querySelector('.github-work-card')!
+      .getBoundingClientRect();
+    const tools = document
+      .querySelector('.host-tools')!
+      .getBoundingClientRect();
+    if (panel.top < tools.bottom + 4)
+      failures.push('Panel touches window controls');
     const selectors = [
       '.github-work-row',
       '.github-work-row strong',
