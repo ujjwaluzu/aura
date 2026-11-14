@@ -3,6 +3,10 @@
 Aura uses one GitHub.com connection for Activity and Work. Disconnected hosts have
 Widgets and Connect GitHub pages; connected hosts have Widgets, Activity and Work
 in the same 760 x 264 window. Activity shows the past-year calendar and summary.
+The summary groups the account, last-seven-day total and daily bars, plus active
+days and the best day from the recorded year. Compact windows retain the counts
+and hide the small daily chart. Large counts shorten visually, with exact values
+available on hover.
 Work has Reviews, My PRs, Failing PRs and assigned Issues, including accessible
 public and private repositories, with three results per page and browser actions.
 

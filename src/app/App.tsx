@@ -226,7 +226,10 @@ function WidgetHost() {
         ) : (
           <>
             <div className="primary-slot github-overview-slot">
-              <GithubOverview calendar={github.state.calendar} />
+              <GithubOverview
+                calendar={github.state.calendar}
+                account={github.state.account}
+              />
               {pageNavigation}
             </div>
             <div className="widget-divider" aria-hidden="true" />

@@ -27,6 +27,13 @@ test('native events update today from zero to three while the other slide is ope
     name: 'GitHub activity overview',
   });
   await expect(overview.locator('.github-recent-activity dd')).toHaveText('3');
+  await expect(overview.locator('.github-week-trend rect')).toHaveCount(7);
+  await expect(
+    overview.locator('.github-week-trend rect').last(),
+  ).toHaveAttribute('data-active', 'true');
+  await expect(
+    overview.locator('.github-week-trend rect').last(),
+  ).toHaveAttribute('height', '14');
   await expect(overview.locator('.github-overview-stats dd')).toHaveText([
     '1',
     '3',
