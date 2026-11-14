@@ -1,5 +1,6 @@
 ﻿import { expect, test, type Page } from '@playwright/test';
 import { mockGithub } from './fixtures/github';
+test.use({ reducedMotion: 'reduce' });
 const nextPage = (page: Page) =>
   page.getByRole('button', { name: 'Next widget page' });
 const previousPage = (page: Page) =>
@@ -307,7 +308,7 @@ for (const mode of ['empty', 'unavailable', 'limited'] as const) {
       ).toBeVisible();
   });
 }
-for (const theme of ['violet', 'ocean', 'jade', 'amber', 'rose']) {
+for (const theme of ['faulty-terminal']) {
   for (const viewport of [
     { width: 760, height: 264 },
     { width: 608, height: 211 },

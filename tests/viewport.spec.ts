@@ -72,7 +72,7 @@ for (const viewport of [
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?window=settings');
     await expect(
-      page.getByRole('button', { name: 'Violet theme' }),
+      page.getByRole('button', { name: 'Faulty Terminal theme' }),
     ).toBeEnabled();
     await fixedViewport(page);
     await page.getByRole('tab', { name: 'Layout', exact: true }).click();

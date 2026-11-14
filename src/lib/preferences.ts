@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { isDesktop } from './native';
-import { themes } from '../features/themes/catalog';
+import { resolveThemeId, themes } from '../features/themes/catalog';
 import { layouts, resolveLayoutId } from '../features/layouts/catalog';
 import {
   defaultPreferences,
@@ -27,8 +27,9 @@ function normalize(value: unknown): Preferences | null {
   if (!value || typeof value !== 'object') return null;
   const item = value as Preferences;
   const layoutId = resolveLayoutId(item.layoutId);
-  if (!layoutId) return null;
-  const next = { ...item, layoutId };
+  const themeId = resolveThemeId(item.themeId);
+  if (!layoutId || !themeId) return null;
+  const next = { ...item, layoutId, themeId };
   return valid(next) ? next : null;
 }
 

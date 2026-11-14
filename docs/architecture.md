@@ -120,10 +120,12 @@ both windows. Revision numbers discard stale replies/events. Each React window
 subscribes before loading and cleans up its listener. Browser development uses
 separate preview-only localStorage; production persistence stays in Rust.
 
-Five fixed palettes use CSS variables. Twelve static layouts cover each choice
-of primary module, left/right position and ordering of the two stacked modules.
-CPU and RAM remain one module; no freeform resizing or named-layout manager is
-introduced. Settings thumbnails are static diagrams and never run extra monitors.
+Faulty Terminal is the sole theme. Its green CSS tokens accompany the React Bits
+WebGL2 background on every widget page. The old five palette IDs migrate to
+`faulty-terminal` in Rust and browser preview preferences, preserving layouts.
+Six layouts offer four Clock arrangements and two Music focus arrangements.
+Settings thumbnails pause the terminal animation and never run extra monitors.
+The live effect respects reduced motion and suspends animation when hidden.
 
 SQLite remains planned for notes and multiple named layouts, with versioned
 migrations at the same Rust boundary. No database is created by this milestone.

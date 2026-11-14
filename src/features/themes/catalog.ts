@@ -1,19 +1,18 @@
 export const themes = [
   {
-    id: 'violet',
-    name: 'Violet',
-    description: 'The original lavender glow',
-    hue: 266,
+    id: 'faulty-terminal',
+    name: 'Faulty Terminal',
+    description: 'Green phosphor, scanlines and interactive glitches',
+    hue: 113,
   },
-  {
-    id: 'ocean',
-    name: 'Ocean',
-    description: 'Cool blue, clear and calm',
-    hue: 210,
-  },
-  { id: 'jade', name: 'Jade', description: 'A soft green glow', hue: 155 },
-  { id: 'amber', name: 'Amber', description: 'Warm gold after dark', hue: 38 },
-  { id: 'rose', name: 'Rose', description: 'A muted rose finish', hue: 338 },
 ] as const;
 
 export type ThemeId = (typeof themes)[number]['id'];
+
+/** Retired palettes keep the user's layout when upgrading. */
+export function resolveThemeId(value: unknown): ThemeId | null {
+  if (value === 'faulty-terminal') return value;
+  return ['violet', 'ocean', 'jade', 'amber', 'rose'].includes(String(value))
+    ? 'faulty-terminal'
+    : null;
+}

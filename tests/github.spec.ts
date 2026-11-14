@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { mockGithub } from './fixtures/github';
-test.use({ timezoneId: 'America/Los_Angeles' });
+test.use({ timezoneId: 'America/Los_Angeles', reducedMotion: 'reduce' });
 
 const open = async (page: import('@playwright/test').Page) => {
   await page.goto('/');
@@ -128,7 +128,7 @@ test('offline and reconnect states retain cached counts, disconnect ignores old 
     page.getByRole('button', { name: 'Connect GitHub', exact: true }),
   ).toBeVisible();
 });
-for (const theme of ['violet', 'ocean', 'jade', 'amber', 'rose']) {
+for (const theme of ['faulty-terminal']) {
   test(`54 calendar columns and account controls fit ${theme} without clipping`, async ({
     page,
   }) => {

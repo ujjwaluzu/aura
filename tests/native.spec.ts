@@ -234,7 +234,7 @@ test('Settings permissions, navigation reuse, playback events and preferences ov
         await invoke(
           host,
           'set_preferences',
-          { patch: { themeId: 'ocean' } },
+          { patch: { themeId: 'faulty-terminal' } },
           true,
         ),
       ),

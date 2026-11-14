@@ -15,6 +15,7 @@ import type { ThemeId } from '../../features/themes/catalog';
 import { PlayerPresentation } from '../music/PlayerPresentation';
 import { UsageReading } from '../widgets/system-monitor/SystemMonitorWidget';
 import type { PlaybackSession } from '../../types/music';
+import { ThemeBackground } from '../themes/ThemeBackground';
 const sample: PlaybackSession = {
   id: 'preview',
   source: 'YouTube',
@@ -34,9 +35,11 @@ const sample: PlaybackSession = {
 export function WidgetPreview({
   theme,
   layout,
+  active,
 }: {
   theme: ThemeId;
   layout: LayoutDefinition;
+  active: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(210);
@@ -106,6 +109,7 @@ export function WidgetPreview({
           transformOrigin: 'top left',
         }}
       >
+        {active && <ThemeBackground preview />}
         <WidgetArrangement layout={layout} render={render} />
       </div>
     </div>

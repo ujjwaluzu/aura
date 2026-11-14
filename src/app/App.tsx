@@ -19,7 +19,7 @@ import type { WidgetInstance } from '../features/widget-engine/types';
 import { clockDefinition } from '../components/widgets/clock/definition';
 import { systemMonitorDefinition } from '../components/widgets/system-monitor/definition';
 import { musicDefinition } from '../components/widgets/music-player/definition';
-import { AmbientWave } from '../components/ui/AmbientWave';
+import { ThemeBackground } from '../components/themes/ThemeBackground';
 import { usePreferences } from '../hooks/usePreferences';
 import { WidgetArrangement } from '../features/layouts/WidgetArrangement';
 import { getLayout } from '../features/layouts/catalog';
@@ -193,7 +193,7 @@ function WidgetHost() {
         data-focus={page === 'widgets' && layout.focus ? 'music' : undefined}
         data-page={page}
       >
-        <AmbientWave />
+        <ThemeBackground />
         <div
           className="host-drag-strip"
           data-tauri-drag-region

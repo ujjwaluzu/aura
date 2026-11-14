@@ -11,7 +11,7 @@ export type PreferencesPatch = Partial<
   Pick<Preferences, 'themeId' | 'layoutId'>
 >;
 export const defaultPreferences: Preferences = {
-  themeId: 'violet',
+  themeId: 'faulty-terminal',
   layoutId: 'clock-left-stats-music',
   revision: 0,
   warning: null,

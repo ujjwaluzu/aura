@@ -1,14 +1,17 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "kebab-case")]
 pub enum ThemeId {
     #[default]
-    Violet,
-    Ocean,
-    Jade,
-    Amber,
-    Rose,
+    #[serde(
+        alias = "violet",
+        alias = "ocean",
+        alias = "jade",
+        alias = "amber",
+        alias = "rose"
+    )]
+    FaultyTerminal,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

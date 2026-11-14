@@ -81,7 +81,7 @@ src/
   features/
     widget-engine/        Definition, instance, registry and renderer
     layouts/              Arrangement catalog and future saved-layout contract
-    themes/               Five palettes and theme contract
+    themes/               Faulty Terminal theme and theme contract
     integrations/         Future native adapter boundary
   hooks/                  Native connection and preferences lifecycle
   lib/                    Typed Tauri adapter and error handling

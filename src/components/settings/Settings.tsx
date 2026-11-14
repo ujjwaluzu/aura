@@ -129,8 +129,8 @@ export function Settings() {
         tabIndex={0}
       >
         <div className="settings-section-heading">
-          <h2>Choose your colour</h2>
-          <p>{themes.length} palettes. Your layout stays the same.</p>
+          <h2>Choose your theme</h2>
+          <p>Give your widgets a new atmosphere.</p>
         </div>
         <div className="theme-grid" aria-busy={saving}>
           {themes.map((theme) => (
@@ -143,7 +143,11 @@ export function Settings() {
               disabled={!ready || saving}
               onClick={() => void update({ themeId: theme.id })}
             >
-              <WidgetPreview theme={theme.id} layout={layout} />
+              <WidgetPreview
+                theme={theme.id}
+                layout={layout}
+                active={tab === 'theme'}
+              />
               <span className="option-copy">
                 <strong>{theme.name}</strong>
                 <small>{theme.description}</small>
@@ -200,6 +204,7 @@ export function Settings() {
                     <WidgetPreview
                       theme={preferences.themeId}
                       layout={option}
+                      active={tab === 'layout'}
                     />
                     <span className="option-copy">
                       <strong>

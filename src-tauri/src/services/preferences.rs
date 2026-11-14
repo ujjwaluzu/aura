@@ -124,7 +124,7 @@ mod tests {
         let store = PreferencesStore::load(Some(directory.clone()));
         store
             .update(PreferencesPatch {
-                theme_id: Some(ThemeId::Ocean),
+                theme_id: Some(ThemeId::FaultyTerminal),
                 layout_id: None,
             })
             .unwrap();
@@ -138,7 +138,7 @@ mod tests {
         let reloaded = PreferencesStore::load(Some(directory.clone()))
             .snapshot()
             .unwrap();
-        assert_eq!(reloaded.theme_id, ThemeId::Ocean);
+        assert_eq!(reloaded.theme_id, ThemeId::FaultyTerminal);
         assert_eq!(reloaded.layout_id, LayoutId::ClockRightMusicStats);
         fs::remove_file(directory.join("preferences.json")).unwrap();
         fs::remove_dir(directory).unwrap();
@@ -152,14 +152,14 @@ mod tests {
         let snapshot = PreferencesStore::load(Some(directory.clone()))
             .snapshot()
             .unwrap();
-        assert_eq!(snapshot.theme_id, ThemeId::Violet);
+        assert_eq!(snapshot.theme_id, ThemeId::FaultyTerminal);
         assert!(snapshot.warning.is_some());
         fs::remove_file(directory.join("preferences.json")).unwrap();
         fs::remove_dir(directory).unwrap();
     }
 
     #[test]
-    fn retired_layouts_keep_saved_theme_and_serialize_as_clock_layouts() {
+    fn retired_layouts_and_themes_migrate_without_resetting_preferences() {
         let directory = test_directory();
         fs::create_dir_all(&directory).unwrap();
         for (retired, replacement) in [
@@ -182,7 +182,7 @@ mod tests {
             .unwrap();
             let store = PreferencesStore::load(Some(directory.clone()));
             let snapshot = store.snapshot().unwrap();
-            assert_eq!(snapshot.theme_id, ThemeId::Rose);
+            assert_eq!(snapshot.theme_id, ThemeId::FaultyTerminal);
             assert!(snapshot.warning.is_none());
             assert_eq!(
                 serde_json::to_value(&snapshot).unwrap()["layoutId"],
@@ -190,14 +190,14 @@ mod tests {
             );
             store
                 .update(PreferencesPatch {
-                    theme_id: Some(ThemeId::Rose),
+                    theme_id: Some(ThemeId::FaultyTerminal),
                     layout_id: None,
                 })
                 .unwrap();
             let saved: serde_json::Value =
                 serde_json::from_slice(&fs::read(directory.join("preferences.json")).unwrap())
                     .unwrap();
-            assert_eq!(saved["themeId"], "rose");
+            assert_eq!(saved["themeId"], "faulty-terminal");
             assert_eq!(saved["layoutId"], replacement);
         }
         fs::remove_file(directory.join("preferences.json")).unwrap();
@@ -209,11 +209,29 @@ mod tests {
         let store = PreferencesStore::load(None);
         assert!(store
             .update(PreferencesPatch {
-                theme_id: Some(ThemeId::Rose),
+                theme_id: Some(ThemeId::FaultyTerminal),
                 layout_id: None
             })
             .is_err());
-        assert_eq!(store.snapshot().unwrap().theme_id, ThemeId::Violet);
+        assert_eq!(store.snapshot().unwrap().theme_id, ThemeId::FaultyTerminal);
+    }
+
+    #[test]
+    fn all_retired_palettes_migrate_to_faulty_terminal_and_keep_the_layout() {
+        for theme in ["violet", "ocean", "jade", "amber", "rose"] {
+            let saved: SavedPreferences = serde_json::from_value(serde_json::json!({
+                "schemaVersion": 1,
+                "themeId": theme,
+                "layoutId": "music-focus-clock-right"
+            }))
+            .unwrap();
+            assert_eq!(saved.theme_id, ThemeId::FaultyTerminal);
+            assert_eq!(saved.layout_id, LayoutId::MusicFocusClockRight);
+            assert_eq!(
+                serde_json::to_value(saved).unwrap()["themeId"],
+                "faulty-terminal"
+            );
+        }
     }
 
     #[test]

@@ -3,7 +3,11 @@ import { layouts } from '../src/features/layouts/catalog';
 import { themes } from '../src/features/themes/catalog';
 import { mockMusic } from './fixtures/music';
 
-test.use({ timezoneId: 'Asia/Kolkata', locale: 'en-GB' });
+test.use({
+  timezoneId: 'Asia/Kolkata',
+  locale: 'en-GB',
+  reducedMotion: 'reduce',
+});
 
 test('preview is honest about native availability and preserves transparency', async ({
   page,
@@ -59,7 +63,7 @@ test('clock changes the local date at midnight', async ({ page }) => {
   await expect(page.locator('.clock-date')).toHaveText('Friday 13 November');
 });
 
-test('settings is opaque with theme and layout tabs and five palette previews', async ({
+test('settings is opaque with theme and layout tabs and a Faulty Terminal preview', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 840, height: 640 });
@@ -70,7 +74,7 @@ test('settings is opaque with theme and layout tabs and five palette previews', 
   await expect(
     page.getByRole('tab', { name: 'Theme', exact: true }),
   ).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByRole('button', { name: / theme$/ })).toHaveCount(5);
+  await expect(page.getByRole('button', { name: / theme$/ })).toHaveCount(1);
   await expect(page.locator('body')).toHaveCSS(
     'background-color',
     'rgb(17, 19, 24)',
@@ -361,7 +365,7 @@ test('monitor errors show unavailable readings and recover through the retry con
   ).toHaveCount(0);
 });
 
-test('all five themes update the host across windows and survive reload', async ({
+test('Faulty Terminal is the only theme and persists across windows and reload', async ({
   page,
   context,
 }) => {
@@ -369,7 +373,7 @@ test('all five themes update the host across windows and survive reload', async 
   const settings = await context.newPage();
   await settings.setViewportSize({ width: 840, height: 640 });
   await settings.goto('/?window=settings');
-  const colours = new Set<string>();
+  await expect(settings.locator('.theme-option')).toHaveCount(1);
   for (const theme of themes) {
     const option = settings.getByRole('button', {
       name: `${theme.name} theme`,
@@ -381,21 +385,36 @@ test('all five themes update the host across windows and survive reload', async 
       'data-theme',
       theme.id,
     );
-    colours.add(
-      await page
-        .locator('.clock-time')
-        .evaluate((element) => getComputedStyle(element).color),
-    );
   }
-  expect(colours.size).toBe(5);
+  await expect(page.locator('.faulty-terminal-canvas')).toBeVisible();
+  await expect(
+    settings.locator('.theme-option .faulty-terminal-canvas'),
+  ).toBeVisible();
+  // A visible canvas alone would also pass if either shader failed to compile.
+  await expect
+    .poll(() =>
+      page.locator('.faulty-terminal-canvas').evaluate((element) => {
+        const gl = (element as HTMLCanvasElement).getContext('webgl2');
+        return (
+          !!gl &&
+          !!gl.getParameter(gl.CURRENT_PROGRAM) &&
+          gl.getError() === gl.NO_ERROR
+        );
+      }),
+    )
+    .toBe(true);
+  await page.screenshot({ path: 'artifacts/aura-faulty-terminal.png' });
+  await settings.screenshot({
+    path: 'artifacts/aura-faulty-terminal-settings.png',
+  });
   await page.reload();
   await expect(page.getByLabel('Aura widget host')).toHaveAttribute(
     'data-theme',
-    'rose',
+    'faulty-terminal',
   );
   await settings.reload();
   await expect(
-    settings.getByRole('button', { name: 'Rose theme' }),
+    settings.getByRole('button', { name: 'Faulty Terminal theme' }),
   ).toHaveAttribute('aria-pressed', 'true');
 });
 
@@ -503,9 +522,11 @@ test('Layout offers exactly four Clock and two Music focus arrangements', async 
   await page.screenshot({ path: 'artifacts/aura-six-layouts.png' });
 });
 
-test('retired saved layouts fall back to Clock without resetting the theme', async ({
+test('retired saved layouts and themes migrate while preserving the arrangement', async ({
   page,
 }) => {
+  // Eight full reloads also initialize the six WebGL layout thumbnails each time.
+  test.setTimeout(120_000);
   await page.setViewportSize({ width: 960, height: 720 });
   await page.goto('/?window=settings&destination=layout');
   const replacements = {
@@ -535,7 +556,7 @@ test('retired saved layouts fall back to Clock without resetting the theme', asy
     await page.reload();
     await expect(page.locator('.settings-app')).toHaveAttribute(
       'data-theme',
-      'rose',
+      'faulty-terminal',
     );
     const expected = layouts.find((layout) => layout.id === replacement)!;
     await expect(
