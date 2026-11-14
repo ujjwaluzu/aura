@@ -208,7 +208,7 @@
 }
 .github-day[data-level='NONE'],
 .github-legend [data-level='NONE'] {
-  background: #343e40;
+  background: #1b2128;
 }
 .github-day[data-level='FIRST_QUARTILE'],
 .github-legend [data-level='FIRST_QUARTILE'] {
@@ -346,14 +346,6 @@
   left: 16px;
   bottom: 16px;
   gap: 6px;
-}
-.widget-page-label {
-  position: absolute;
-  bottom: 33px;
-  left: 1px;
-  color: var(--color-secondary);
-  font-size: 9px;
-  white-space: nowrap;
 }
 .github-work-overview {
   padding: 33px 14px 64px 16px;

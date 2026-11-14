@@ -1,4 +1,3 @@
-import { GitBranch } from 'lucide-react';
 import type { GithubCalendar } from '../../../types/github';
 
 export function GithubOverview({
@@ -20,7 +19,7 @@ export function GithubOverview({
   return (
     <section className="github-overview" aria-label="GitHub activity overview">
       <div className="github-overview-brand">
-        <GitBranch size={14} /> GitHub
+        <img src="/icons/github.svg" alt="GitHub" width={16} height={16} />
       </div>
       <h2 title={calendar ? `@${calendar.login}` : undefined}>
         {calendar ? `@${calendar.login}` : 'Your activity'}

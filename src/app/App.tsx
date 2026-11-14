@@ -133,20 +133,14 @@ function WidgetHost() {
         Next
         <ChevronRight size={14} />
       </button>
-      <span
-        className="widget-page-label"
-        role="status"
-        aria-label="Widget page"
-      >
+      <span className="sr-only" role="status" aria-label="Widget page">
         {page === 'widgets'
           ? 'Widgets'
           : page === 'work'
             ? 'Work'
             : connected
               ? 'Activity'
-              : 'Connect GitHub'}{' '}
-        <span className="sr-only">Page </span>
-        {pageIndex + 1} of {pages.length}
+              : 'Connect GitHub'}
       </span>
     </nav>
   );

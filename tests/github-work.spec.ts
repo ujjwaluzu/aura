@@ -26,7 +26,7 @@ test('disconnected has two pages, authorization adds Work, disconnect returns to
   await mockGithub(page, { status: 'disconnected' });
   await page.goto('/');
   await expect(page.getByRole('status', { name: 'Widget page' })).toHaveText(
-    'Widgets Page 1 of 2',
+    'Widgets',
   );
   await nextPage(page).click();
   await expect(nextPage(page)).toBeDisabled();
@@ -40,13 +40,13 @@ test('disconnected has two pages, authorization adds Work, disconnect returns to
   );
   await nextPage(page).click();
   await expect(page.getByRole('status', { name: 'Widget page' })).toHaveText(
-    'Work Page 3 of 3',
+    'Work',
   );
   await expect(previousPage(page)).toBeFocused();
   await page.getByRole('button', { name: 'GitHub account menu' }).click();
   await page.getByRole('button', { name: 'Disconnect', exact: true }).click();
   await expect(page.getByRole('status', { name: 'Widget page' })).toHaveText(
-    'Connect GitHub Page 2 of 2',
+    'Connect GitHub',
   );
   await expect(previousPage(page)).toBeFocused();
   await expect(nextPage(page)).toBeDisabled();
@@ -150,7 +150,7 @@ test('offline data keeps three pages, stale items and counts; revocation removes
   await expect(page.locator('.github-work-row')).toHaveCount(3);
   await expect(page.locator('.github-update')).toContainText('Stale');
   await expect(page.getByRole('status', { name: 'Widget page' })).toContainText(
-    '3 of 3',
+    'Work',
   );
   await page.getByRole('button', { name: 'Refresh GitHub Work' }).click();
   await expect(page.locator('.github-update')).not.toContainText('Stale');
@@ -160,7 +160,7 @@ test('offline data keeps three pages, stale items and counts; revocation removes
     ).githubTest.fail('reconnectRequired', 'Reconnect your account.'),
   );
   await expect(page.getByRole('status', { name: 'Widget page' })).toContainText(
-    '2 of 2',
+    'Connect GitHub',
   );
   await expect(
     page.getByRole('button', { name: 'Reconnect GitHub', exact: true }),
@@ -219,7 +219,7 @@ for (const theme of ['violet', 'ocean', 'jade', 'amber', 'rose']) {
         .getBoundingClientRect();
       return Array.from(
         document.querySelectorAll<HTMLElement>(
-          '.github-work-row, .github-work-tiles button, .github-update, .github-work-footer, .clock-page-nav, .widget-page-label',
+          '.github-work-row, .github-work-tiles button, .github-update, .github-work-footer, .clock-page-nav',
         ),
       )
         .filter((el) => {
