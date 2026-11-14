@@ -20,6 +20,17 @@ test('native events update today from zero to three while the other slide is ope
   );
   await page.getByRole('button', { name: 'Next widget page' }).click();
   await expect(page.locator('.github-total')).toContainText('3 contributions');
+  await expect(
+    page.getByRole('region', { name: 'Clock', exact: true }),
+  ).toHaveCount(0);
+  const overview = page.getByRole('region', {
+    name: 'GitHub activity overview',
+  });
+  await expect(overview.locator('.github-recent-activity dd')).toHaveText('3');
+  await expect(overview.locator('.github-overview-stats dd')).toHaveText([
+    '1',
+    '3',
+  ]);
   await expect(page.locator('.github-day').last()).toHaveAttribute(
     'data-level',
     'THIRD_QUARTILE',
@@ -131,6 +142,9 @@ for (const theme of ['violet', 'ocean', 'jade', 'amber', 'rose']) {
     await open(page);
     await expect(page.locator('.github-week')).toHaveCount(54);
     await expect(page.locator('.github-day')).toHaveCount(367);
+    const cell = await page.locator('.github-day').first().boundingBox();
+    expect(cell!.width).toBeGreaterThan(7);
+    expect(cell!.height).toBeGreaterThanOrEqual(8);
     const invalid = await page.evaluate(() => {
       const card = document
         .querySelector('.github-card')!

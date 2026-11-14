@@ -93,6 +93,13 @@ try {
     await host
       .locator('.github-calendar')
       .waitFor({ state: 'visible', timeout: 5000 });
+    await host
+      .getByRole('region', { name: 'GitHub activity overview' })
+      .waitFor({ state: 'visible' });
+    assert.equal(
+      await host.getByRole('region', { name: 'Clock', exact: true }).count(),
+      0,
+    );
     assert(
       (await host.locator('.github-total').innerText()).includes(
         state.calendar.totalContributions.toLocaleString(),

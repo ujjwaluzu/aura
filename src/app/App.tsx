@@ -24,6 +24,7 @@ import { usePreferences } from '../hooks/usePreferences';
 import { WidgetArrangement } from '../features/layouts/WidgetArrangement';
 import { getLayout } from '../features/layouts/catalog';
 import { GithubWidget } from '../components/widgets/github/GithubWidget';
+import { GithubOverview } from '../components/widgets/github/GithubOverview';
 import { useGithub } from '../hooks/useGithub';
 
 const clock: WidgetInstance = {
@@ -87,36 +88,39 @@ function WidgetHost() {
     if (!navigated.current) return;
     (page === 'github' ? previousPageButton : nextPageButton).current?.focus();
   }, [page]);
+  const pageNavigation = (
+    <nav className="clock-page-nav" aria-label="Widget pages">
+      <button
+        type="button"
+        ref={previousPageButton}
+        aria-label="Previous widget page"
+        title="Previous widget page"
+        disabled={page === 'widgets'}
+        onClick={() => changePage('widgets')}
+      >
+        <ChevronLeft size={14} />
+        Previous
+      </button>
+      <button
+        type="button"
+        ref={nextPageButton}
+        aria-label="Next widget page"
+        title="Next widget page"
+        disabled={page === 'github'}
+        onClick={() => changePage('github')}
+      >
+        Next
+        <ChevronRight size={14} />
+      </button>
+      <span className="sr-only" role="status" aria-label="Widget page">
+        {page === 'widgets' ? 'Page 1 of 2' : 'Page 2 of 2'}
+      </span>
+    </nav>
+  );
   const clockPanel = (
     <div className="clock-panel">
       <WidgetRenderer instance={{ ...clock, themeId: preferences.themeId }} />
-      <nav className="clock-page-nav" aria-label="Widget pages">
-        <button
-          type="button"
-          ref={previousPageButton}
-          aria-label="Previous widget page"
-          title="Previous widget page"
-          disabled={page === 'widgets'}
-          onClick={() => changePage('widgets')}
-        >
-          <ChevronLeft size={14} />
-          Previous
-        </button>
-        <button
-          type="button"
-          ref={nextPageButton}
-          aria-label="Next widget page"
-          title="Next widget page"
-          disabled={page === 'github'}
-          onClick={() => changePage('github')}
-        >
-          Next
-          <ChevronRight size={14} />
-        </button>
-        <span className="sr-only" role="status" aria-label="Widget page">
-          {page === 'widgets' ? 'Page 1 of 2' : 'Page 2 of 2'}
-        </span>
-      </nav>
+      {pageNavigation}
     </div>
   );
 
@@ -186,7 +190,10 @@ function WidgetHost() {
           />
         ) : (
           <>
-            <div className="primary-slot">{clockPanel}</div>
+            <div className="primary-slot github-overview-slot">
+              <GithubOverview calendar={github.state.calendar} />
+              {pageNavigation}
+            </div>
             <div className="widget-divider" aria-hidden="true" />
             <GithubWidget github={github} />
           </>

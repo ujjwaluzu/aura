@@ -2,6 +2,8 @@
 
 Aura's second widget page shows the signed-in GitHub.com account's past year of
 contributions, including restricted counts that GitHub permits the user to see.
+An activity overview beside the larger calendar shows contributions in the last
+seven recorded days, active days in the year view, and the best daily count.
 It requests `read:user offline_access`, never repository or write scopes, and
 queries only `viewer.id`, `viewer.login`, the contribution period boundaries and
 `contributionsCollection.contributionCalendar`.

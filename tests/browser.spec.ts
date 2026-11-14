@@ -577,11 +577,16 @@ test('clock navigation opens the GitHub view and restores the chosen layout', as
   await expect(page.getByRole('region', { name: 'Music player' })).toHaveCount(
     0,
   );
-  const clock = await page.getByRole('region', { name: 'Clock' }).boundingBox();
+  await expect(
+    page.getByRole('region', { name: 'Clock', exact: true }),
+  ).toHaveCount(0);
+  const overview = await page
+    .getByRole('region', { name: 'GitHub activity overview' })
+    .boundingBox();
   const github = await page
     .getByRole('region', { name: 'GitHub connection' })
     .boundingBox();
-  expect(clock!.x + clock!.width).toBeLessThanOrEqual(github!.x);
+  expect(overview!.x + overview!.width).toBeLessThanOrEqual(github!.x);
   await expect(previous).toBeEnabled();
   await expect(previous).toBeFocused();
   await expect(next).toBeDisabled();
@@ -643,8 +648,8 @@ test('both widget pages fit all themes and layouts without scrolling', async ({
             ),
           );
           const date = document
-            .querySelector('.clock-date')!
-            .getBoundingClientRect();
+            .querySelector('.clock-date')
+            ?.getBoundingClientRect();
           const nav = document
             .querySelector('.clock-page-nav')!
             .getBoundingClientRect();
@@ -660,7 +665,7 @@ test('both widget pages fit all themes and layouts without scrolling', async ({
                 b.bottom > host.bottom
               );
             }) ||
-            nav.top < date.bottom ||
+            (date !== undefined && nav.top < date.bottom) ||
             document.documentElement.scrollHeight > innerHeight ||
             document.documentElement.scrollWidth > innerWidth
           );

@@ -1,3 +1,85 @@
+.host-surface[data-page='github'] {
+  grid-template-columns: minmax(0, 0.25fr) 1px minmax(0, 0.75fr);
+}
+.github-overview-slot {
+  position: relative;
+}
+.github-overview {
+  padding: 38px 18px 56px 20px;
+  min-width: 0;
+}
+.github-overview-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #7edc97;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.github-overview h2 {
+  margin: 7px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+}
+.github-overview dl {
+  margin: 9px 0 0;
+}
+.github-overview dt {
+  color: var(--color-secondary);
+  font-size: 9px;
+  line-height: 12px;
+}
+.github-overview dd {
+  margin: 0;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.github-recent-activity {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 1px;
+}
+.github-recent-activity dd {
+  font-size: 38px;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  line-height: 40px;
+}
+.github-overview-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.github-overview-stats > div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+}
+.github-overview-stats dd {
+  font-size: 17px;
+  line-height: 20px;
+}
+.github-overview-empty {
+  color: var(--color-secondary);
+  font-size: 11px;
+  line-height: 18px;
+  margin: 18px 0 0;
+}
+.host-surface[data-page='github'] .clock-page-nav {
+  left: 16px;
+  bottom: 16px;
+  gap: 6px;
+}
+.host-surface[data-page='github'] .github-slot {
+  padding-top: 36px;
+}
 .github-card {
   height: 100%;
   position: relative;
@@ -83,8 +165,8 @@
 .github-total {
   margin: 0;
   color: var(--color-secondary);
-  font-size: 10px;
-  line-height: 12px;
+  font-size: 11px;
+  line-height: 14px;
 }
 .github-total strong {
   color: var(--color-text);
@@ -99,14 +181,14 @@
 .github-week {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 10px repeat(7, 7px);
-  gap: 1px;
+  grid-template-rows: 14px repeat(7, 9px);
+  gap: 2px;
   min-width: 0;
 }
 .github-month {
   width: 24px;
   color: var(--color-secondary);
-  font-size: 8px;
+  font-size: 9px;
   white-space: nowrap;
   line-height: 10px;
   pointer-events: none;
@@ -119,7 +201,7 @@
   display: block;
   min-width: 0;
   width: 100%;
-  height: 7px;
+  height: 100%;
   padding: 0;
   border-radius: 1.5px;
   border: 0;
@@ -152,8 +234,8 @@
 }
 .github-day-detail {
   margin: 0;
-  font-size: 9px;
-  line-height: 10px;
+  font-size: 10px;
+  line-height: 12px;
   white-space: nowrap;
   color: var(--color-text);
 }
@@ -225,10 +307,14 @@
   line-height: 11px;
   color: var(--color-accent);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
   flex-shrink: 0;
+}
+.github-card:has(.github-message) .github-week {
+  grid-template-rows: 12px repeat(7, 8px);
+  gap: 1px;
 }
 .github-footnote {
   margin: auto 0 0;
