@@ -254,11 +254,6 @@
 [hidden] {
   display: none !important;
 }
-.settings-app {
-  --color-secondary: #b3b9c6;
-  --color-muted: #a4acbc;
-  --color-error: #ffb5b5;
-}
 .settings-app button,
 .settings-app select {
   min-height: 36px;
@@ -727,7 +722,7 @@ select,
 }
 .settings-section-heading p,
 .option-copy small {
-  color: #aab3c2;
+  color: var(--color-secondary);
 }
 .player-more-links {
   flex-direction: row;
