@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { layouts } from '../src/features/layouts/catalog';
 import { themes } from '../src/features/themes/catalog';
+import { mockMusic } from './fixtures/music';
 
 test.use({ timezoneId: 'Asia/Kolkata', locale: 'en-GB' });
 
@@ -545,4 +546,159 @@ test('retired saved layouts fall back to Clock without resetting the theme', asy
     ).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('.layout-option')).toHaveCount(6);
   }
+});
+
+test('clock navigation opens the GitHub view and restores the chosen layout', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  const previous = page.getByRole('button', { name: 'Previous widget page' });
+  const next = page.getByRole('button', { name: 'Next widget page' });
+  await expect(previous).toBeDisabled();
+  await expect(next).toBeEnabled();
+  const date = await page.locator('.clock-date').boundingBox();
+  const navigation = await page
+    .getByRole('navigation', { name: 'Widget pages' })
+    .boundingBox();
+  expect(navigation!.y).toBeGreaterThanOrEqual(date!.y + date!.height);
+  await page.screenshot({ path: 'artifacts/widget-clock-navigation.png' });
+  await next.click();
+  await expect(page.getByLabel('Aura widget host')).toHaveAttribute(
+    'data-page',
+    'github',
+  );
+  await expect(
+    page.getByRole('button', { name: 'Connect GitHub' }),
+  ).toBeVisible();
+  await expect(page.getByRole('region', { name: 'System usage' })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole('region', { name: 'Music player' })).toHaveCount(
+    0,
+  );
+  const clock = await page.getByRole('region', { name: 'Clock' }).boundingBox();
+  const github = await page
+    .getByRole('region', { name: 'GitHub connection' })
+    .boundingBox();
+  expect(clock!.x + clock!.width).toBeLessThanOrEqual(github!.x);
+  await expect(previous).toBeEnabled();
+  await expect(previous).toBeFocused();
+  await expect(next).toBeDisabled();
+  await page.getByRole('button', { name: 'Connect GitHub' }).click();
+  await expect(
+    page.getByText('GitHub connection is coming soon.'),
+  ).toBeVisible();
+  await page.screenshot({ path: 'artifacts/widget-github-page.png' });
+  await previous.click();
+  await expect(next).toBeFocused();
+  await expect(page.getByLabel('Aura widget host')).toHaveAttribute(
+    'data-page',
+    'widgets',
+  );
+  await expect(
+    page.getByRole('region', { name: 'System usage' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Connect GitHub' }),
+  ).toHaveCount(0);
+});
+
+test('both widget pages fit all themes and layouts without scrolling', async ({
+  page,
+  context,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  const settings = await context.newPage();
+  await settings.setViewportSize({ width: 960, height: 720 });
+  await settings.goto('/?window=settings&destination=layout');
+  for (const theme of themes) {
+    await settings.getByRole('tab', { name: 'Theme', exact: true }).click();
+    await settings.getByRole('button', { name: `${theme.name} theme` }).click();
+    await settings.getByRole('tab', { name: 'Layout', exact: true }).click();
+    for (const layout of layouts) {
+      await settings
+        .getByRole('button', {
+          name: `${layout.title}, ${layout.description}`,
+          exact: true,
+        })
+        .click();
+      await expect(page.getByLabel('Aura widget host')).toHaveAttribute(
+        'data-layout',
+        layout.id,
+      );
+      for (const view of ['widgets', 'github']) {
+        if (view === 'github')
+          await page.getByRole('button', { name: 'Next widget page' }).click();
+        const invalid = await page.evaluate(() => {
+          const host = document
+            .querySelector('.host-surface')!
+            .getBoundingClientRect();
+          const controls = Array.from(
+            document.querySelectorAll<HTMLElement>(
+              '.clock-page-nav button, .github-connect-button',
+            ),
+          );
+          const date = document
+            .querySelector('.clock-date')!
+            .getBoundingClientRect();
+          const nav = document
+            .querySelector('.clock-page-nav')!
+            .getBoundingClientRect();
+          return (
+            controls.some((el) => {
+              const b = el.getBoundingClientRect();
+              return (
+                b.width < 28 ||
+                b.height < 28 ||
+                b.left < host.left ||
+                b.right > host.right ||
+                b.top < host.top ||
+                b.bottom > host.bottom
+              );
+            }) ||
+            nav.top < date.bottom ||
+            document.documentElement.scrollHeight > innerHeight ||
+            document.documentElement.scrollWidth > innerWidth
+          );
+        });
+        expect(invalid, `${theme.id}/${layout.id}/${view}`).toBe(false);
+        if (view === 'github')
+          await page
+            .getByRole('button', { name: 'Previous widget page' })
+            .click();
+      }
+    }
+  }
+});
+
+test('page controls stay usable beside a native error with the clock on the right', async ({
+  page,
+}) => {
+  await mockMusic(page, {
+    selected: true,
+    foundationError: 'Native connection is unavailable.',
+  });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  await page.evaluate(() =>
+    (
+      window as unknown as {
+        musicTest: { setPreferences: (p: unknown) => void };
+      }
+    ).musicTest.setPreferences({ layoutId: 'clock-right-music-stats' }),
+  );
+  await expect(page.getByRole('alert')).toContainText(
+    'Native connection is unavailable.',
+  );
+  await page.getByRole('button', { name: 'Next widget page' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Connect GitHub' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Previous widget page' }).click();
+  await expect(page.getByLabel('Aura widget host')).toHaveAttribute(
+    'data-side',
+    'right',
+  );
 });

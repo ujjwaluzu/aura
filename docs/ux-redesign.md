@@ -41,7 +41,7 @@ gates, and official-player restrictions are unchanged.
 
 - TypeScript, ESLint, Prettier and Rust formatting checks passed.
 - Frontend production build and the Windows NSIS package build passed.
-- All 78 Chromium browser tests passed. They cover all 30 theme/layout combinations twice, with loaded and
+- All 81 Chromium browser tests passed. They cover all 30 theme/layout combinations twice, with loaded and
   missing artwork, long titles, essential control bounds, 28 px compact targets,
   and absence of widget scrollbars. Screenshots of the retained presentations, More,
   Theme, Layout, and the account screen were inspected.
@@ -91,6 +91,18 @@ containment and focus restoration. Diagnostics use text pages and keep the same
 credential-free copy action. Checks cover minimum and initial window sizes,
 account states, every item in a 50-video fixture, wheel and PageDown input, and
 visible control bounds. No app pane uses a scrolling container.
+
+## Widget pages
+
+Previous and Next sit below the clock. The first page uses the saved layout;
+Next opens a second page with the clock fixed on the left and a Connect GitHub
+button on the right. Previous restores the selected arrangement. The theme and
+saved layout are not changed by page navigation, and keyboard focus moves to the
+enabled navigation button after switching pages.
+
+Connect GitHub is a placeholder and reports that connection is coming soon. It
+does not authorize an account or call a GitHub service. Both pages were checked
+across all five themes and six layouts for navigation bounds and no scrolling.
 
 ## Required before release
 

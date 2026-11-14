@@ -1,5 +1,14 @@
-import { useState } from 'react';
-import { Pin, RefreshCw, Settings2, Minus, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  GitBranch,
+  Pin,
+  RefreshCw,
+  Settings2,
+  Minus,
+  X,
+} from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { GlassSurface } from '../components/ui/GlassSurface';
 import { IconButton } from '../components/ui/IconButton';
@@ -64,6 +73,51 @@ function WidgetHost() {
   const [pinned, setPinned] = useState(false);
   const [pinBusy, setPinBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState<'widgets' | 'github'>('widgets');
+  const [githubNotice, setGithubNotice] = useState<string | null>(null);
+  const previousPageButton = useRef<HTMLButtonElement>(null);
+  const nextPageButton = useRef<HTMLButtonElement>(null);
+  const navigated = useRef(false);
+  const changePage = (next: 'widgets' | 'github') => {
+    navigated.current = true;
+    setPage(next);
+  };
+  useEffect(() => {
+    if (!navigated.current) return;
+    (page === 'github' ? previousPageButton : nextPageButton).current?.focus();
+  }, [page]);
+  const clockPanel = (
+    <div className="clock-panel">
+      <WidgetRenderer instance={{ ...clock, themeId: preferences.themeId }} />
+      <nav className="clock-page-nav" aria-label="Widget pages">
+        <button
+          type="button"
+          ref={previousPageButton}
+          aria-label="Previous widget page"
+          title="Previous widget page"
+          disabled={page === 'widgets'}
+          onClick={() => changePage('widgets')}
+        >
+          <ChevronLeft size={14} />
+          Previous
+        </button>
+        <button
+          type="button"
+          ref={nextPageButton}
+          aria-label="Next widget page"
+          title="Next widget page"
+          disabled={page === 'github'}
+          onClick={() => changePage('github')}
+        >
+          Next
+          <ChevronRight size={14} />
+        </button>
+        <span className="sr-only" role="status" aria-label="Widget page">
+          {page === 'widgets' ? 'Page 1 of 2' : 'Page 2 of 2'}
+        </span>
+      </nav>
+    </div>
+  );
 
   const showSettings = async () => {
     setError(null);
@@ -103,8 +157,9 @@ function WidgetHost() {
         data-theme={preferences.themeId}
         data-layout={preferences.layoutId}
         data-primary={layout.primary}
-        data-side={layout.side}
-        data-focus={layout.focus ? 'music' : undefined}
+        data-side={page === 'github' ? 'left' : layout.side}
+        data-focus={page === 'widgets' && layout.focus ? 'music' : undefined}
+        data-page={page}
       >
         <AmbientWave />
         <div
@@ -112,14 +167,49 @@ function WidgetHost() {
           data-tauri-drag-region
           aria-hidden="true"
         />
-        <WidgetArrangement
-          layout={layout}
-          render={(module) => (
-            <WidgetRenderer
-              instance={{ ...widgets[module], themeId: preferences.themeId }}
-            />
-          )}
-        />
+        {page === 'widgets' ? (
+          <WidgetArrangement
+            layout={layout}
+            render={(module) =>
+              module === 'clock' ? (
+                clockPanel
+              ) : (
+                <WidgetRenderer
+                  instance={{
+                    ...widgets[module],
+                    themeId: preferences.themeId,
+                  }}
+                />
+              )
+            }
+          />
+        ) : (
+          <>
+            <div className="primary-slot">{clockPanel}</div>
+            <div className="widget-divider" aria-hidden="true" />
+            <section className="github-slot" aria-label="GitHub connection">
+              <GlassSurface
+                variant="inset"
+                opacity={0.35}
+                className="github-connect-card"
+              >
+                <button
+                  type="button"
+                  className="github-connect-button"
+                  onClick={() =>
+                    setGithubNotice('GitHub connection is coming soon.')
+                  }
+                >
+                  <GitBranch size={18} />
+                  Connect GitHub
+                </button>
+                <p className="github-connect-notice" role="status">
+                  {githubNotice}
+                </p>
+              </GlassSurface>
+            </section>
+          </>
+        )}
         <nav className="host-tools" aria-label="Window controls">
           <IconButton
             label="Always on top"

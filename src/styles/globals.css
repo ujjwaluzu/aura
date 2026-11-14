@@ -298,6 +298,10 @@ input:focus-visible {
 .host-notice .icon-button {
   flex-shrink: 0;
 }
+.host-surface[data-side='right'] .host-notice {
+  left: 26px;
+  right: 42%;
+}
 .window-bar {
   height: 56px;
   display: flex;
@@ -499,4 +503,87 @@ p {
     animation: none !important;
     transition: none !important;
   }
+}
+.clock-panel {
+  position: relative;
+  min-width: 0;
+  height: 100%;
+}
+.clock-panel > .clock-widget {
+  height: 100%;
+}
+.clock-page-nav {
+  position: absolute;
+  z-index: 2;
+  left: 32px;
+  bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.clock-page-nav button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid hsl(var(--theme-hue) 35% 80% / 0.16);
+  border-radius: 7px;
+  background: hsl(var(--theme-hue) 35% 80% / 0.04);
+  color: var(--color-secondary);
+  font-size: 11px;
+}
+.clock-page-nav button:hover:enabled {
+  color: var(--color-text);
+  background: hsl(var(--theme-hue) 35% 80% / 0.12);
+}
+.host-surface[data-side='right'] .clock-page-nav {
+  left: 24px;
+}
+.host-surface[data-focus='music'] .clock-page-nav {
+  left: 20px;
+  bottom: 18px;
+}
+.host-surface[data-focus='music'] .clock-panel > .clock-widget {
+  padding-bottom: 56px;
+}
+.github-slot {
+  z-index: 1;
+  grid-column: 3;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 42px 14px 10px 12px;
+}
+.github-connect-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+}
+.github-connect-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 16px;
+  border: 1px solid hsl(var(--theme-hue) 50% 80% / 0.3);
+  border-radius: 9px;
+  background: hsl(var(--theme-hue) 40% 75% / 0.08);
+  color: var(--color-text);
+  font-size: 13px;
+}
+.github-connect-button:hover {
+  background: hsl(var(--theme-hue) 40% 75% / 0.16);
+}
+.github-connect-notice {
+  min-height: 18px;
+  color: var(--color-secondary);
+  font-size: 11px;
+  text-align: center;
 }
