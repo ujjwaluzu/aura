@@ -120,12 +120,15 @@ both windows. Revision numbers discard stale replies/events. Each React window
 subscribes before loading and cleans up its listener. Browser development uses
 separate preview-only localStorage; production persistence stays in Rust.
 
-Faulty Terminal is the sole theme. Its green CSS tokens accompany the React Bits
-WebGL2 background on every widget page. The old five palette IDs migrate to
+Faulty Terminal, Galaxy, Letter Glitch and Pixel Snow pair theme-specific text
+and surface colors with React Bits WebGL2 backgrounds on every widget page.
+Galaxy uses monochrome stars with mouse repulsion and click-to-warp flight.
+Letter Glitch adds mint-and-white characters with cursor glow and click tears;
+Pixel Snow adds drifting, glowing snowflakes that react to the pointer. The old five palette IDs migrate to
 `faulty-terminal` in Rust and browser preview preferences, preserving layouts.
 Six layouts offer four Clock arrangements and two Music focus arrangements.
-Settings thumbnails pause the terminal animation and never run extra monitors.
-The live effect respects reduced motion and suspends animation when hidden.
+Settings thumbnails pause background animation and never run extra monitors.
+All live effects respect reduced motion and suspend animation when hidden.
 
 SQLite remains planned for notes and multiple named layouts, with versioned
 migrations at the same Rust boundary. No database is created by this milestone.

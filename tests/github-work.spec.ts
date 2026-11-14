@@ -308,7 +308,12 @@ for (const mode of ['empty', 'unavailable', 'limited'] as const) {
       ).toBeVisible();
   });
 }
-for (const theme of ['faulty-terminal']) {
+for (const theme of [
+  'faulty-terminal',
+  'galaxy',
+  'letter-glitch',
+  'pixel-snow',
+]) {
   for (const viewport of [
     { width: 760, height: 264 },
     { width: 608, height: 211 },

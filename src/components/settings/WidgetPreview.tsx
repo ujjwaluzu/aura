@@ -109,7 +109,7 @@ export function WidgetPreview({
           transformOrigin: 'top left',
         }}
       >
-        {active && <ThemeBackground preview />}
+        {active && <ThemeBackground theme={theme} preview />}
         <WidgetArrangement layout={layout} render={render} />
       </div>
     </div>

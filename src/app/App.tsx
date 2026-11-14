@@ -193,7 +193,7 @@ function WidgetHost() {
         data-focus={page === 'widgets' && layout.focus ? 'music' : undefined}
         data-page={page}
       >
-        <ThemeBackground />
+        <ThemeBackground theme={preferences.themeId} />
         <div
           className="host-drag-strip"
           data-tauri-drag-region

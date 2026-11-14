@@ -12,6 +12,9 @@ pub enum ThemeId {
         alias = "rose"
     )]
     FaultyTerminal,
+    Galaxy,
+    LetterGlitch,
+    PixelSnow,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

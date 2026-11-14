@@ -128,7 +128,12 @@ test('offline and reconnect states retain cached counts, disconnect ignores old 
     page.getByRole('button', { name: 'Connect GitHub', exact: true }),
   ).toBeVisible();
 });
-for (const theme of ['faulty-terminal']) {
+for (const theme of [
+  'faulty-terminal',
+  'galaxy',
+  'letter-glitch',
+  'pixel-snow',
+]) {
   test(`54 calendar columns and account controls fit ${theme} without clipping`, async ({
     page,
   }) => {

@@ -63,7 +63,7 @@ test('clock changes the local date at midnight', async ({ page }) => {
   await expect(page.locator('.clock-date')).toHaveText('Friday 13 November');
 });
 
-test('settings is opaque with theme and layout tabs and a Faulty Terminal preview', async ({
+test('settings is opaque with theme and layout tabs and all four theme previews', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 840, height: 640 });
@@ -74,7 +74,9 @@ test('settings is opaque with theme and layout tabs and a Faulty Terminal previe
   await expect(
     page.getByRole('tab', { name: 'Theme', exact: true }),
   ).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByRole('button', { name: / theme$/ })).toHaveCount(1);
+  await expect(page.getByRole('button', { name: / theme$/ })).toHaveCount(
+    themes.length,
+  );
   await expect(page.locator('body')).toHaveCSS(
     'background-color',
     'rgb(17, 19, 24)',
@@ -365,15 +367,17 @@ test('monitor errors show unavailable readings and recover through the retry con
   ).toHaveCount(0);
 });
 
-test('Faulty Terminal is the only theme and persists across windows and reload', async ({
+test('all themes render, update across windows and persist after reload', async ({
   page,
   context,
 }) => {
+  test.setTimeout(30_000 * themes.length);
   await page.goto('/');
   const settings = await context.newPage();
   await settings.setViewportSize({ width: 840, height: 640 });
   await settings.goto('/?window=settings');
-  await expect(settings.locator('.theme-option')).toHaveCount(1);
+  await expect(settings.locator('.theme-option')).toHaveCount(themes.length);
+  const colors = new Set<string>();
   for (const theme of themes) {
     const option = settings.getByRole('button', {
       name: `${theme.name} theme`,
@@ -385,43 +389,50 @@ test('Faulty Terminal is the only theme and persists across windows and reload',
       'data-theme',
       theme.id,
     );
+    const selector = `.${theme.id}-canvas`;
+    await expect(page.locator(selector)).toBeVisible();
+    await expect(option.locator(selector)).toBeVisible();
+    await expect(page.locator('.theme-background canvas')).toHaveCount(1);
+    // Catch shader compilation failures as well as missing canvases.
+    await expect
+      .poll(() =>
+        page.locator(selector).evaluate((element) => {
+          const gl = (element as HTMLCanvasElement).getContext('webgl2');
+          return (
+            !!gl &&
+            !!gl.getParameter(gl.CURRENT_PROGRAM) &&
+            gl.getError() === gl.NO_ERROR
+          );
+        }),
+      )
+      .toBe(true);
+    colors.add(
+      await page
+        .locator('.clock-time')
+        .evaluate((element) => getComputedStyle(element).color),
+    );
+    await page.screenshot({ path: `artifacts/aura-${theme.id}.png` });
+    await page.reload();
+    await expect(page.getByLabel('Aura widget host')).toHaveAttribute(
+      'data-theme',
+      theme.id,
+    );
+    await settings.reload();
+    await expect(
+      settings.getByRole('button', { name: `${theme.name} theme` }),
+    ).toHaveAttribute('aria-pressed', 'true');
   }
-  await expect(page.locator('.faulty-terminal-canvas')).toBeVisible();
-  await expect(
-    settings.locator('.theme-option .faulty-terminal-canvas'),
-  ).toBeVisible();
-  // A visible canvas alone would also pass if either shader failed to compile.
-  await expect
-    .poll(() =>
-      page.locator('.faulty-terminal-canvas').evaluate((element) => {
-        const gl = (element as HTMLCanvasElement).getContext('webgl2');
-        return (
-          !!gl &&
-          !!gl.getParameter(gl.CURRENT_PROGRAM) &&
-          gl.getError() === gl.NO_ERROR
-        );
-      }),
-    )
-    .toBe(true);
-  await page.screenshot({ path: 'artifacts/aura-faulty-terminal.png' });
+  expect(colors.size).toBe(themes.length);
   await settings.screenshot({
-    path: 'artifacts/aura-faulty-terminal-settings.png',
+    path: 'artifacts/aura-four-themes-settings.png',
   });
-  await page.reload();
-  await expect(page.getByLabel('Aura widget host')).toHaveAttribute(
-    'data-theme',
-    'faulty-terminal',
-  );
-  await settings.reload();
-  await expect(
-    settings.getByRole('button', { name: 'Faulty Terminal theme' }),
-  ).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('all six layouts apply without clipped modules or music entry points', async ({
   page,
   context,
 }) => {
+  test.setTimeout(60_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   const settings = await context.newPage();
@@ -636,6 +647,7 @@ test('both widget pages fit all themes and layouts without scrolling', async ({
   page,
   context,
 }) => {
+  test.setTimeout(60_000 * themes.length);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   const settings = await context.newPage();

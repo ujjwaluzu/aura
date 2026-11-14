@@ -104,7 +104,7 @@ both lockfiles committed; use controlled dependency updates and rerun checks.
 3. Minimize and recover from the taskbar. Enable and disable always-on-top with
    another normal window in front.
 4. Open settings repeatedly: one settings window should exist. Close/reopen it.
-   Confirm the window is opaque. Check Faulty Terminal and all six layout
+   Confirm the window is opaque. Check all four themes and all six layout
    previews, then restart Aura and confirm the selected pair remains active.
 5. Close the host while settings is open: all Aura windows should exit.
 6. Repeat on light/dark wallpaper, 100/125/150/200% scale, mixed-DPI monitors,

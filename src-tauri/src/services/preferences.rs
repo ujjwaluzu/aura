@@ -121,25 +121,32 @@ mod tests {
     #[test]
     fn persists_choices_and_merges_partial_updates() {
         let directory = test_directory();
-        let store = PreferencesStore::load(Some(directory.clone()));
-        store
-            .update(PreferencesPatch {
-                theme_id: Some(ThemeId::FaultyTerminal),
-                layout_id: None,
-            })
-            .unwrap();
-        let changed = store
-            .update(PreferencesPatch {
-                theme_id: None,
-                layout_id: Some(LayoutId::ClockRightMusicStats),
-            })
-            .unwrap();
-        assert_eq!(changed.revision, 2);
-        let reloaded = PreferencesStore::load(Some(directory.clone()))
-            .snapshot()
-            .unwrap();
-        assert_eq!(reloaded.theme_id, ThemeId::FaultyTerminal);
-        assert_eq!(reloaded.layout_id, LayoutId::ClockRightMusicStats);
+        for theme in [
+            ThemeId::FaultyTerminal,
+            ThemeId::Galaxy,
+            ThemeId::LetterGlitch,
+            ThemeId::PixelSnow,
+        ] {
+            let store = PreferencesStore::load(Some(directory.clone()));
+            store
+                .update(PreferencesPatch {
+                    theme_id: Some(theme),
+                    layout_id: None,
+                })
+                .unwrap();
+            let changed = store
+                .update(PreferencesPatch {
+                    theme_id: None,
+                    layout_id: Some(LayoutId::ClockRightMusicStats),
+                })
+                .unwrap();
+            assert_eq!(changed.revision, 2);
+            let reloaded = PreferencesStore::load(Some(directory.clone()))
+                .snapshot()
+                .unwrap();
+            assert_eq!(reloaded.theme_id, theme);
+            assert_eq!(reloaded.layout_id, LayoutId::ClockRightMusicStats);
+        }
         fs::remove_file(directory.join("preferences.json")).unwrap();
         fs::remove_dir(directory).unwrap();
     }
