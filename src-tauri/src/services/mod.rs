@@ -9,3 +9,6 @@ pub mod music_vault;
 pub mod preferences;
 pub mod system_monitor;
 pub mod youtube_api;
+
+#[cfg(windows)]
+pub mod music_volume;

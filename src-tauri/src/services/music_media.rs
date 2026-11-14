@@ -10,7 +10,11 @@ enum Message {
     Select(Option<String>, mpsc::SyncSender<Result<(), AppError>>),
     Control(MediaAction, mpsc::SyncSender<Result<(), AppError>>),
     Seek(f64, mpsc::SyncSender<Result<(), AppError>>),
-    Volume(Option<f32>, mpsc::SyncSender<Result<f32, AppError>>),
+    Volume(
+        Option<f32>,
+        Option<String>,
+        mpsc::SyncSender<Result<f32, AppError>>,
+    ),
     Stop,
 }
 #[derive(Default)]
@@ -90,12 +94,12 @@ impl MediaService {
         rx.recv_timeout(std::time::Duration::from_secs(10))
             .map_err(|_| media_error())?
     }
-    pub fn volume(&self, level: Option<f32>) -> Result<f32, AppError> {
+    pub fn volume(&self, level: Option<f32>, session_id: Option<String>) -> Result<f32, AppError> {
         if level.is_some_and(|value| !value.is_finite() || !(0.0..=1.0).contains(&value)) {
             return Err(media_error());
         }
         let (tx, rx) = mpsc::sync_channel(1);
-        self.send(Message::Volume(level, tx))?;
+        self.send(Message::Volume(level, session_id, tx))?;
         rx.recv_timeout(std::time::Duration::from_secs(5))
             .map_err(|_| media_error())?
     }
@@ -115,91 +119,6 @@ fn media_error() -> AppError {
 mod native {
     use super::*;
     use windows::{Foundation::TypedEventHandler, Media::Control::*, Storage::Streams::DataReader};
-    fn browser_volume(source: &str, level: Option<f32>) -> windows::core::Result<f32> {
-        use windows::{
-            core::{Interface, PWSTR},
-            Win32::{
-                Foundation::CloseHandle,
-                Media::Audio::{
-                    eRender, IAudioSessionControl2, IAudioSessionManager2, IMMDeviceEnumerator,
-                    ISimpleAudioVolume, MMDeviceEnumerator, DEVICE_STATE_ACTIVE,
-                },
-                System::{
-                    Com::{CoCreateInstance, CLSCTX_ALL},
-                    Threading::{
-                        OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
-                        PROCESS_QUERY_LIMITED_INFORMATION,
-                    },
-                },
-            },
-        };
-        let lower = source.to_ascii_lowercase();
-        let executable = if lower.contains("chrome") {
-            "chrome.exe"
-        } else if lower.contains("edge") || lower.contains("msedge") {
-            "msedge.exe"
-        } else if lower.contains("firefox") {
-            "firefox.exe"
-        } else if lower.contains("brave") {
-            "brave.exe"
-        } else {
-            return Err(windows::core::Error::from_thread());
-        };
-        unsafe {
-            let devices: IMMDeviceEnumerator =
-                CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)?;
-            let endpoints = devices.EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE)?;
-            let mut levels = Vec::new();
-            for endpoint_index in 0..endpoints.GetCount()? {
-                let endpoint = endpoints.Item(endpoint_index)?;
-                let manager: IAudioSessionManager2 = endpoint.Activate(CLSCTX_ALL, None)?;
-                let sessions = manager.GetSessionEnumerator()?;
-                for session_index in 0..sessions.GetCount()? {
-                    let control = sessions.GetSession(session_index)?;
-                    let control2: IAudioSessionControl2 = match control.cast() {
-                        Ok(value) => value,
-                        Err(_) => continue,
-                    };
-                    let pid = match control2.GetProcessId() {
-                        Ok(value) if value != 0 => value,
-                        _ => continue,
-                    };
-                    let process = match OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) {
-                        Ok(value) => value,
-                        Err(_) => continue,
-                    };
-                    let mut path = [0u16; 1024];
-                    let mut length = path.len() as u32;
-                    let path_result = QueryFullProcessImageNameW(
-                        process,
-                        PROCESS_NAME_WIN32,
-                        PWSTR(path.as_mut_ptr()),
-                        &mut length,
-                    );
-                    let _ = CloseHandle(process);
-                    if path_result.is_err()
-                        || !String::from_utf16_lossy(&path[..length as usize])
-                            .to_ascii_lowercase()
-                            .ends_with(executable)
-                    {
-                        continue;
-                    }
-                    let volume: ISimpleAudioVolume = match control.cast() {
-                        Ok(value) => value,
-                        Err(_) => continue,
-                    };
-                    if let Some(value) = level {
-                        volume.SetMasterVolume(value, std::ptr::null())?;
-                    }
-                    levels.push(volume.GetMasterVolume()?);
-                }
-            }
-            if levels.is_empty() {
-                return Err(windows::core::Error::from_thread());
-            }
-            Ok(levels.iter().sum::<f32>() / levels.len() as f32)
-        }
-    }
     pub struct Session {
         pub id: String,
         pub native: GlobalSystemMediaTransportControlsSession,
@@ -452,7 +371,6 @@ mod native {
         let mut sessions: Vec<Session> = Vec::new();
         let mut next_id = 0u64;
         let mut selected: Option<String> = None;
-        let mut selected_source: Option<String> = None;
         let mut selection_message: Option<String> = None;
         let _ = tx.try_send(Message::Refresh);
         while let Ok(message) = rx.recv() {
@@ -466,9 +384,6 @@ mod native {
                         .as_ref()
                         .and_then(|id| sessions.iter().find(|session| &session.id == id));
                     let result = if id.is_none() || selected_session.is_some() {
-                        selected_source = selected_session
-                            .and_then(|session| session.native.SourceAppUserModelId().ok())
-                            .map(|source| source.to_string());
                         selected = id;
                         selection_message = None;
                         Ok(())
@@ -493,19 +408,17 @@ mod native {
                         .and_then(|s| s.seek(position));
                     let _ = reply.send(result);
                 }
-                Message::Volume(level, reply) => {
-                    let result = match selected_source.as_deref() {
-                        Some(source) => browser_volume(source, level).map_err(|error| {
-                            eprintln!("Aura browser volume lookup failed for {source}: {error}");
-                            AppError::new(
-                                "BROWSER_VOLUME_UNAVAILABLE",
-                                format!("Windows could not access the audio session for {source}."),
-                            )
-                        }),
-                        None => Err(AppError::new(
-                            "BROWSER_VOLUME_UNAVAILABLE",
-                            "Select a Windows media session before adjusting browser volume.",
-                        )),
+                Message::Volume(level, expected, reply) => {
+                    let result = if expected
+                        .as_ref()
+                        .is_some_and(|id| Some(id) != selected.as_ref())
+                    {
+                        Err(AppError::new("MEDIA_SESSION_CHANGED", "The selected player changed. Choose the player again before adjusting volume."))
+                    } else {
+                        selected.as_ref().and_then(|id| sessions.iter().find(|session| &session.id == id))
+                            .ok_or_else(|| AppError::new("BROWSER_VOLUME_UNAVAILABLE", "Select a Windows media session before adjusting browser volume."))
+                            .and_then(|session| session.native.SourceAppUserModelId().map_err(|_| media_error()))
+                            .and_then(|source| crate::services::music_volume::browser_volume(&source.to_string(), level))
                     };
                     let _ = reply.send(result);
                 }
@@ -529,7 +442,6 @@ mod native {
                 selected.is_some() && !sessions.iter().any(|s| Some(&s.id) == selected.as_ref());
             if disappeared {
                 selected = None;
-                selected_source = None;
             }
             if disappeared {
                 selection_message =

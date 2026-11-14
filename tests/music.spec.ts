@@ -1061,7 +1061,7 @@ test('the sole player is bound before seeking and volume commands', async ({
   ).toBeGreaterThan(selection);
   expect(calls).toContainEqual({
     command: 'music_media_volume',
-    args: { level: 0.51 },
+    args: { level: 0.51, sessionId: 'browser-1' },
   });
 });
 
@@ -1168,7 +1168,253 @@ for (const layoutId of [
     );
     expect(calls).toContainEqual({
       command: 'music_media_volume',
-      args: { level: 0.51 },
+      args: { level: 0.51, sessionId: 'browser-1' },
     });
   });
 }
+
+test('Brave volume automatically recovers after its audio session appears', async ({
+  page,
+}) => {
+  await mockMusic(page, { selected: true, source: 'Brave', volumeFailures: 2 });
+  await page.goto('/');
+  await expect(
+    page.getByRole('button', { name: 'Retry volume' }),
+  ).toBeVisible();
+  const slider = page.getByRole('slider', { name: 'Browser volume' });
+  await expect(slider).toHaveAttribute('aria-valuenow', '50');
+  await expect(slider).not.toHaveAttribute('aria-disabled', 'true');
+  const diagnostics = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('aura.music.recent-errors') ?? '[]'),
+  );
+  expect(
+    diagnostics.filter(
+      (d: { code: string }) => d.code === 'BROWSER_VOLUME_PENDING',
+    ),
+  ).toHaveLength(1);
+});
+test('a failed volume write reads the actual level and recovers without replaying the write', async ({
+  page,
+}) => {
+  await mockMusic(page, {
+    selected: true,
+    source: 'Brave',
+    volumeWriteFailure: true,
+  });
+  await page.goto('/');
+  const slider = page.getByRole('slider', { name: 'Browser volume' });
+  await expect(slider).toHaveAttribute('aria-valuenow', '50');
+  await slider.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(slider).toHaveAttribute('aria-valuenow', '50');
+  const writes = () =>
+    page.evaluate(() =>
+      (
+        window as unknown as {
+          musicTest: {
+            calls: {
+              command: string;
+              args: { level?: number | null; sessionId?: string };
+            }[];
+          };
+        }
+      ).musicTest.calls.filter(
+        (c) => c.command === 'music_media_volume' && c.args.level != null,
+      ),
+    );
+  await expect.poll(async () => (await writes()).length).toBe(1);
+  await slider.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(slider).toHaveAttribute('aria-valuenow', '51');
+  expect(await writes()).toHaveLength(2);
+});
+test('a late volume read cannot undo a newer successful adjustment', async ({
+  page,
+}) => {
+  await mockMusic(page, { selected: true, source: 'Brave' });
+  await page.goto('/');
+  await expect(
+    page.getByRole('slider', { name: 'Browser volume' }),
+  ).toHaveAttribute('aria-valuenow', '50');
+  await page.evaluate(() =>
+    (
+      window as unknown as { musicTest: { holdNextVolumeRead(): void } }
+    ).musicTest.holdNextVolumeRead(),
+  );
+  await page.getByRole('button', { name: 'More music actions' }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (
+          window as unknown as { musicTest: { isVolumeReadHeld(): boolean } }
+        ).musicTest.isVolumeReadHeld(),
+      ),
+    )
+    .toBe(true);
+  const slider = page.getByRole('slider', { name: 'Browser volume' });
+  await slider.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(slider).toHaveAttribute('aria-valuenow', '51');
+  await page.evaluate(() =>
+    (
+      window as unknown as { musicTest: { releaseVolumeRead(): void } }
+    ).musicTest.releaseVolumeRead(),
+  );
+  await expect(slider).toHaveAttribute('aria-valuenow', '51');
+});
+test('volume retries stop when the player leaves the visible widget page', async ({
+  page,
+}) => {
+  await page.clock.install();
+  await mockMusic(page, {
+    selected: true,
+    source: 'Brave',
+    volumeFailures: 100,
+  });
+  await page.goto('/');
+  await expect(
+    page.getByRole('button', { name: 'Retry volume' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Next widget page' }).click();
+  const queries = () =>
+    page.evaluate(
+      () =>
+        (
+          window as unknown as { musicTest: { calls: { command: string }[] } }
+        ).musicTest.calls.filter((c) => c.command === 'music_media_volume')
+          .length,
+    );
+  const before = await queries();
+  await page.clock.runFor(31000);
+  expect(await queries()).toBe(before);
+});
+test('unsupported volume controls do not retry indefinitely', async ({
+  page,
+}) => {
+  await page.clock.install();
+  await mockMusic(page, {
+    selected: true,
+    source: 'Spotify',
+    volumeError: true,
+    volumeErrorCode: 'BROWSER_VOLUME_UNSUPPORTED',
+  });
+  await page.goto('/');
+  await expect(
+    page.getByRole('button', { name: 'Retry volume' }),
+  ).toBeVisible();
+  const queries = () =>
+    page.evaluate(
+      () =>
+        (
+          window as unknown as { musicTest: { calls: { command: string }[] } }
+        ).musicTest.calls.filter((c) => c.command === 'music_media_volume')
+          .length,
+    );
+  const before = await queries();
+  await page.clock.runFor(31000);
+  expect(await queries()).toBe(before);
+});
+
+test('switching players cancels the previous browser volume retry', async ({
+  page,
+}) => {
+  await page.clock.install();
+  await mockMusic(page, { selected: true, source: 'Brave', volumeError: true });
+  await page.goto('/');
+  await expect(
+    page.getByRole('button', { name: 'Retry volume' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'More music actions' }).click();
+  await page.getByRole('button', { name: 'Change player' }).click();
+  await page.evaluate(() =>
+    (
+      window as unknown as {
+        musicTest: { setVolumeAvailable(value: boolean): void };
+      }
+    ).musicTest.setVolumeAvailable(true),
+  );
+  await page
+    .getByRole('combobox', { name: 'Choose playback player' })
+    .selectOption('browser-2');
+  await expect(
+    page.getByRole('slider', { name: 'Browser volume' }),
+  ).toHaveAttribute('aria-valuenow', '50');
+  const queries = () =>
+    page.evaluate(
+      () =>
+        (
+          window as unknown as {
+            musicTest: {
+              calls: { command: string; args: { sessionId?: string } }[];
+            };
+          }
+        ).musicTest.calls.filter(
+          (c) =>
+            c.command === 'music_media_volume' &&
+            c.args.sessionId === 'browser-1',
+        ).length,
+    );
+  const before = await queries();
+  await page.clock.runFor(31000);
+  expect(await queries()).toBe(before);
+  await page.getByRole('slider', { name: 'Browser volume' }).focus();
+  await page.keyboard.press('ArrowRight');
+  const lastWrite = await page.evaluate(() =>
+    (
+      window as unknown as {
+        musicTest: {
+          calls: {
+            command: string;
+            args: { level?: number | null; sessionId?: string };
+          }[];
+        };
+      }
+    ).musicTest.calls
+      .filter((c) => c.command === 'music_media_volume' && c.args.level != null)
+      .at(-1),
+  );
+  expect(lastWrite?.args).toEqual({ level: 0.51, sessionId: 'browser-2' });
+});
+test('volume recovery pauses while hidden and resumes on visibility', async ({
+  page,
+}) => {
+  await page.clock.install();
+  await mockMusic(page, { selected: true, source: 'Brave', volumeError: true });
+  await page.goto('/');
+  await expect(
+    page.getByRole('button', { name: 'Retry volume' }),
+  ).toBeVisible();
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => true,
+    });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  const queries = () =>
+    page.evaluate(
+      () =>
+        (
+          window as unknown as { musicTest: { calls: { command: string }[] } }
+        ).musicTest.calls.filter((c) => c.command === 'music_media_volume')
+          .length,
+    );
+  const before = await queries();
+  await page.clock.runFor(31000);
+  expect(await queries()).toBe(before);
+  await page.evaluate(() => {
+    (
+      window as unknown as {
+        musicTest: { setVolumeAvailable(value: boolean): void };
+      }
+    ).musicTest.setVolumeAvailable(true);
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => false,
+    });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(
+    page.getByRole('slider', { name: 'Browser volume' }),
+  ).toHaveAttribute('aria-valuenow', '50');
+});

@@ -154,11 +154,12 @@ pub async fn music_media_seek(
 pub async fn music_media_volume(
     window: WebviewWindow,
     level: Option<f32>,
+    session_id: Option<String>,
     service: State<'_, Arc<MediaService>>,
 ) -> Result<f32, AppError> {
     allowed(window.label())?;
     let service = service.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || service.volume(level))
+    tauri::async_runtime::spawn_blocking(move || service.volume(level, session_id))
         .await
         .map_err(|_| task_error())?
 }

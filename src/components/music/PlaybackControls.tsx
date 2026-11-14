@@ -26,6 +26,23 @@ import {
   type MusicPresentation,
 } from './PlayerPresentation';
 
+function volumeErrorCode(error: unknown): string {
+  return typeof error === 'object' && error !== null && 'code' in error
+    ? String(error.code)
+    : 'UNKNOWN';
+}
+function volumeFailureMessage(error: unknown) {
+  return volumeErrorCode(error) === 'BROWSER_VOLUME_PENDING'
+    ? 'Waiting for browser audio...'
+    : 'Volume unavailable';
+}
+function retryableVolumeError(error: unknown) {
+  return [
+    'BROWSER_VOLUME_PENDING',
+    'BROWSER_VOLUME_UNAVAILABLE',
+    'MEDIA_UNAVAILABLE',
+  ].includes(volumeErrorCode(error));
+}
 function time(seconds: number) {
   const whole = Math.max(0, Math.floor(seconds));
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
@@ -81,6 +98,9 @@ export function PlaybackControls({
   } | null>(null);
   const [volumeReload, setVolumeReload] = useState(0);
   const [volumeBusy, setVolumeBusy] = useState(false);
+  const volumeRequest = useRef(0);
+  const volumeWriting = useRef(false);
+  const lastVolumeDiagnostic = useRef<string | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const selectedId = useRef(playback.selectedId);
@@ -93,28 +113,75 @@ export function PlaybackControls({
   useEffect(() => {
     if (!sessionId) return;
     let live = true;
-    const volumeRequest =
-      boundSessionId === sessionId
-        ? mediaVolume()
-        : selectSession(sessionId).then(() => mediaVolume());
-    void volumeRequest.then(
-      (level) => {
-        if (live) {
+    let reading = false;
+    let attempts = 0;
+    let timer: number | undefined;
+    const schedule = (delay: number) => {
+      window.clearTimeout(timer);
+      if (live && !document.hidden)
+        timer = window.setTimeout(() => void load(), delay);
+    };
+    const load = async () => {
+      if (!live || document.hidden || reading) return;
+      if (volumeWriting.current) {
+        schedule(200);
+        return;
+      }
+      reading = true;
+      const request = ++volumeRequest.current;
+      try {
+        if (boundSessionId !== sessionId) {
+          if (selectedId.current && selectedId.current !== sessionId) return;
+          await selectSession(sessionId);
+          if (!live || request !== volumeRequest.current) return;
+        }
+        const level = await mediaVolume(undefined, sessionId);
+        if (live && request === volumeRequest.current) {
           setVolume({ sessionId, level: level * 100 });
           setVolumeError(null);
+          lastVolumeDiagnostic.current = null;
+          attempts = 0;
         }
-      },
-      (e: unknown) => {
-        if (live) {
-          setVolumeError({ sessionId, message: 'Volume unavailable' });
-          reportError(e);
+      } catch (e) {
+        if (live && request === volumeRequest.current) {
+          setVolumeError({ sessionId, message: volumeFailureMessage(e) });
+          const diagnostic = `${sessionId}:${volumeErrorCode(e)}`;
+          if (lastVolumeDiagnostic.current !== diagnostic) {
+            lastVolumeDiagnostic.current = diagnostic;
+            reportError(e);
+          }
+          if (retryableVolumeError(e))
+            schedule(Math.min(30000, 500 * 2 ** Math.min(attempts++, 6)));
         }
-      },
-    );
+      } finally {
+        reading = false;
+      }
+    };
+    const resume = () => {
+      window.clearTimeout(timer);
+      if (!document.hidden) {
+        attempts = 0;
+        void load();
+      }
+    };
+    void load();
+    window.addEventListener('focus', resume);
+    document.addEventListener('visibilitychange', resume);
     return () => {
       live = false;
+      window.clearTimeout(timer);
+      window.removeEventListener('focus', resume);
+      document.removeEventListener('visibilitychange', resume);
     };
-  }, [sessionId, boundSessionId, more, volumeReload, reportError]);
+  }, [
+    sessionId,
+    session?.source,
+    session?.playing,
+    boundSessionId,
+    more,
+    volumeReload,
+    reportError,
+  ]);
   useEffect(() => {
     if (!more) return;
     const focusTarget = trigger.current;
@@ -267,23 +334,40 @@ export function PlaybackControls({
       }}
       onChangeEnd={(level) => {
         if (!sessionId) return;
+        const request = ++volumeRequest.current;
+        volumeWriting.current = true;
         setVolumeBusy(true);
-        void mediaVolume(level / 100)
+        void mediaVolume(level / 100, sessionId)
           .then(
             (actual) => {
-              if (selectedId.current === sessionId) {
+              if (
+                selectedId.current === sessionId &&
+                request === volumeRequest.current
+              ) {
                 setVolume({ sessionId, level: actual * 100 });
                 setVolumeError(null);
+                lastVolumeDiagnostic.current = null;
               }
             },
             (e: unknown) => {
-              if (selectedId.current === sessionId) {
-                setVolumeError({ sessionId, message: 'Volume unavailable' });
-                reportError(e);
+              if (
+                selectedId.current === sessionId &&
+                request === volumeRequest.current
+              ) {
+                setVolumeError({ sessionId, message: volumeFailureMessage(e) });
+                const diagnostic = `${sessionId}:${volumeErrorCode(e)}`;
+                if (lastVolumeDiagnostic.current !== diagnostic) {
+                  lastVolumeDiagnostic.current = diagnostic;
+                  reportError(e);
+                }
+                if (retryableVolumeError(e)) setVolumeReload((n) => n + 1);
               }
             },
           )
-          .finally(() => setVolumeBusy(false));
+          .finally(() => {
+            volumeWriting.current = false;
+            setVolumeBusy(false);
+          });
       }}
     />
   );

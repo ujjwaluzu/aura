@@ -12,6 +12,10 @@ export async function mockMusic(
     accountError?: boolean;
     playbackError?: boolean;
     volumeError?: boolean;
+    volumeFailures?: number;
+    volumeWriteFailure?: boolean;
+    volumeErrorCode?: string;
+    source?: string;
     artwork?: boolean;
     accountLoading?: boolean;
     playbackLoading?: boolean;
@@ -57,7 +61,7 @@ export async function mockMusic(
       sessions: [
         {
           id: 'browser-1',
-          source: 'chrome.exe',
+          source: options.source ?? 'chrome.exe',
           title: track.title,
           artist: 'Test Artist',
           playing: true,
@@ -97,7 +101,19 @@ export async function mockMusic(
     };
     if (options.sessionCount !== undefined)
       playback.sessions = playback.sessions.slice(0, options.sessionCount);
+    let volumeAvailable = !options.volumeError;
+    let volumeFailures = options.volumeFailures ?? 0;
+    let failVolumeWrite = options.volumeWriteFailure ?? false;
+    let volumeLevel = 0.5;
+    let holdVolumeRead = false;
+    let releaseVolumeRead: (() => void) | null = null;
     const emit = (event: string, payload: unknown) => {
+      if (
+        event === 'aura://playback-changed' &&
+        typeof payload === 'object' &&
+        payload !== null
+      )
+        Object.assign(playback, payload);
       for (const [id, listener] of listeners)
         if (listener.event === event)
           callbacks.get(listener.handler)?.({ event, id, payload });
@@ -107,6 +123,17 @@ export async function mockMusic(
       musicTest: {
         calls,
         emit,
+        setVolumeAvailable: (available: boolean) => {
+          volumeAvailable = available;
+        },
+        holdNextVolumeRead: () => {
+          holdVolumeRead = true;
+        },
+        isVolumeReadHeld: () => releaseVolumeRead !== null,
+        releaseVolumeRead: () => {
+          releaseVolumeRead?.();
+          releaseVolumeRead = null;
+        },
         setRating: (liked: boolean) => {
           track.liked = liked;
         },
@@ -185,12 +212,36 @@ export async function mockMusic(
             return playback;
           }
           if (command === 'music_media_volume') {
-            if (options.volumeError)
+            if (args.sessionId && args.sessionId !== playback.selectedId)
               throw {
-                code: 'BROWSER_VOLUME_UNAVAILABLE',
+                code: 'MEDIA_SESSION_CHANGED',
+                message: 'The selected player changed.',
+              };
+            const write = typeof args.level === 'number';
+            if (
+              !volumeAvailable ||
+              (!write && volumeFailures-- > 0) ||
+              (write && failVolumeWrite)
+            ) {
+              failVolumeWrite = false;
+              throw {
+                code:
+                  options.volumeErrorCode ??
+                  (volumeAvailable
+                    ? 'BROWSER_VOLUME_PENDING'
+                    : 'BROWSER_VOLUME_UNAVAILABLE'),
                 message: 'Volume failed',
               };
-            return args.level ?? 0.5;
+            }
+            if (write) volumeLevel = args.level as number;
+            if (!write && holdVolumeRead) {
+              holdVolumeRead = false;
+              const captured = volumeLevel;
+              return new Promise((resolve) => {
+                releaseVolumeRead = () => resolve(captured);
+              });
+            }
+            return volumeLevel;
           }
           if (command === 'music_connect') {
             if (options.connectPending) return new Promise(() => {});

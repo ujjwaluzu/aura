@@ -24,6 +24,14 @@ and saved third-party playlists are outside this milestone. Uploader names are
 channel metadata, not asserted musical artist identities. Google sign-in in the
 browser and Aura authorization remain separate; choose the same account/channel.
 
+Browser volume follows the selected Brave, Chrome, Edge or Firefox player and
+controls that browser's Windows audio sessions. If audio starts late, changes
+output devices or recreates its process, Aura rescans and recovers automatically.
+Read retries back off to 30 seconds and pause while hidden; unsupported players do
+not poll indefinitely. Volume requests include the selected session ID so a stale
+request cannot adjust a different player. Failed writes recover by reading the
+actual volume, rather than replaying an old slider adjustment.
+
 ## Developer setup
 
 Reuse the existing Aura-owned **Desktop app OAuth client**. Keep these settings in
