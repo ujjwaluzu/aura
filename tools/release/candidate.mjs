@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process';
 import {
   copyFileSync,
   existsSync,
@@ -8,7 +7,15 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
-import { capture, fileHash, root, runPnpm, sourceState } from './common.mjs';
+import {
+  archiveDirectory,
+  authenticodeStatus,
+  capture,
+  fileHash,
+  root,
+  runPnpm,
+  sourceState,
+} from './common.mjs';
 
 if (process.platform !== 'win32')
   throw new Error('Windows release candidates can only be built on Windows.');
@@ -58,16 +65,7 @@ const components = join(root, 'dist/third-party-components.json');
 for (const path of [executable, installer, notice, components])
   if (!existsSync(path))
     throw new Error(`Expected release output was not built: ${path}`);
-const signature = execFileSync(
-  'powershell.exe',
-  [
-    '-NoProfile',
-    '-NonInteractive',
-    '-Command',
-    `(Get-AuthenticodeSignature -LiteralPath '${executable.replaceAll("'", "''")}').Status`,
-  ],
-  { cwd: root, encoding: 'utf8', windowsHide: true },
-).trim();
+const signature = authenticodeStatus(executable);
 const timestamp = new Date()
   .toISOString()
   .replaceAll(':', '')
@@ -141,16 +139,7 @@ const manifest = {
     name: basename(installer),
     sizeBytes: statSync(installer).size,
     sha256: fileHash(installer),
-    authenticodeStatus: execFileSync(
-      'powershell.exe',
-      [
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        `(Get-AuthenticodeSignature -LiteralPath '${installer.replaceAll("'", "''")}').Status`,
-      ],
-      { cwd: root, encoding: 'utf8', windowsHide: true },
-    ).trim(),
+    authenticodeStatus: authenticodeStatus(installer),
   },
   releaseGates: JSON.parse(
     readFileSync(join(root, 'src-tauri/music-release-gate.json'), 'utf8'),
@@ -175,15 +164,6 @@ const sumFiles = [...files, 'candidate-manifest.json']
   .join('\n');
 writeFileSync(join(out, 'SHA256SUMS.txt'), `${sumFiles}\n`);
 const zip = `${out}.zip`;
-execFileSync(
-  'powershell.exe',
-  [
-    '-NoProfile',
-    '-NonInteractive',
-    '-Command',
-    `Compress-Archive -LiteralPath '${out.replaceAll("'", "''")}' -DestinationPath '${zip.replaceAll("'", "''")}' -CompressionLevel Optimal`,
-  ],
-  { cwd: root, stdio: 'inherit', windowsHide: true },
-);
+archiveDirectory(out, zip);
 console.log(`Windows release candidate is ready: ${out}`);
 console.log(`Archive: ${zip}`);

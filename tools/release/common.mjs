@@ -9,6 +9,24 @@ export const windows = process.platform === 'win32';
 export const executable = (name) => (windows ? `${name}.exe` : name);
 export const hash = (value) => createHash('sha256').update(value).digest('hex');
 export const fileHash = (path) => hash(readFileSync(path));
+// Actions invokes pwsh and supplies its module path. Match that host instead of
+// mixing Windows PowerShell 5 with PowerShell 7's module environment.
+export const powerShell =
+  process.env.GITHUB_ACTIONS === 'true' ? 'pwsh.exe' : 'powershell.exe';
+export const authenticodeStatus = (path) =>
+  capture(powerShell, [
+    '-NoProfile',
+    '-NonInteractive',
+    '-Command',
+    `$ErrorActionPreference = 'Stop'; (Get-AuthenticodeSignature -LiteralPath '${path.replaceAll("'", "''")}').Status`,
+  ]);
+export const archiveDirectory = (directory, archive) =>
+  capture(powerShell, [
+    '-NoProfile',
+    '-NonInteractive',
+    '-Command',
+    `$ErrorActionPreference = 'Stop'; Compress-Archive -LiteralPath '${directory.replaceAll("'", "''")}' -DestinationPath '${archive.replaceAll("'", "''")}' -CompressionLevel Optimal`,
+  ]);
 
 export function capture(command, args = []) {
   return execFileSync(command, args, {

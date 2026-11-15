@@ -8,7 +8,7 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from '@playwright/test';
-import { fileHash, root, runPnpmAsync } from './common.mjs';
+import { fileHash, powerShell, root, runPnpmAsync } from './common.mjs';
 
 if (process.platform !== 'win32')
   throw new Error('The packaged WebView smoke test runs on Windows.');
@@ -75,7 +75,7 @@ if (process.env.GITHUB_ACTIONS === 'true' && integrity !== 'S-1-16-8192') {
 }
 const startupState = () =>
   execFileSync(
-    'powershell.exe',
+    powerShell,
     [
       '-NoProfile',
       '-NonInteractive',

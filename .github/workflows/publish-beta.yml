@@ -37,6 +37,8 @@ jobs:
         with:
           node-version: 22.18.0
       - run: npm install --global pnpm@11.15.1
+      - name: Validate signature and archive tooling before the build
+        run: node tools/release/preflight.mjs
       - name: Install Rust and advisory scanner
         shell: pwsh
         run: |

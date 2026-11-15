@@ -31,6 +31,10 @@ runs the same native test at Medium integrity, verified in its report. Only the
 current runner identity receives Modify access to its disposable checkout.
 Machine-wide browser security policies remain intact; a missing launcher,
 incorrect integrity level or native assertion failure stops publication.
+CI packaging uses PowerShell 7 to match the runner's module environment. An
+early preflight exercises the same Authenticode and archive helpers before the
+costly verification/build steps. Local Windows PowerShell workflows keep their
+existing host.
 
 Release assets are `Aura_0.1.3-beta.1_x64-setup.exe`, `SHA256SUMS.txt`,
 `release-manifest.json`, and `Aura-0.1.3-beta.1-evidence.zip`. The manifest includes

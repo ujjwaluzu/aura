@@ -19,6 +19,7 @@
     "website:test": "playwright test --config website/playwright.config.ts",
     "website:capture": "playwright test --config website/capture.config.ts",
     "release:publish": "node tools/release/publish.mjs",
+    "release:preflight": "node tools/release/preflight.mjs",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
