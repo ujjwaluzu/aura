@@ -1,4 +1,6 @@
 fn main() {
+    // Refresh Windows resources and the default window icon when branding changes.
+    println!("cargo:rerun-if-changed=icons");
     println!("cargo:rerun-if-env-changed=AURA_GITHUB_CLIENT_ID");
     println!("cargo:rerun-if-changed=../.env.github.local");
     let github_client = std::env::var("AURA_GITHUB_CLIENT_ID").ok().or_else(|| {
