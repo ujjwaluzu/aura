@@ -1,122 +1,157 @@
-# Aura
+<div align="center">
+  <img src="public/aura.svg" width="72" alt="Aura logo" />
+  <h1 align="center">Aura</h1>
+  <p align="center">
+    A considered space for your desktop widgets.
+    <br />
+    A customizable Windows desktop companion for time, system activity, GitHub, and music.
+  </p>
+  <p align="center">
+    <a href="https://github.com/ujjwaluzu/aura/actions/workflows/windows.yml"><img src="https://github.com/ujjwaluzu/aura/actions/workflows/windows.yml/badge.svg?branch=main" alt="Windows verification" /></a>
+    <img src="https://img.shields.io/badge/platform-Windows-4f8f5b" alt="Windows" />
+    <img src="https://img.shields.io/badge/release-testing%20preview-c89d4b" alt="Testing preview" />
+  </p>
+</div>
 
-A Windows desktop personalisation application built with Tauri 2, Rust, React
-and TypeScript. Aura's foundation provides a transparent, frameless widget-host
-window with a restrained dark glass identity and a separate opaque settings window.
-The main surface is a compact 760 x 264 rectangle: a digital clock and date,
-CPU/RAM history cards and a music connection panel, arranged to your preference.
-This repository contains only the desktop application.
+<p align="center">
+  <img src="docs/images/aura-clock.png" width="900" alt="Aura's compact desktop widget with a clock, system usage cards, and music controls" />
+</p>
 
-## Foundation scope
+Aura is a native Windows desktop application built with **Tauri 2, Rust, React, and TypeScript**. Its small, frameless widget host sits over the desktop, while a separate settings window lets you choose a visual theme and widget layout.
 
-- Frameless, draggable host; minimize, quit and optional always-on-top controls.
-- Reusable glass surfaces, text, icon buttons, controls and layout primitives.
-- Local digital clock, refreshed at minute boundaries and suspended while hidden.
-- CPU and physical RAM monitoring through Rust/sysinfo, sampled on demand at
-  most once per second. Collection stops while the host is hidden or minimized.
-- Fixed glass treatment; no network dependency for clock or monitoring.
-- Activity pairs a GitHub overview with a contribution calendar,
-  refreshed by a native service every five minutes. Connect through
-  GitHub's browser device flow; credentials and cached counts use Windows DPAPI.
-  Work adds review requests, authored PRs, PRs with failing current checks and assigned
-  issues using the same connection, encrypted cache and five-minute refresh.
-  The `repo` grant includes write access; Aura only reads GitHub data. Existing
-  connections can update permissions without losing Activity on cancellation.
-  See [GitHub setup and validation](docs/github.md).
-- CPU/RAM sparklines use up to 32 actual recent samples, held only in UI memory.
-- Music panel opens Aura Music: a native account/library window and official-player
-  bridge with event-driven Windows media-session selection and transport controls.
-  YouTube account features passed real-account developer validation and remain gated for public release requirements;
-  Spotify still reports coming soon. See [music setup and validation](docs/youtube-music.md).
-- Typed Rust metadata command, protocol validation, structured errors and retry UI.
-- Settings window created on demand and reused while open.
-- Theme tab with Faulty Terminal, Galaxy, Letter Glitch and Pixel Snow.
-- Layout tab with all 6 arrangements of the clock, CPU/RAM group and music panel
-  in the two-column format. Selections update the host instantly and survive restart.
-- Widget definition/instance contracts with clock, system monitor and music-entry components.
-- Scoped Tauri capabilities, local content and restrictive content security policy.
+> **Release status:** Aura is in Windows release-candidate testing. The public installer has not been published yet. The current candidate is unsigned, and YouTube account features remain gated while release requirements are finalized.
 
-Aura is preparing for Windows release-candidate testing. This is not a public
-release: the installer is unsigned, clean-machine acceptance is outstanding,
-and YouTube account features remain gated. Notes, per-widget drag/resize,
-multiple named layouts, startup, native wallpaper blur and desktop-icon-layer
-integration are not implemented.
+## What Aura does
 
-## Quick start on Windows
+- **Clock and system monitor** — local time and date, plus CPU and physical memory readings with short history sparklines.
+- **GitHub Activity** — a contribution calendar, recent contribution summary, and active day statistics.
+- **GitHub Work** — review requests, your pull requests, pull requests with failing checks, and assigned issues.
+- **Music controls** — select a supported Windows browser media session and control playback. Aura Music also provides an account and library window for YouTube Music.
+- **Four animated themes** — Faulty Terminal, Galaxy, Letter Glitch, and Pixel Snow.
+- **Six widget layouts** — place the clock on either side and arrange the system monitor and music panel to suit your desktop.
+- **Separate settings window** — theme and layout previews in an opaque, resizable window.
 
-Install Node **22.18+**, pnpm **11.15.1**, Rust **1.99+** with the
-`x86_64-pc-windows-msvc` toolchain, Microsoft C++ Build Tools with **Desktop
-development with C++** and a Windows SDK, and WebView2 Runtime. Restart the terminal
-after installing tools.
+Theme and layout choices persist across restarts. The host is a 760 × 264 logical-pixel window; its native background is transparent so the desktop shows through around the glass panel.
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/images/aura-activity.png" width="900" alt="Aura's GitHub Activity page with a contribution summary and calendar" />
+  <br />
+  <em>GitHub Activity, shown with illustrative fixture data.</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/aura-settings.png" width="900" alt="Aura Settings showing the four theme choices and live previews" />
+  <br />
+  <em>Choose a theme and preview how it looks across the widgets.</em>
+</p>
+
+Screenshots are captured from the browser preview with mock data. They show Aura's frontend UI; native window transparency and operating-system integration are visible only in the Windows desktop build.
+
+## Windows release
+
+The latest source verification is available in [GitHub Actions](https://github.com/ujjwaluzu/aura/actions/workflows/windows.yml). A release page will be linked here once a Windows installer is ready for public distribution.
+
+The candidate is not a signed public release. Windows may display an unknown-publisher or SmartScreen warning for unsigned installers. Clean-machine install, upgrade, and uninstall acceptance is still required before calling the installer ready for general use. See the [release notes and verification record](docs/releases.md).
+
+## Run from source
+
+Aura's native app builds on Windows. The frontend-only Vite preview is useful for UI work, but it does not provide native controls, Windows transparency, or system integrations.
+
+### Requirements
+
+- Windows 10 or 11, x64.
+- [Node.js](https://nodejs.org/) 22.18 or later and pnpm 11.15.1.
+- [Rust](https://rustup.rs/) 1.99 or later with the `x86_64-pc-windows-msvc` toolchain.
+- [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with **Desktop development with C++** and a Windows SDK.
+- [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
+
+### Start the desktop app
 
 ```powershell
+git clone https://github.com/ujjwaluzu/aura.git
+cd aura
 pnpm.cmd install --frozen-lockfile
 pnpm.cmd desktop:dev
 ```
 
-Use `pnpm.cmd dev` for frontend-only inspection. Native availability is exposed to
-assistive technology; native window controls are disabled. It is a development
-view of the desktop UI, not a separate website.
+Use `pnpm.cmd dev` to run the frontend preview at `http://127.0.0.1:1420/`. Open `http://127.0.0.1:1420/?window=settings` to inspect the settings view. The preview clearly reports that native services are unavailable and does not fabricate working native controls.
+
+### Build a Windows installer
 
 ```powershell
-pnpm.cmd typecheck
-pnpm.cmd lint
-pnpm.cmd format:check
-pnpm.cmd build
-pnpm.cmd native:format
-pnpm.cmd native:check
-pnpm.cmd native:lint
-pnpm.cmd native:test
-pnpm.cmd test:e2e
 pnpm.cmd desktop:build
 ```
 
-For the full release checks, install `cargo-audit` 0.23.0 and run
-`pnpm.cmd verify`. To produce and smoke-test a Windows release candidate, run
-`pnpm.cmd release:candidate`. The installer, SHA-256 manifest, source/toolchain
-record and third-party notices are written under `artifacts/release-candidate/`.
-The smoke test uses a fresh isolated Aura and WebView2 profile, not the normal
-user's saved accounts. See [Windows releases](docs/releases.md).
+The Tauri build creates a per-user NSIS installer under `src-tauri/target/release/bundle/nsis/`. The installed app uses WebView2 and requests its bootstrapper only when the runtime is not already available.
 
-## Structure
+## Development checks
 
-```text
-src/
-  app/                    Window entry and future providers
-  components/
-    ui/                   Shared glass and control primitives
-    settings/             Opaque settings tabs and miniature previews
-    widgets/              Clock, system monitor and music entry
-  features/
-    widget-engine/        Definition, instance, registry and renderer
-    layouts/              Arrangement catalog and future saved-layout contract
-    themes/               Animated theme catalog and theme contract
-    integrations/         Future native adapter boundary
-  hooks/                  Native connection and preferences lifecycle
-  lib/                    Typed Tauri adapter and error handling
-  stores/                 State ownership notes
-  styles/                 Design tokens and shared styles
-  types/                  IPC contracts
-src-tauri/
-  src/
-    commands/             Narrow IPC entry points
-    services/             Native business logic
-    models/               Serialized data and errors
-    database/             Future SQLite boundary
-  capabilities/           Explicit per-window permissions
-  icons/                  Generated Windows/application assets
-  tauri.conf.json         Window, CSP and Windows bundle configuration
-docs/                     Architecture, development, integrations, releases
-tests/                    Browser and optional native WebView smoke tests
-public/                   Local Aura mark; no remote assets
+Run the complete local verification suite with `cargo-audit` 0.23.0 installed:
+
+```powershell
+cargo install cargo-audit --version 0.23.0 --locked
+pnpm.cmd install --frozen-lockfile
+pnpm.cmd exec playwright install chromium
+pnpm.cmd verify
 ```
 
-React 19, TypeScript 5.9, Vite, Tailwind CSS 4 and Lucide React form the UI layer.
-Rust uses Tauri, Serde and sysinfo (only its `system` feature). No optional Tauri
-integration plugins are installed.
-`pnpm-lock.yaml` and `src-tauri/Cargo.lock` pin the resolved dependencies.
+`pnpm.cmd verify` runs formatting, linting, TypeScript and production builds, Rust formatting and Clippy, Rust unit tests, dependency audits, and the Chromium browser suite. GitHub Actions runs this verification on pushes and pull requests.
 
-Read [development](docs/development.md), [architecture](docs/architecture.md),
-[native investigations](docs/native-integrations.md) and [releases](docs/releases.md).
-See [foundation verification](docs/verification.md) for the actual checks and
-known limitations on the development machine.
+To build and smoke-test a release candidate on Windows:
+
+```powershell
+pnpm.cmd release:candidate
+```
+
+The installer, executable, dependency notices, check records, source fingerprint, toolchain record, and SHA-256 sums are written to `artifacts/release-candidate/`. Candidate smoke testing uses a separate temporary Aura and WebView2 profile. See [Windows release instructions](docs/releases.md) and [the verification guide](docs/verification.md).
+
+## Architecture
+
+```text
+React + TypeScript + Vite
+        │ typed, scoped Tauri commands/events
+        ▼
+Tauri 2 desktop shell ── WebView2 widget and settings windows
+        │
+        ▼
+Rust services ── Windows system metrics, secure preferences,
+                  GitHub integration, browser media sessions,
+                  and YouTube Music API access
+```
+
+The frontend is packaged as local static assets; Aura does not require a hosted frontend or application server. Native operating-system access stays in Rust behind typed commands, validation, and per-window Tauri capabilities.
+
+### Repository map
+
+| Path                        | Purpose                                                        |
+| --------------------------- | -------------------------------------------------------------- |
+| `src/app/`                  | Window entry points and widget host composition                |
+| `src/components/`           | Shared UI, settings screens, widgets, and animated backgrounds |
+| `src/features/`             | Theme and layout catalogs, widget contracts, and integrations  |
+| `src/hooks/`                | Native connection, preferences, and UI lifecycle               |
+| `src/lib/` and `src/types/` | Typed frontend/native boundary and IPC models                  |
+| `src-tauri/src/commands/`   | Narrow commands exposed to the frontend                        |
+| `src-tauri/src/services/`   | Windows and provider business logic                            |
+| `src-tauri/capabilities/`   | Per-window permissions                                         |
+| `tests/`                    | Browser suite and opt-in native WebView smoke test             |
+| `docs/`                     | Setup, architecture, integrations, and release procedures      |
+
+## Privacy and integration notes
+
+- The clock and system monitor run locally. Aura has no hosted backend or telemetry service.
+- GitHub credentials and cached account data are protected with Windows DPAPI. Activity and Work refresh independently every five minutes.
+- Aura's GitHub authorization requests `read:user` and `repo`. GitHub's `repo` scope includes write access, but Aura only sends read queries; it does not merge pull requests, submit reviews, edit issues, or rerun workflows.
+- YouTube account features are gated in public builds while Google API distribution requirements are finalized. Browser media-session controls are a separate integration.
+- Supported integrations need an internet connection. The core clock and system monitoring do not.
+
+Read the [GitHub integration guide](docs/github.md), [YouTube Music notes](docs/youtube-music.md), and [native integration research](docs/native-integrations.md) for details.
+
+## Current scope
+
+Aura is an actively developed foundation. Per-widget drag and resize, notes, multiple named layouts, startup behavior, native wallpaper blur, and desktop-icon-layer integration are not implemented. Aura is a transparent top-level widget window, not a window embedded behind desktop icons.
+
+## License
+
+This repository does not currently include a license. Public visibility does not grant permission to reuse or redistribute the code; contact the project owner for licensing information.
