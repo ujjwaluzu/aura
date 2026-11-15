@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "version": "0.1.3-beta.1",
+  "checkedAt": "2026-11-15T16:06:57.8232803Z",
+  "environment": "Windows 11 x64, existing user installation",
+  "sourceCommit": "8e4caebf0466d0a2c175f6c3d7cb1a4e2c8832ec",
+  "localInstallerSha256": "26d02f732a11078c1e3f50bced102515673c8964d5ad908c04f51c9d3b4f472f",
+  "localExecutableSha256": "98990c2d45cf33c31e26bee0cf8d104cd846b0854ae0ac007acbab67efe8975a",
+  "fromVersion": "0.1.2",
+  "settingsPreserved": true,
+  "startupPreserved": true,
+  "installedBinaryMatchesBuild": true,
+  "applicationIdentityPreserved": true,
+  "shortcutIconCorrect": true,
+  "executableIconsMatch": true,
+  "licenseIncluded": true,
+  "packagedNativeIntegrationPassed": true,
+  "startupChecks": [
+    "Installed beta launches visibly and preserves existing startup registration.",
+    "Repeated installed launch reuses the running production instance.",
+    "A changed startup preference survives an installed-app restart.",
+    "Original startup choice and saved theme/layout are restored and survive restart."
+  ],
+  "browserMusicChecks": [
+    "Native Next reaches the browser and retains the selected player; late artwork recovers.",
+    "Artwork-only metadata changes replace the cached image without a title/artist change.",
+    "Full browser restart exceeded the 3-second grace (4683 ms); selection cleared and the new session was successfully selected.",
+    "Native pause and play control the selected real browser audio element."
+  ],
+  "cleanWindowsTesting": "pending",
+  "hostedInstaller": "Built independently from the same application source; its exact binary must pass the publication workflow native test and public checksum validation."
+}

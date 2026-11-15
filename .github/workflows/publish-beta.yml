@@ -73,6 +73,9 @@ jobs:
     if: ${{ always() && (needs.release.result == 'success' || (inputs.pages_only && needs.release.result == 'skipped')) }}
     runs-on: windows-2025
     timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1

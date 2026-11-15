@@ -32,6 +32,8 @@ when upgrading. Open Settings to choose a theme, layout and browser media sessio
   provider requirements. No Google approval is claimed. Windows browser media
   controls remain available; supported actions depend on the selected session.
 - No per-widget drag/resize, notes or desktop-icon-layer integration.
+- If a browser is closed beyond the short reconnect window, select its reopened
+  media session again in Aura.
 
 ## Verification and privacy
 

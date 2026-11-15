@@ -42,6 +42,12 @@ if (before.fingerprint !== after.fingerprint)
 const config = JSON.parse(
   readFileSync(join(root, 'src-tauri/tauri.conf.json'), 'utf8'),
 );
+const localAcceptancePath = join(root, 'docs/beta-local-acceptance.json');
+const localAcceptance = JSON.parse(readFileSync(localAcceptancePath, 'utf8'));
+if (!localAcceptance.passed || localAcceptance.version !== config.version)
+  throw new Error(
+    'Local beta upgrade acceptance must pass before packaging for publication.',
+  );
 const executable = join(root, 'src-tauri/target/release/aura.exe');
 const installer = join(
   root,
@@ -84,10 +90,14 @@ for (const path of [
   join(root, 'artifacts/release-checks/native-smoke.json'),
   join(root, 'artifacts/release-checks/native-stdout.log'),
   join(root, 'artifacts/release-checks/native-stderr.log'),
+  localAcceptancePath,
 ]) {
   if (!existsSync(path))
     throw new Error(`Candidate evidence is missing: ${path}`);
-  copyFileSync(path, join(out, basename(path)));
+  copyFileSync(
+    path,
+    join(out, path === executable ? 'Aura.exe' : basename(path)),
+  );
 }
 const native = JSON.parse(readFileSync(join(out, 'native-smoke.json'), 'utf8'));
 if (!native.passed || native.binarySha256 !== fileHash(executable))
@@ -103,6 +113,7 @@ const files = [
   'native-smoke.json',
   'native-stdout.log',
   'native-stderr.log',
+  'beta-local-acceptance.json',
 ];
 const manifest = {
   channel: 'unsigned public beta',
