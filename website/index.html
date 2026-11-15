@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Aura brings time, system activity, GitHub and browser music controls to your Windows desktop. Download the unsigned Windows beta."
+    />
+    <meta name="theme-color" content="#101412" />
+    <link rel="icon" href="./images/aura.png" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>Aura — A little space for everything.</title>
+    <script type="module" src="./main.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header wrap">
+      <a class="brand" href="./" aria-label="Aura home"
+        ><img src="./images/aura.png" width="36" height="36" alt="" />aura<span
+          class="beta-tag"
+          >BETA</span
+        ></a
+      >
+      <nav aria-label="Main navigation">
+        <a href="#features">Features</a><a href="#themes">Themes</a
+        ><a href="https://github.com/ujjwaluzu/aura">GitHub ↗</a
+        ><a class="nav-download" href="#download"
+          >Get Aura <span aria-hidden="true">↓</span></a
+        >
+      </nav>
+    </header>
+    <main id="main">
+      <section class="hero wrap" aria-labelledby="hero-title">
+        <p class="eyebrow">
+          <span class="status-dot"></span> YOUR DESKTOP, A LITTLE MORE YOU
+        </p>
+        <h1 id="hero-title">A little space<br />for <em>everything.</em></h1>
+        <p class="hero-copy">
+          Your time, your music, your next pull request.<br
+            class="desktop-break"
+          />
+          A considered companion for your Windows desktop.
+        </p>
+        <div class="hero-actions">
+          <a class="button download-link" href="#download"
+            >Download Windows Beta <span aria-hidden="true">↓</span></a
+          ><a class="text-link" href="#features"
+            >Take a closer look <span aria-hidden="true">↗</span></a
+          >
+        </div>
+        <p class="release-detail">
+          Windows x64 · <span data-version>0.1.3-beta.1</span> ·
+          <span data-size>Size available with verified release</span> · Unsigned
+          public beta
+        </p>
+        <div class="desktop-scene">
+          <div class="desktop-topline">
+            <span>AURA / ON YOUR DESKTOP</span
+            ><span>01 — EVERYDAY ESSENTIALS</span>
+          </div>
+          <div class="desktop-orbit" aria-hidden="true"></div>
+          <img
+            class="hero-widget"
+            src="./images/widget-faulty-terminal.png"
+            width="760"
+            height="264"
+            alt="Aura application showing a clock, CPU and RAM activity, and browser music controls in Faulty Terminal theme. Synthetic demonstration data."
+            fetchpriority="high"
+          />
+          <div class="desktop-caption">
+            <span
+              ><span class="status-dot"></span> A quieter kind of desktop
+              companion.</span
+            ><span>Actual app UI · demo data</span>
+          </div>
+        </div>
+        <div class="quick-facts">
+          <span>BUILT FOR WINDOWS</span><span>4 animated themes</span
+          ><span>6 widget layouts</span><span>Open source, MIT licensed</span>
+        </div>
+      </section>
+      <section
+        class="section wrap"
+        id="features"
+        aria-labelledby="features-title"
+      >
+        <div class="section-heading">
+          <p class="eyebrow">LESS SWITCHING. MORE DOING.</p>
+          <h2 id="features-title">
+            The things you check.<br /><span>Right where you are.</span>
+          </h2>
+          <p>A small place for the details that make up your day.</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature feature-clock">
+            <span class="feature-number">01 / STAY IN THE MOMENT</span>
+            <h3>Time, with a little perspective.</h3>
+            <p>
+              Local time and date alongside CPU and memory readings. See your
+              system's activity with live history sparklines.
+            </p>
+            <img
+              src="./images/widget-pixel-snow.png"
+              width="760"
+              height="264"
+              alt="Clock, system readings and music controls in Aura's Pixel Snow theme, using demo data."
+              loading="lazy"
+            />
+          </article>
+          <article class="feature">
+            <span class="feature-number">02 / KEEP YOUR RHYTHM</span>
+            <h3>Your browser. Your soundtrack.</h3>
+            <p>
+              Select a supported Windows browser media session. Play, pause,
+              seek, and use the controls your player makes available.
+            </p>
+            <p class="feature-note">
+              Browser playback works independently of Google account access.
+            </p>
+          </article>
+          <article class="feature feature-github">
+            <div>
+              <span class="feature-number">03 / KEEP WORK IN VIEW</span>
+              <h3>A glance at your GitHub day.</h3>
+              <p>
+                Contributions, review requests, your pull requests, failing
+                checks, and assigned issues. Connect your own GitHub account
+                when you need it.
+              </p>
+            </div>
+            <img
+              src="./images/github-activity.png"
+              width="760"
+              height="264"
+              alt="Aura's GitHub activity view with a synthetic contribution calendar for demo-developer."
+              loading="lazy"
+            />
+          </article>
+        </div>
+      </section>
+      <section
+        class="section themes-section"
+        id="themes"
+        aria-labelledby="themes-title"
+      >
+        <div class="wrap">
+          <div class="section-heading">
+            <p class="eyebrow">FIND YOUR ATMOSPHERE</p>
+            <h2 id="themes-title">
+              Same space.<br /><span>Different state of mind.</span>
+            </h2>
+            <p>
+              Four animated themes. Six layouts. Preferences that stay with you.
+            </p>
+          </div>
+          <div class="theme-picker" role="group" aria-label="Preview a theme">
+            <button
+              type="button"
+              data-theme="faulty-terminal"
+              aria-pressed="true"
+            >
+              <i class="swatch terminal"></i>Faulty Terminal</button
+            ><button type="button" data-theme="galaxy" aria-pressed="false">
+              <i class="swatch galaxy"></i>Galaxy</button
+            ><button
+              type="button"
+              data-theme="letter-glitch"
+              aria-pressed="false"
+            >
+              <i class="swatch glitch"></i>Letter Glitch</button
+            ><button type="button" data-theme="pixel-snow" aria-pressed="false">
+              <i class="swatch snow"></i>Pixel Snow
+            </button>
+          </div>
+          <figure class="theme-preview">
+            <img
+              id="theme-image"
+              src="./images/widget-faulty-terminal.png"
+              width="760"
+              height="264"
+              alt="Aura application in Faulty Terminal theme with synthetic demonstration data."
+              loading="lazy"
+            />
+            <figcaption id="theme-caption" aria-live="polite">
+              Faulty Terminal — Green phosphor, scanlines and interactive
+              glitches.
+            </figcaption>
+          </figure>
+          <div class="settings-row">
+            <img
+              src="./images/settings.png"
+              width="960"
+              height="720"
+              alt="Actual Aura Settings window with four theme choices and live previews."
+              loading="lazy"
+            />
+            <div>
+              <p class="eyebrow">MAKE YOURSELF AT HOME</p>
+              <h3>A setup that feels like yours.</h3>
+              <p>
+                Choose a theme and arrange your clock, system monitor and music
+                panel in Settings. Your choices are saved locally and return
+                when Aura starts.
+              </p>
+              <p class="muted">
+                Screenshots show the real application UI with synthetic
+                demonstration data.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section
+        class="section wrap install-section"
+        id="install"
+        aria-labelledby="install-title"
+      >
+        <div class="section-heading">
+          <p class="eyebrow">A PLACE ON YOUR DESKTOP</p>
+          <h2 id="install-title">Three steps to settle in.</h2>
+        </div>
+        <ol class="install-steps">
+          <li>
+            <span>01</span>
+            <h3>Download the beta</h3>
+            <p>
+              Get the Windows x64 installer below. This early beta is unsigned;
+              Windows may show an unknown-publisher or SmartScreen warning.
+              Review the source and release notes before deciding to install.
+            </p>
+          </li>
+          <li>
+            <span>02</span>
+            <h3>Install for your user</h3>
+            <p>
+              Run the installer. Aura uses Microsoft Edge WebView2; setup
+              downloads its official runtime if needed, so an internet
+              connection may be required.
+            </p>
+          </li>
+          <li>
+            <span>03</span>
+            <h3>Make it yours</h3>
+            <p>
+              Open Settings to choose your theme and layout. Aura enables
+              startup on its first release launch. Turn it off under Settings →
+              General → Start Aura with Windows.
+            </p>
+          </li>
+        </ol>
+      </section>
+      <section
+        class="section wrap"
+        id="download"
+        aria-labelledby="download-title"
+      >
+        <div class="download-panel">
+          <div>
+            <p class="eyebrow">AURA FOR WINDOWS</p>
+            <h2 id="download-title">Make a little room.</h2>
+            <p>A considered space for your desktop widgets.</p>
+            <a
+              class="button download-link"
+              href="https://github.com/ujjwaluzu/aura/releases/tag/v0.1.3-beta.1"
+              >Download Windows Beta <span aria-hidden="true">↓</span></a
+            >
+            <p class="release-detail">
+              <span data-version>0.1.3-beta.1</span> · Windows x64 ·
+              <span data-size>Awaiting verified release metadata</span>
+            </p>
+          </div>
+          <div class="beta-notice">
+            <span class="beta-tag">UNSIGNED PUBLIC BETA</span>
+            <h3>Early days. Out in the open.</h3>
+            <p>
+              Windows 11 is the primary tested environment. Clean-Windows
+              testing is pending. Installation has not been verified on every
+              Windows configuration.
+            </p>
+            <p>
+              Google sign-in and YouTube account/library features are gated in
+              this beta. Windows browser music controls remain available.
+            </p>
+            <a
+              data-release-notes
+              href="https://github.com/ujjwaluzu/aura/releases/tag/v0.1.3-beta.1"
+              >Read the release notes ↗</a
+            >
+          </div>
+          <div class="checksum-row">
+            <a href="./SHA256SUMS.txt">Checksums</a
+            ><a href="./release-manifest.json">Release manifest</a
+            ><code data-checksum
+              >SHA-256 appears after the release is verified.</code
+            >
+          </div>
+        </div>
+      </section>
+      <section class="section wrap faq-section" aria-labelledby="faq-title">
+        <div>
+          <p class="eyebrow">A FEW USEFUL DETAILS</p>
+          <h2 id="faq-title">Before you move in.</h2>
+        </div>
+        <div class="faq-list">
+          <details>
+            <summary>What does “unsigned beta” mean?</summary>
+            <p>
+              The installer has no trusted code-signing certificate. Windows may
+              display an unknown-publisher or SmartScreen warning. This is an
+              early public beta with clean-Windows testing still pending. No
+              signing or provider approval is claimed.
+            </p>
+          </details>
+          <details>
+            <summary>Does Aura start with Windows?</summary>
+            <p>
+              Yes. On its first release launch, Aura enables startup for the
+              current user. The widget opens visibly with your saved theme and
+              layout. Disable this in Settings → General → Start Aura with
+              Windows. Windows Startup apps can override this setting.
+            </p>
+          </details>
+          <details>
+            <summary>Do I need a Google account for music controls?</summary>
+            <p>
+              No. Windows browser media-session controls work independently.
+              Start media in a supported browser, then select its session in
+              Aura. Available controls depend on that session. Google sign-in
+              and YouTube account/library access remain gated pending provider
+              requirements.
+            </p>
+          </details>
+          <details>
+            <summary>What is WebView2, and do I need it?</summary>
+            <p>
+              Aura uses Microsoft's WebView2 Runtime to display its local
+              interface. The installer requests the official runtime only if
+              missing. You can also get it from
+              <a
+                href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/"
+                >Microsoft's WebView2 download page</a
+              >.
+            </p>
+          </details>
+          <details>
+            <summary>What data leaves my computer?</summary>
+            <p>
+              Clock, system metrics, preferences and browser media metadata stay
+              local to Aura. Optional GitHub integration contacts GitHub and
+              stores credentials protected by Windows DPAPI. Aura has no hosted
+              app backend or telemetry. This website adds no tracking, login or
+              cookies; GitHub Pages handles hosting requests under GitHub's
+              privacy policy. Read the
+              <a href="./privacy.html">privacy policy</a> for details.
+            </p>
+          </details>
+          <details>
+            <summary>Where can I report a problem?</summary>
+            <p>
+              Open an
+              <a href="https://github.com/ujjwaluzu/aura/issues"
+                >issue on GitHub</a
+              >
+              with the beta version, Windows version and steps to reproduce.
+              Remove personal data and credentials from screenshots and logs.
+            </p>
+          </details>
+        </div>
+      </section>
+    </main>
+    <footer class="wrap site-footer">
+      <a class="brand" href="./"
+        ><img src="./images/aura.png" width="30" height="30" alt="" />aura</a
+      >
+      <p>A considered space for your desktop.</p>
+      <nav aria-label="Footer">
+        <a href="./privacy.html">Privacy</a
+        ><a href="./music-terms.html">Music terms</a
+        ><a href="https://github.com/ujjwaluzu/aura">Source</a
+        ><a href="https://github.com/ujjwaluzu/aura/issues"
+          >Report an issue ↗</a
+        >
+      </nav>
+      <small>Open source · MIT License · Made for Windows</small>
+    </footer>
+  </body>
+</html>

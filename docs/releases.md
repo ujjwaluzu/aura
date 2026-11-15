@@ -2,8 +2,42 @@
 
 Aura prepares a **per-user NSIS installer** for Windows x64. The repository does
 not publish automatically. Pull requests and pushes to `main` run Windows
-verification; a manually selected workflow run can attach an unsigned candidate
-for testing.
+verification. The manually triggered **Publish unsigned beta and Pages** workflow
+verifies, packages and tests the native app, uploads and checks draft assets,
+publishes `v0.1.3-beta.1` as an unsigned prerelease, downloads the public installer
+without authentication, checks its SHA-256, then builds and deploys GitHub Pages.
+The old `v0.1.0-rc.1` draft is left untouched.
+
+## Publish the approved early beta
+
+Configure the existing Aura-owned OAuth client ID as the repository variable
+`AURA_GITHUB_CLIENT_ID`. This public client identifier is compiled into the app;
+personal credentials, user tokens and Google validation credentials are never
+release inputs. Enable GitHub Pages with **GitHub Actions** as the source.
+Commit source and local acceptance evidence, then dispatch `publish-beta.yml`
+from `main`. The application identity remains `com.projectaura.desktop`.
+
+The workflow installs the official Microsoft WebView2 Evergreen Runtime if
+missing, validating its bootstrapper signature. Native integration failure stops
+publication and retains startup/endpoint diagnostics in the workflow artifact.
+No failure is bypassed or marked successful.
+
+Release assets are `Aura_0.1.3-beta.1_x64-setup.exe`, `SHA256SUMS.txt`,
+`release-manifest.json`, and `Aura-0.1.3-beta.1-evidence.zip`. The manifest includes
+actual installer bytes, hash, source fingerprint, toolchain and gated features.
+The evidence archive contains dependency notices and successful check reports.
+Website download details are generated from the checksum-verified public copy.
+
+If deployment fails after release publication, dispatch the workflow with
+`pages_only=true`. This downloads and verifies the existing versioned public
+assets and retries Pages, without rebuilding or replacing the installer.
+Published assets are never overwritten. A partially uploaded beta draft requires
+inspection before retry; the workflow fails safely instead of clobbering assets.
+
+This early beta deliberately precedes signing and clean-Windows acceptance.
+The [release notes](beta-release-notes.md) disclose unsigned installation,
+pending clean-machine tests, Windows 11 as the primary local test environment,
+and gated Google account/library access. No provider approval is claimed.
 
 ## Build a release candidate
 
@@ -67,11 +101,11 @@ on the destination machine**. Product functionality itself is offline. A fully
 offline installer would need a separately evaluated embedded/offline WebView2
 installation mode and a larger package.
 
-## Before public distribution
+## Before a signed general release
 
 - Code-sign and timestamp the executable and installer with a trusted Windows
   signing identity; never commit signing keys or secrets. An unsigned development
-  candidate can trigger SmartScreen and remains for testing only.
+  beta can trigger SmartScreen; the approved early public beta discloses this.
 - Finalize product ownership, application identity, support policy and licensing.
   Audit dependency licenses and security advisories; keep the WebView runtime
   support policy explicit.
@@ -85,7 +119,7 @@ installation mode and a larger package.
 - Test preservation of the versioned theme/layout preferences during upgrades.
   Back up local data before future schema migrations and test rollback.
 - Produce hashes, release notes and an inventory of dependencies/toolchain
-  versions. Publishing infrastructure belongs to a separate later phase.
+  versions. The manual beta workflow retains these records with every installer.
 
 MSI can be evaluated later if enterprise deployment requires it. This foundation
 uses NSIS only, avoiding an unnecessary second installer path and MSI's additional

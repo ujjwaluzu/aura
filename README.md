@@ -19,14 +19,14 @@
 
 Aura is a native Windows desktop application built with **Tauri 2, Rust, React, and TypeScript**. Its small, frameless widget host sits over the desktop, while a separate settings window lets you choose a visual theme and widget layout.
 
-> **Release status:** Aura is in Windows release-candidate testing. The public installer has not been published yet. The current candidate is unsigned, and YouTube account features remain gated while release requirements are finalized.
+> **Unsigned public beta:** Aura 0.1.3-beta.1 is the early Windows x64 beta. [Visit the website](https://ujjwaluzu.github.io/aura/) or [download the versioned installer](https://github.com/ujjwaluzu/aura/releases/download/v0.1.3-beta.1/Aura_0.1.3-beta.1_x64-setup.exe). Windows 11 is the primary tested environment; clean-Windows testing is pending. Google sign-in and YouTube account/library features remain gated.
 
 ## What Aura does
 
 - **Clock and system monitor**: local time and date, plus CPU and physical memory readings with short history sparklines.
 - **GitHub Activity**: a contribution calendar, recent contribution summary, and active day statistics.
 - **GitHub Work**: review requests, your pull requests, pull requests with failing checks, and assigned issues.
-- **Music controls**: select a supported Windows browser media session and control playback. Aura Music also provides an account and library window for YouTube Music.
+- **Music controls**: select a supported Windows browser media session and control playback. Google account and YouTube library features remain gated in this beta.
 - **Four animated themes**: Faulty Terminal, Galaxy, Letter Glitch, and Pixel Snow.
 - **Six widget layouts**: place the clock on either side and arrange the system monitor and music panel to suit your desktop.
 - **Separate settings window**: theme and layout previews in an opaque, resizable window.
@@ -51,9 +51,7 @@ Screenshots captured from the running Windows app, including the actual widget, 
 
 ## Windows release
 
-The latest source verification is available in [GitHub Actions](https://github.com/ujjwaluzu/aura/actions/workflows/windows.yml). A release page will be linked here once a Windows installer is ready for public distribution.
-
-The candidate is not a signed public release. Windows may display an unknown-publisher or SmartScreen warning for unsigned installers. Clean-machine install, upgrade, and uninstall acceptance is still required before calling the installer ready for general use. See the [release notes and verification record](docs/releases.md).
+Download [Aura 0.1.3-beta.1](https://github.com/ujjwaluzu/aura/releases/tag/v0.1.3-beta.1), an **unsigned public beta**, with checksums, a release manifest and verification evidence. Windows may display an unknown-publisher or SmartScreen warning. Clean-Windows installation testing remains pending; this beta is not claimed to install on every Windows configuration. See the [beta release notes](docs/beta-release-notes.md) and [release procedure](docs/releases.md).
 
 ## Run from source
 

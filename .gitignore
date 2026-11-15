@@ -1,5 +1,9 @@
 node_modules/
 dist/
+website/dist/
+website/public/release.json
+website/public/SHA256SUMS.txt
+website/public/release-manifest.json
 .pnpm-store/
 src-tauri/target/
 src-tauri/gen/

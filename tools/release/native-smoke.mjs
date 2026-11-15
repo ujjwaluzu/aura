@@ -1,5 +1,10 @@
 import { execFileSync, spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import {
+  mkdirSync,
+  writeFileSync,
+  existsSync,
+  createWriteStream,
+} from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from '@playwright/test';
 import { fileHash, root, runPnpmAsync } from './common.mjs';
@@ -22,10 +27,13 @@ const startupState = () =>
     { encoding: 'utf8', windowsHide: true },
   ).trim();
 const startupBefore = startupState();
-const directory = join(root, 'artifacts/release-checks');
+const directory =
+  process.env.AURA_NATIVE_OUTPUT ?? join(root, 'artifacts/release-checks');
 const profile = join(directory, 'isolated-profile');
 const report = join(directory, 'native-smoke.json');
-const binary = join(root, 'src-tauri/target/release/aura.exe');
+const binary =
+  process.env.AURA_NATIVE_BINARY ??
+  join(root, 'src-tauri/target/release/aura.exe');
 if (!existsSync(binary))
   throw new Error(
     'Build the Windows release executable before running the native smoke test.',
@@ -47,10 +55,18 @@ const probe = await import('node:net').then(
 );
 const endpoint = `http://127.0.0.1:${probe}`;
 const startedAt = new Date().toISOString();
+const stdout = createWriteStream(join(directory, 'native-stdout.log'));
+const stderr = createWriteStream(join(directory, 'native-stderr.log'));
+const diagnostics = {
+  endpoint,
+  attempts: 0,
+  lastEndpointError: null,
+  spawnError: null,
+};
 const child = spawn(binary, ['--isolated-test-profile'], {
   cwd: root,
   windowsHide: true,
-  stdio: 'ignore',
+  stdio: ['ignore', 'pipe', 'pipe'],
   env: {
     ...process.env,
     AURA_TEST_PROFILE: join(profile, 'app-data'),
@@ -58,27 +74,38 @@ const child = spawn(binary, ['--isolated-test-profile'], {
     WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${probe} --remote-debugging-address=127.0.0.1`,
   },
 });
+child.stdout.pipe(stdout);
+child.stderr.pipe(stderr);
+child.once('error', (error) => {
+  diagnostics.spawnError = error.message;
+});
 let passed = false;
 let failure;
 try {
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
+    if (diagnostics.spawnError) throw new Error(diagnostics.spawnError);
     if (child.exitCode !== null)
       throw new Error(
         `Aura exited before its WebView became available (${child.exitCode}).`,
       );
     try {
+      diagnostics.attempts++;
       const response = await fetch(`${endpoint}/json/version`, {
         signal: AbortSignal.timeout(1000),
       });
       if (response.ok) break;
-    } catch {
-      // The WebView endpoint refuses connections until Aura starts.
+    } catch (error) {
+      diagnostics.lastEndpointError = String(error.cause ?? error);
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   const version = await fetch(`${endpoint}/json/version`, {
     signal: AbortSignal.timeout(2000),
+  }).catch((error) => {
+    throw new Error(
+      `WebView2 CDP unavailable after ${diagnostics.attempts} attempts: ${error.cause ?? error}. Check WebView2 runtime and native-stderr.log.`,
+    );
   });
   if (!version.ok)
     throw new Error(
@@ -140,6 +167,7 @@ try {
     profileIsolation:
       'explicit process-local Aura profile and separate WebView2 data directory',
     startupUntouched: startupState() === startupBefore,
+    diagnostics: { ...diagnostics, pid: child.pid, exitCode: child.exitCode },
     ...(failure ? { failure } : {}),
   };
   writeFileSync(report, `${JSON.stringify(state, null, 2)}\n`);

@@ -1,0 +1,9 @@
+:root {
+  --bg: #101412;
+  --text: #edf1eb;
+  --muted: #a3afa6;
+  --mint: #acf2c7;
+  --line: #2b352e;
+  --mono: 'Cascadia Code', 'SFMono-Regular', Consolas, monospace;
+  color-scheme: dark;
+}

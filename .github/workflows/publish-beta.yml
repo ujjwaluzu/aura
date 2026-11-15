@@ -1,0 +1,110 @@
+name: Publish unsigned beta and Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      pages_only:
+        description: Retry website deployment using the existing published beta (never rebuild or replace installer)
+        type: boolean
+        default: false
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aura-beta-publication
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: ${{ !inputs.pages_only }}
+    runs-on: windows-2025
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    env:
+      AURA_GITHUB_CLIENT_ID: ${{ vars.AURA_GITHUB_CLIENT_ID }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Require main and Aura-owned OAuth configuration
+        shell: pwsh
+        run: |
+          if ('${{ github.ref }}' -ne 'refs/heads/main') { throw 'Publish only from main.' }
+          if (-not $env:AURA_GITHUB_CLIENT_ID) { throw 'Set the Aura-owned AURA_GITHUB_CLIENT_ID repository variable.' }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22.18.0
+      - run: npm install --global pnpm@11.15.1
+      - name: Install Rust and advisory scanner
+        shell: pwsh
+        run: |
+          rustup toolchain install 1.99.1 --profile minimal --component rustfmt --component clippy --target x86_64-pc-windows-msvc
+          rustup default 1.99.1-x86_64-pc-windows-msvc
+          cargo install cargo-audit --version 0.23.0 --locked
+          cargo audit update-db
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install chromium
+      - name: Ensure official WebView2 runtime is available
+        shell: pwsh
+        run: ./tools/release/ensure-webview2.ps1
+      - name: Verify all repository and website checks
+        run: pnpm verify
+      - name: Package and require native integration test
+        run: pnpm release:candidate --reuse-verification
+      - name: Stage draft assets and verify uploaded bytes
+        run: pnpm release:publish stage
+      - name: Publish unsigned prerelease
+        run: pnpm release:publish publish
+      - name: Preserve diagnostics and verification
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: beta-verification-${{ github.run_id }}
+          path: |
+            artifacts/release-checks/
+            artifacts/public-release/
+          retention-days: 30
+          if-no-files-found: warn
+
+  website:
+    needs: release
+    if: ${{ always() && (needs.release.result == 'success' || (inputs.pages_only && needs.release.result == 'skipped')) }}
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22.18.0
+      - run: npm install --global pnpm@11.15.1
+      - run: pnpm install --frozen-lockfile
+      - name: Verify published prerelease and anonymous installer download
+        run: pnpm release:publish verify-public
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Build download page from verified release manifest
+        run: pnpm website:build
+      - run: pnpm exec playwright install chromium
+      - name: Test phone, tablet and desktop layouts
+        run: pnpm website:test
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: website/dist
+
+  deploy:
+    needs: website
+    if: ${{ always() && needs.website.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages after release publication
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

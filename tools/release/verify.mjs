@@ -13,6 +13,8 @@ try {
     ['format:check'],
     ['lint'],
     ['build'],
+    ['website:build', '--preview'],
+    ['website:test'],
     ['native:format'],
     ['native:lint'],
     ['native:test'],

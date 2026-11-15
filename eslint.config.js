@@ -8,6 +8,7 @@ export default tseslint.config(
   {
     ignores: [
       'dist',
+      'website/dist',
       'node_modules',
       '.pnpm-store',
       'src-tauri/target',
@@ -23,6 +24,10 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   { languageOptions: { globals: globals.node } },
+  {
+    files: ['website/**/*.js'],
+    languageOptions: { globals: globals.browser },
+  },
   {
     files: ['src/**/*.{ts,tsx}'],
     languageOptions: { globals: globals.browser },

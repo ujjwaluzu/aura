@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
@@ -81,6 +82,8 @@ for (const path of [
   join(root, 'src-tauri/Cargo.lock'),
   checksPath,
   join(root, 'artifacts/release-checks/native-smoke.json'),
+  join(root, 'artifacts/release-checks/native-stdout.log'),
+  join(root, 'artifacts/release-checks/native-stderr.log'),
 ]) {
   if (!existsSync(path))
     throw new Error(`Candidate evidence is missing: ${path}`);
@@ -98,9 +101,11 @@ const files = [
   'Cargo.lock',
   'verification.json',
   'native-smoke.json',
+  'native-stdout.log',
+  'native-stderr.log',
 ];
 const manifest = {
-  channel: 'Windows release candidate for testing',
+  channel: 'unsigned public beta',
   product: config.productName,
   version: config.version,
   architecture: 'x86_64-pc-windows-msvc',
@@ -123,6 +128,7 @@ const manifest = {
   },
   installer: {
     name: basename(installer),
+    sizeBytes: statSync(installer).size,
     sha256: fileHash(installer),
     authenticodeStatus: execFileSync(
       'powershell.exe',
@@ -139,6 +145,12 @@ const manifest = {
     readFileSync(join(root, 'src-tauri/music-release-gate.json'), 'utf8'),
   ),
   verifiedExecutableSha256: native.binarySha256,
+  knownLimitations: [
+    'Unsigned installer',
+    'Clean-Windows testing pending',
+    'Google account and library access gated',
+    'Windows 11 is the primary locally tested environment',
+  ],
   files: Object.fromEntries(
     files.map((name) => [name, fileHash(join(out, name))]),
   ),
