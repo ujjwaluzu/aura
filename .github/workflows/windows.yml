@@ -37,6 +37,8 @@ jobs:
         run: pnpm exec playwright install chromium
       - name: Install Rust advisory scanner
         run: cargo install cargo-audit --version 0.23.0 --locked
+      - name: Update Rust advisory database
+        run: cargo audit update-db
       - name: Verify source
         run: pnpm verify
       - name: Build Windows release candidate
