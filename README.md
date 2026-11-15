@@ -86,6 +86,12 @@ pnpm.cmd desktop:build
 
 The Tauri build creates a per-user NSIS installer under `src-tauri/target/release/bundle/nsis/`. The installed app uses WebView2 and requests its bootstrapper only when the runtime is not already available.
 
+Aura enables startup for the current Windows user on its first release launch.
+Use **Settings → General → Start Aura with Windows** to turn this off. The widget
+opens visibly at sign-in with your saved theme and layout. Windows Startup apps
+can override this registration. Development and isolated tests leave startup
+settings untouched. See [Windows startup](docs/windows-startup.md).
+
 ## Development checks
 
 Run the complete local verification suite with `cargo-audit` 0.23.0 installed:
@@ -150,7 +156,7 @@ Read the [GitHub integration guide](docs/github.md), [YouTube Music notes](docs/
 
 ## Current scope
 
-Aura is an actively developed foundation. Per-widget drag and resize, notes, multiple named layouts, startup behavior, native wallpaper blur, and desktop-icon-layer integration are not implemented. Aura is a transparent top-level widget window, not a window embedded behind desktop icons.
+Aura is an actively developed foundation. Per-widget drag and resize, notes, multiple named layouts, native wallpaper blur, and desktop-icon-layer integration are not implemented. Aura is a transparent top-level widget window, not a window embedded behind desktop icons.
 
 ## License
 

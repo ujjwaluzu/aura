@@ -1,5 +1,11 @@
 ﻿import { useEffect, useState, type KeyboardEvent } from 'react';
-import { Check, LayoutTemplate, Music2, Palette } from 'lucide-react';
+import {
+  Check,
+  LayoutTemplate,
+  Music2,
+  Palette,
+  Settings2,
+} from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
 import { themes } from '../../features/themes/catalog';
@@ -13,12 +19,14 @@ import {
 } from '../../lib/native';
 import { WidgetPreview } from './WidgetPreview';
 import { MusicWorkspace } from '../music/MusicWorkspace';
+import { GeneralSettings } from './GeneralSettings';
 
-const tabs = ['theme', 'layout', 'music'] as const;
+const tabs = ['general', 'theme', 'layout', 'music'] as const;
 function initialDestination(): SettingsDestination {
   const params = new URLSearchParams(location.search);
   const value = params.get('destination');
   return [
+    'general',
     'theme',
     'layout',
     'music-player',
@@ -34,7 +42,9 @@ function initialDestination(): SettingsDestination {
 export function Settings() {
   const initial = initialDestination();
   const [tab, setTab] = useState<(typeof tabs)[number]>(
-    initial.startsWith('music-') ? 'music' : (initial as 'theme' | 'layout'),
+    initial.startsWith('music-')
+      ? 'music'
+      : (initial as 'general' | 'theme' | 'layout'),
   );
   const [section, setSection] = useState<MusicSection>(
     initial.startsWith('music-')
@@ -55,7 +65,7 @@ export function Settings() {
         if (payload.startsWith('music-')) {
           setTab('music');
           setSection(payload.slice(6) as MusicSection);
-        } else setTab(payload as 'theme' | 'layout');
+        } else setTab(payload as 'general' | 'theme' | 'layout');
       },
     )
       .then((unlisten) => {
@@ -73,11 +83,12 @@ export function Settings() {
     event.preventDefault();
     const next =
       event.key === 'Home'
-        ? 'theme'
+        ? tabs[0]
         : event.key === 'End'
           ? 'music'
           : tabs[
-              (tabs.indexOf(tab) + (event.key === 'ArrowRight' ? 1 : 2)) %
+              (tabs.indexOf(tab) +
+                (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) %
                 tabs.length
             ]!;
     setTab(next);
@@ -109,7 +120,9 @@ export function Settings() {
             tabIndex={tab === id ? 0 : -1}
             onClick={() => setTab(id)}
           >
-            {id === 'theme' ? (
+            {id === 'general' ? (
+              <Settings2 size={16} />
+            ) : id === 'theme' ? (
               <Palette size={16} />
             ) : id === 'layout' ? (
               <LayoutTemplate size={16} />
@@ -120,6 +133,16 @@ export function Settings() {
           </button>
         ))}
       </div>
+      <section
+        className="settings-scroll settings-general"
+        hidden={tab !== 'general'}
+        id="panel-general"
+        role="tabpanel"
+        aria-labelledby="tab-general"
+        tabIndex={0}
+      >
+        {tab === 'general' && <GeneralSettings />}
+      </section>
       <section
         className="settings-scroll"
         hidden={tab !== 'theme'}

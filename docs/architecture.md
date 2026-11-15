@@ -25,7 +25,7 @@ preview does not fabricate a successful native response.
 | Label         | Creation               | Purpose                        | Close behaviour                     |
 | ------------- | ---------------------- | ------------------------------ | ----------------------------------- |
 | `widget-host` | On launch              | Transparent foundation surface | Exit the app and close all windows  |
-| `settings`    | Rust command on demand | Opaque Theme and Layout tabs   | Destroy settings only; host remains |
+| `settings`    | Rust command on demand | General, Theme, Layout, Music  | Destroy settings only; host remains |
 
 Only the host is frameless and uses a transparent native background plus transparent
 HTML/body/root surfaces. The inset glass panel supplies its own subtle border and

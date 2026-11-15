@@ -29,7 +29,8 @@ export async function getFoundationInfo(): Promise<FoundationInfo> {
 }
 
 export type MusicSection = 'player' | 'search' | 'playlists' | 'liked';
-export type SettingsDestination = 'theme' | 'layout' | `music-${MusicSection}`;
+export type SettingsDestination =
+  'general' | 'theme' | 'layout' | `music-${MusicSection}`;
 export async function openSettings(
   destination?: SettingsDestination,
 ): Promise<void> {

@@ -4,6 +4,7 @@ use tauri::{AppHandle, Emitter, Manager, WebviewWindow, WebviewWindowBuilder};
 #[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum SettingsDestination {
+    General,
     Theme,
     Layout,
     MusicPlayer,
@@ -14,6 +15,7 @@ pub enum SettingsDestination {
 impl SettingsDestination {
     fn query(self) -> &'static str {
         match self {
+            Self::General => "general",
             Self::Theme => "theme",
             Self::Layout => "layout",
             Self::MusicPlayer => "music-player",
@@ -97,6 +99,7 @@ mod tests {
     #[test]
     fn destinations_are_closed_and_match_urls() {
         for destination in [
+            SettingsDestination::General,
             SettingsDestination::Theme,
             SettingsDestination::Layout,
             SettingsDestination::MusicPlayer,

@@ -13,6 +13,7 @@ export default defineConfig({
         'github.spec.ts',
         'github-work.spec.ts',
         'production.spec.ts',
+        'startup.spec.ts',
       ],
   fullyParallel: !native,
   forbidOnly: Boolean(process.env.CI),

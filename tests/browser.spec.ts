@@ -500,7 +500,7 @@ test('settings tabs support keyboard navigation', async ({ page }) => {
   await expect(page.locator('.layout-option')).toHaveCount(layouts.length);
   await page.keyboard.press('Home');
   await expect(
-    page.getByRole('tab', { name: 'Theme', exact: true }),
+    page.getByRole('tab', { name: 'General', exact: true }),
   ).toBeFocused();
 });
 

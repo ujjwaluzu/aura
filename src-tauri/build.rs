@@ -36,6 +36,8 @@ fn main() {
             "get_system_snapshot",
             "get_preferences",
             "set_preferences",
+            "get_startup_status",
+            "set_startup_enabled",
             "open_music",
             "music_account_status",
             "music_connect",

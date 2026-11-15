@@ -126,5 +126,5 @@ The YouTube Music account and media implementation is described in
 [music setup and validation](youtube-music.md); its public account gate remains
 closed pending provider and clean-machine acceptance; real-account API validation
 passed (see the linked verification record). Spotify, weather, notes, multiple
-named layouts, startup registration and desktop-icon-layer integration remain
+named layouts and desktop-icon-layer integration remain
 unimplemented. Core features and local preferences work offline.

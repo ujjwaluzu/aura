@@ -39,8 +39,9 @@ current source fingerprint.
 See [current release-candidate verification](windows-release-candidate-verification.md)
 for the latest Windows check results and artifact hashes.
 
-The Rust advisory scan reports the Linux-only GTK `glib` advisory and an
-unmaintained macro crate in the cross-platform lockfile. The Windows target
+The Rust advisory scan reports the Linux-only GTK `glib` advisory, unmaintained
+D-Bus crates from the single-instance plugin, and an unused unmaintained macro
+crate in the cross-platform lockfile. The Windows target
 dependency graph is checked to exclude both; any new or changed advisory fails
 the audit step. The JavaScript lockfile pins the patched `minimatch` release.
 

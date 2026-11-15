@@ -72,6 +72,46 @@ html.settings-document,
   color: var(--color-secondary);
   font-size: 12px;
 }
+.settings-app .settings-general {
+  overflow-y: auto;
+}
+.startup-card {
+  padding: 18px;
+  border: 1px solid #303540;
+  border-radius: 10px;
+  background: #191d24;
+}
+.startup-card > p {
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--color-secondary);
+}
+.startup-card .startup-error {
+  color: var(--color-error);
+}
+.startup-card > button {
+  margin-top: 12px;
+}
+.settings-app .startup-card .toggle {
+  flex-shrink: 0;
+  justify-content: flex-start;
+  width: 44px;
+  height: 26px;
+  min-height: 26px;
+  padding: 3px;
+  border-radius: 20px;
+}
+.settings-app .startup-card .toggle[aria-checked='true'] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+.startup-card .toggle span {
+  width: 18px;
+  height: 18px;
+}
+.startup-card .toggle[aria-checked='true'] span {
+  transform: translateX(18px);
+}
 .theme-grid,
 .layout-grid {
   display: grid;

@@ -4,6 +4,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
+pub fn production_integration(development: bool, isolated: bool) -> bool {
+    !development && !isolated
+}
+
 /// A process-local test profile prevents installer smoke tests from opening real accounts.
 /// Both the explicit launch switch and an existing absolute directory are required.
 pub fn test_profile<'a>(
@@ -35,6 +39,13 @@ pub fn test_profile<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn development_and_isolated_profiles_skip_windows_integration() {
+        assert!(production_integration(false, false));
+        for (development, isolated) in [(true, false), (false, true), (true, true)] {
+            assert!(!production_integration(development, isolated));
+        }
+    }
     #[test]
     fn normal_launch_uses_the_application_profile() {
         assert_eq!(

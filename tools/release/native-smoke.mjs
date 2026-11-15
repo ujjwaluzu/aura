@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from '@playwright/test';
@@ -6,6 +6,22 @@ import { fileHash, root, runPnpmAsync } from './common.mjs';
 
 if (process.platform !== 'win32')
   throw new Error('The packaged WebView smoke test runs on Windows.');
+const startupState = () =>
+  execFileSync(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      `
+  $run = (Get-ItemProperty -LiteralPath 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -ErrorAction SilentlyContinue).Aura
+  $approved = (Get-ItemProperty -LiteralPath 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run' -ErrorAction SilentlyContinue).Aura
+  [ordered]@{run=$run; approved=$approved} | ConvertTo-Json -Compress
+`,
+    ],
+    { encoding: 'utf8', windowsHide: true },
+  ).trim();
+const startupBefore = startupState();
 const directory = join(root, 'artifacts/release-checks');
 const profile = join(directory, 'isolated-profile');
 const report = join(directory, 'native-smoke.json');
@@ -79,9 +95,12 @@ try {
     ],
     {
       AURA_NATIVE_CDP: endpoint,
+      AURA_EXPECT_ISOLATED: '1',
       AURA_TEST_OUTPUT: join(directory, 'native-browser'),
     },
   );
+  if (existsSync(join(profile, 'app-data/startup-initialized-v1')))
+    throw new Error('Isolated smoke test unexpectedly initialized startup.');
   passed = true;
 } catch (error) {
   failure = error instanceof Error ? error.message : String(error);
@@ -109,6 +128,10 @@ try {
     ]);
     if (child.exitCode === null) child.kill();
   }
+  if (startupState() !== startupBefore) {
+    passed = false;
+    failure = 'The isolated smoke test changed the real Windows startup state.';
+  }
   const state = {
     passed,
     binarySha256: fileHash(binary),
@@ -116,6 +139,7 @@ try {
     completedAt: new Date().toISOString(),
     profileIsolation:
       'explicit process-local Aura profile and separate WebView2 data directory',
+    startupUntouched: startupState() === startupBefore,
     ...(failure ? { failure } : {}),
   };
   writeFileSync(report, `${JSON.stringify(state, null, 2)}\n`);

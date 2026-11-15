@@ -6,14 +6,55 @@ use std::sync::Arc;
 use tauri::Manager;
 
 pub fn run() {
-    tauri::Builder::default()
-        .setup(|app| {
-            let arguments: Vec<_> = std::env::args_os().collect();
-            let profile = services::profile::test_profile(
-                arguments.iter().map(|argument| argument.as_os_str()),
-                std::env::var_os("AURA_TEST_PROFILE").as_deref(),
-            )?
-            .or_else(|| app.path().app_config_dir().ok());
+    // Validate isolation before registering plugins: a malformed test launch
+    // must never acquire the production lock or touch startup registration.
+    let arguments: Vec<_> = std::env::args_os().collect();
+    let isolated_profile = services::profile::test_profile(
+        arguments.iter().map(|argument| argument.as_os_str()),
+        std::env::var_os("AURA_TEST_PROFILE").as_deref(),
+    )
+    .expect("Aura test profile is invalid");
+    let production = services::profile::production_integration(
+        cfg!(debug_assertions),
+        isolated_profile.is_some(),
+    );
+    let builder = tauri::Builder::default();
+    #[cfg(windows)]
+    let builder = if production {
+        // This plugin must be first so a second process exits before setup.
+        builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
+            if let Some(host) = app.get_webview_window("widget-host") {
+                for result in [host.unminimize(), host.show(), host.set_focus()] {
+                    if let Err(error) = result {
+                        eprintln!("Aura could not restore its existing widget: {error}");
+                    }
+                }
+            }
+        }))
+    } else {
+        builder
+    };
+    builder
+        .setup(move |app| {
+            let profile = isolated_profile
+                .clone()
+                .or_else(|| app.path().app_config_dir().ok());
+            let mut registration: Option<Box<dyn services::startup::Registration>> = None;
+            #[cfg(windows)]
+            if production {
+                app.handle().plugin(
+                    tauri_plugin_autostart::Builder::new()
+                        .app_name("Aura")
+                        .build(),
+                )?;
+                registration = Some(Box::new(services::startup::WindowsRegistration(
+                    app.handle().clone(),
+                )));
+            }
+            app.manage(Arc::new(services::startup::StartupService::new(
+                profile.clone(),
+                registration,
+            )));
             app.manage(Arc::new(services::preferences::PreferencesStore::load(
                 profile.clone(),
             )));
@@ -42,6 +83,8 @@ pub fn run() {
             commands::system_monitor::get_system_snapshot,
             commands::preferences::get_preferences,
             commands::preferences::set_preferences,
+            commands::startup::get_startup_status,
+            commands::startup::set_startup_enabled,
             commands::windows::open_music,
             commands::music::music_account_status,
             commands::music::music_connect,

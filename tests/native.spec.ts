@@ -65,6 +65,37 @@ test('Settings permissions, navigation reuse, playback events and preferences ov
     await expect(
       settings.getByRole('heading', { name: 'Settings', exact: true }),
     ).toBeVisible();
+    await invoke(host, 'open_settings', { destination: 'general' });
+    await expect(
+      settings.getByRole('tab', { name: 'General', exact: true }),
+    ).toHaveAttribute('aria-selected', 'true');
+    if (process.env.AURA_EXPECT_ISOLATED) {
+      expect(await invoke(settings, 'get_startup_status')).toMatchObject({
+        available: false,
+        enabled: false,
+      });
+      expect(
+        await invoke(settings, 'set_startup_enabled', { enabled: true }, true),
+      ).toMatchObject({ code: 'STARTUP_UNAVAILABLE' });
+      await expect(
+        settings.getByRole('switch', { name: 'Start Aura with Windows' }),
+      ).toBeDisabled();
+    }
+    for (const command of ['get_startup_status', 'set_startup_enabled']) {
+      expect(
+        JSON.stringify(await invoke(host, command, { enabled: true }, true)),
+      ).toMatch(/not allowed|denied/i);
+    }
+    for (const command of [
+      'plugin:autostart|enable',
+      'plugin:autostart|disable',
+      'plugin:autostart|is_enabled',
+    ]) {
+      expect(JSON.stringify(await invoke(settings, command, {}, true))).toMatch(
+        /not allowed|denied|not found/i,
+      );
+    }
+    await invoke(host, 'open_music');
     await expect(
       settings.getByRole('button', { name: 'Playlists', exact: true }),
     ).toHaveAttribute('aria-current', 'page');

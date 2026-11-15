@@ -2,8 +2,9 @@
 
 CPU/RAM monitoring and the Windows media-session bridge are implemented. YouTube
 Music account features remain behind a validation gate; see
-[music setup and validation](youtube-music.md). Startup and Explorer reparenting
-remain planned.
+[music setup and validation](youtube-music.md). Current-user Windows startup is
+implemented; see [Windows startup](windows-startup.md). Explorer reparenting
+remains planned.
 
 ## CPU and RAM
 
