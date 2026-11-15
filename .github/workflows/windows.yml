@@ -29,7 +29,7 @@ jobs:
       - name: Install Rust toolchain
         shell: pwsh
         run: |
-          rustup toolchain install 1.99.1 --profile minimal --target x86_64-pc-windows-msvc
+          rustup toolchain install 1.99.1 --profile minimal --component rustfmt --component clippy --target x86_64-pc-windows-msvc
           rustup default 1.99.1-x86_64-pc-windows-msvc
       - name: Install locked JavaScript dependencies
         run: pnpm install --frozen-lockfile
