@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "pnpm.cmd dev",
     "devUrl": "http://127.0.0.1:1420",
-    "beforeBuildCommand": "pnpm.cmd build",
+    "beforeBuildCommand": "pnpm.cmd licenses:generate && pnpm.cmd build",
     "frontendDist": "../dist"
   },
   "app": {

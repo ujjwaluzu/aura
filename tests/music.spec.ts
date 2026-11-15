@@ -1266,6 +1266,7 @@ test('volume retries stop when the player leaves the visible widget page', async
   page,
 }) => {
   await page.clock.install();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await mockMusic(page, {
     selected: true,
     source: 'Brave',
@@ -1292,6 +1293,7 @@ test('unsupported volume controls do not retry indefinitely', async ({
   page,
 }) => {
   await page.clock.install();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await mockMusic(page, {
     selected: true,
     source: 'Spotify',
@@ -1319,6 +1321,7 @@ test('switching players cancels the previous browser volume retry', async ({
   page,
 }) => {
   await page.clock.install();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await mockMusic(page, { selected: true, source: 'Brave', volumeError: true });
   await page.goto('/');
   await expect(

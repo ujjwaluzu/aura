@@ -1,3 +1,7 @@
 # Single application. Allow only the build script required by Vite's bundler.
 allowBuilds:
   esbuild: true
+minimumReleaseAgeExclude:
+  - minimatch@11.0.1
+overrides:
+  minimatch: ^11.0.1

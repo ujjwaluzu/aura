@@ -53,6 +53,37 @@ input:focus-visible {
   padding: var(--space-4);
   width: 100%;
 }
+.app-recovery {
+  height: calc(100% - 20px);
+  margin: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #365b3c;
+  border-radius: 18px;
+  background: #0b130e;
+  color: #f0ffed;
+  text-align: center;
+}
+.app-recovery p {
+  color: #cfe5c9;
+  font-size: 12px;
+}
+.app-recovery > div {
+  display: flex;
+  gap: 8px;
+}
+.app-recovery button {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid #a7ef9e;
+  border-radius: 7px;
+  background: #18351c;
+  color: #f0ffed;
+}
 .glass-surface {
   background:
     linear-gradient(135deg, var(--glass-highlight), transparent 55%),

@@ -8,18 +8,21 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
+            let arguments: Vec<_> = std::env::args_os().collect();
+            let profile = services::profile::test_profile(
+                arguments.iter().map(|argument| argument.as_os_str()),
+                std::env::var_os("AURA_TEST_PROFILE").as_deref(),
+            )?
+            .or_else(|| app.path().app_config_dir().ok());
             app.manage(Arc::new(services::preferences::PreferencesStore::load(
-                app.path().app_config_dir().ok(),
+                profile.clone(),
             )));
             app.manage(Arc::new(services::music::MusicService::new(
-                app.path().app_config_dir().ok(),
+                profile.clone(),
             )));
             app.manage(
-                services::github::GithubService::new(
-                    app.path().app_config_dir().ok(),
-                    app.handle().clone(),
-                )
-                .map_err(|e| std::io::Error::other(e.message))?,
+                services::github::GithubService::new(profile, app.handle().clone())
+                    .map_err(|e| std::io::Error::other(e.message))?,
             );
             Ok(())
         })

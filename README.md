@@ -30,15 +30,17 @@ This repository contains only the desktop application.
   Spotify still reports coming soon. See [music setup and validation](docs/youtube-music.md).
 - Typed Rust metadata command, protocol validation, structured errors and retry UI.
 - Settings window created on demand and reused while open.
-- Theme tab with Violet, Ocean, Jade, Amber and Rose previews.
-- Layout tab with all 12 arrangements of the clock, CPU/RAM group and music panel
+- Theme tab with Faulty Terminal, Galaxy, Letter Glitch and Pixel Snow.
+- Layout tab with all 6 arrangements of the clock, CPU/RAM group and music panel
   in the two-column format. Selections update the host instantly and survive restart.
 - Widget definition/instance contracts with clock, system monitor and music-entry components.
 - Scoped Tauri capabilities, local content and restrictive content security policy.
 
-Public music account enablement, notes, per-widget drag/resize, multiple named layouts,
-startup, native wallpaper blur and desktop-icon-layer integration are **not
-implemented**. The foundation is not a public production release.
+Aura is preparing for Windows release-candidate testing. This is not a public
+release: the installer is unsigned, clean-machine acceptance is outstanding,
+and YouTube account features remain gated. Notes, per-widget drag/resize,
+multiple named layouts, startup, native wallpaper blur and desktop-icon-layer
+integration are not implemented.
 
 ## Quick start on Windows
 
@@ -68,6 +70,13 @@ pnpm.cmd native:test
 pnpm.cmd test:e2e
 pnpm.cmd desktop:build
 ```
+
+For the full release checks, install `cargo-audit` 0.23.0 and run
+`pnpm.cmd verify`. To produce and smoke-test a Windows release candidate, run
+`pnpm.cmd release:candidate`. The installer, SHA-256 manifest, source/toolchain
+record and third-party notices are written under `artifacts/release-candidate/`.
+The smoke test uses a fresh isolated Aura and WebView2 profile, not the normal
+user's saved accounts. See [Windows releases](docs/releases.md).
 
 ## Structure
 
