@@ -19,6 +19,19 @@ used. Spotify remains a separate milestone.
 - **Windows controls:** explicitly selected sessions, event-driven metadata,
   position snapshots, bounded artwork and only the supported transport controls.
 
+Windows browsers can recreate their media session between tracks. Aura preserves
+the selected logical player across a gap of up to three seconds when the previous
+and replacement sessions identify the same unique application. Ambiguous sessions
+and different applications require explicit selection. Temporary reads keep the
+player visible with stale controls disabled, and a two-second fallback scan recovers
+missed notifications. A closed player is removed after the reconnect grace expires.
+
+Artwork reads are independent of playback metadata. A properties-change event
+refreshes artwork even when title/artist stay the same; incomplete reads retry,
+and bounded raster bytes determine the image type when Windows omits its MIME
+label. An image failure on one track does not suppress the same cover on later
+tracks.
+
 This does not expose the complete YouTube Music library: albums, recommendations
 and saved third-party playlists are outside this milestone. Uploader names are
 channel metadata, not asserted musical artist identities. Google sign-in in the
@@ -137,6 +150,16 @@ deletion to manual cleanup on YouTube. Verify both player destinations in Chrome
 and Edge, multiple sessions, closing Music without stopping audio and host quit.
 
 ## Verification record
+
+On 15 November 2026, a live Windows probe reproduced Chrome removing and recreating
+its media session, which previously lost the selected player. A controlled local
+Edge media-session fixture verified native Next, delayed artwork, artwork-only
+updates with unchanged title/artist, and browser/session recreation retaining the
+logical player and selection. The previous build failed the recreation assertion;
+the fixed debug build passed. No YouTube account changes were involved.
+All 61 music browser tests and 83 Rust tests passed (3 existing live probes ignored),
+along with TypeScript, ESLint, Clippy, Rust formatting and the frontend build.
+Live fixture evidence is under ignored `artifacts/music-live-smoke/`.
 
 On 2026-11-13 the retired unofficial integration completed Google authorization
 but failed its account HTTP request. Its diagnostics did not retain the exact

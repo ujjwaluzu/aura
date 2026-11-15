@@ -63,19 +63,24 @@ export function PlaybackControls({
     (compact && connected && !playback.message && playback.sessions.length === 1
       ? playback.sessions[0]
       : undefined);
-  const showPlayer = Boolean(session) || (compact && connected);
+  const reconnecting = Boolean(playback.selectedId) && !session;
+  const showPlayer = Boolean(session) || reconnecting || (compact && connected);
   const displaySession = session ?? {
-    title: music.playbackLoading
-      ? 'Finding players…'
-      : music.playbackError || playback.message?.includes('unavailable')
-        ? 'Player unavailable'
-        : playback.sessions.length
-          ? 'Choose a player'
-          : 'Ready to play',
-    artist: playback.sessions.length
-      ? 'Select a player to control playback'
-      : 'Start a song in YouTube Music',
-    source: 'YouTube Music',
+    title: reconnecting
+      ? 'Reconnecting player…'
+      : music.playbackLoading
+        ? 'Finding players…'
+        : music.playbackError || playback.message?.includes('unavailable')
+          ? 'Player unavailable'
+          : playback.sessions.length
+            ? 'Choose a player'
+            : 'Ready to play',
+    artist: reconnecting
+      ? 'Waiting for the selected player'
+      : playback.sessions.length
+        ? 'Select a player to control playback'
+        : 'Start a song in YouTube Music',
+    source: reconnecting ? 'Windows media player' : 'YouTube Music',
     artwork: null,
   };
   const [error, setError] = useState<string | null>(null);
@@ -464,16 +469,19 @@ export function PlaybackControls({
                   </IconButton>
                   <IconButton
                     label={
-                      session
-                        ? session.playing
-                          ? 'Pause playback'
-                          : 'Resume playback'
-                        : playback.sessions.length
-                          ? 'Choose playback player'
-                          : 'Start YouTube Music'
+                      reconnecting
+                        ? 'Waiting for selected player'
+                        : session
+                          ? session.playing
+                            ? 'Pause playback'
+                            : 'Resume playback'
+                          : playback.sessions.length
+                            ? 'Choose playback player'
+                            : 'Start YouTube Music'
                     }
                     disabled={
                       busy ||
+                      reconnecting ||
                       music.playbackLoading ||
                       Boolean(
                         session &&

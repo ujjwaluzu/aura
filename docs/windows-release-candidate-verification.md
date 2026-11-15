@@ -1,5 +1,38 @@
 # Windows release candidate verification
 
+## 0.1.1 music and installer branding fix
+
+Built and installed on 15 November 2026. Use
+`src-tauri/target/release/bundle/nsis/Aura_0.1.1_x64-setup.exe`; the 0.1.0 installer
+predates the track-transition fix. Setup and uninstall icons now explicitly use
+the same Aura icon as the executable. Windows shortcuts were refreshed after the
+local upgrade.
+
+- Installer: 2,145,418 bytes; SHA-256
+  `d817225ea2dd71caf48983622adb3ce15ea71221454d58839cedf1c74b9f5a65`.
+- Release executable SHA-256:
+  `d2e9c16bcaba7ca4766664a44734897cfbf3ba4ff640d9ebc7a2b84c86fe12ed`.
+- Installed executable SHA-256:
+  `08e0ffe1f69b86ef4e166dc0108403c05e6e06a3f908de0cec0b182884c8c766`.
+  The only byte differences are Tauri's expected `UNK` to `NSS` bundle-type marker.
+- In-place `/UPDATE` from 0.1.0 to 0.1.1 passed. Saved app-data files and the
+  Windows startup registration/override were preserved.
+- Icons extracted from the release app, installer, installed app and uninstaller
+  all match the Aura ICO at the Windows-selected display size.
+- The packaged native WebView smoke passed against the new release executable.
+  The installed 0.1.1 executable separately passed live Edge Next-track, late
+  artwork, artwork-only metadata changes and media-session recreation checks.
+- TypeScript, ESLint, formatting, production build and 83 Rust tests passed
+  (3 existing live probes ignored). The preceding music fix passed all 61 music
+  browser tests; diagnostic copying and cross-window diagnostics were rechecked
+  after replacing the hard-coded diagnostic version with package metadata.
+
+Evidence is under ignored `artifacts/release-checks/` and
+`artifacts/music-live-smoke/installed-0.1.1-report.json`. These are local test
+results; clean-machine and public-distribution acceptance remain separate.
+
+## Earlier 0.1.0 candidate
+
 The Windows x64 release-candidate checks passed on 15 November 2026. This is an
 unsigned candidate for testing, not a public release.
 

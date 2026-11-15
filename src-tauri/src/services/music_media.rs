@@ -7,6 +7,7 @@ use tauri::{AppHandle, Emitter};
 
 enum Message {
     Refresh,
+    PropertiesChanged(String),
     Select(Option<String>, mpsc::SyncSender<Result<(), AppError>>),
     Control(MediaAction, mpsc::SyncSender<Result<(), AppError>>),
     Seek(f64, mpsc::SyncSender<Result<(), AppError>>),
@@ -30,6 +31,7 @@ impl MediaService {
             return;
         }
         if self.started.swap(true, Ordering::SeqCst) {
+            let _ = self.send(Message::Refresh);
             return;
         }
         let (tx, rx) = mpsc::sync_channel(32);
@@ -118,10 +120,17 @@ fn media_error() -> AppError {
 #[cfg(windows)]
 mod native {
     use super::*;
+    use crate::services::music_media_state::{
+        artwork_mime, replacement_index, SnapshotCache, MAX_ARTWORK_BYTES, RECONNECT_GRACE,
+    };
+    use std::time::{Duration, Instant};
     use windows::{Foundation::TypedEventHandler, Media::Control::*, Storage::Streams::DataReader};
     pub struct Session {
         pub id: String,
         pub native: GlobalSystemMediaTransportControlsSession,
+        source: String,
+        missing_since: Option<Instant>,
+        snapshot_cache: SnapshotCache,
         tokens: Vec<(u8, i64)>,
         artwork: Option<String>,
         artwork_key: String,
@@ -138,9 +147,10 @@ mod native {
         ) -> Self {
             let mut tokens = Vec::new();
             let send = tx.clone();
+            let changed_id = id.clone();
             if let Ok(token) =
                 native.MediaPropertiesChanged(&TypedEventHandler::new(move |_, _| {
-                    let _ = send.try_send(Message::Refresh);
+                    let _ = send.try_send(Message::PropertiesChanged(changed_id.clone()));
                     Ok(())
                 }))
             {
@@ -164,7 +174,13 @@ mod native {
             }
             Self {
                 id,
+                source: native
+                    .SourceAppUserModelId()
+                    .map(|source| source.to_string())
+                    .unwrap_or_default(),
                 native,
+                missing_since: None,
+                snapshot_cache: SnapshotCache::default(),
                 tokens,
                 artwork: None,
                 artwork_key: String::new(),
@@ -205,9 +221,17 @@ mod native {
                 if let Ok(artwork) = thumbnail(&properties) {
                     // A slow thumbnail read must not install artwork for metadata
                     // that changed while Windows was returning the image.
-                    let latest = self.native.TryGetMediaPropertiesAsync()?.join()?;
-                    let latest_key = format!("{}\0{}", latest.Title()?, latest.Artist()?);
-                    if latest_key == key {
+                    let latest_key = self
+                        .native
+                        .TryGetMediaPropertiesAsync()
+                        .and_then(|op| op.join())
+                        .and_then(|latest| {
+                            Ok(format!("{}\0{}", latest.Title()?, latest.Artist()?))
+                        });
+                    if latest_key
+                        .as_ref()
+                        .is_ok_and(|latest_key| latest_key == &key)
+                    {
                         self.artwork = Some(artwork);
                         self.artwork_loaded_key = key;
                         self.artwork_missing_since = None;
@@ -230,7 +254,7 @@ mod native {
             let start = timeline.StartTime()?.Duration;
             Ok(PlaybackSession {
                 id: self.id.clone(),
-                source: self.native.SourceAppUserModelId()?.to_string(),
+                source: self.source.clone(),
                 title,
                 artist,
                 playing: info.PlaybackStatus()?
@@ -319,17 +343,17 @@ mod native {
         use base64::{engine::general_purpose::STANDARD, Engine};
         let stream = properties.Thumbnail()?.OpenReadAsync()?.join()?;
         let size = stream.Size()?;
-        let mime = stream.ContentType()?.to_string();
-        if size == 0
-            || size > 524_288
-            || !matches!(mime.as_str(), "image/jpeg" | "image/png" | "image/webp")
-        {
+        if size == 0 || size > MAX_ARTWORK_BYTES {
             return Err(windows::core::Error::from_thread());
         }
         let reader = DataReader::CreateDataReader(&stream.GetInputStreamAt(0)?)?;
         let count = reader.LoadAsync(size as u32)?.join()?;
+        if count != size as u32 {
+            return Err(windows::core::Error::from_thread());
+        }
         let mut data = vec![0; count as usize];
         reader.ReadBytes(&mut data)?;
+        let mime = artwork_mime(&data).ok_or_else(windows::core::Error::from_thread)?;
         Ok(format!("data:{mime};base64,{}", STANDARD.encode(data)))
     }
     pub fn run(
@@ -373,7 +397,19 @@ mod native {
         let mut selected: Option<String> = None;
         let mut selection_message: Option<String> = None;
         let _ = tx.try_send(Message::Refresh);
-        while let Ok(message) = rx.recv() {
+        loop {
+            // Notifications can be lost during browser track/session changes.
+            // Use a slow fallback scan, and a short retry only while recovering.
+            let recovering = sessions.iter().any(|s| s.missing_since.is_some());
+            let message = match rx.recv_timeout(if recovering {
+                Duration::from_millis(500)
+            } else {
+                Duration::from_secs(2)
+            }) {
+                Ok(message) => message,
+                Err(mpsc::RecvTimeoutError::Timeout) => Message::Refresh,
+                Err(mpsc::RecvTimeoutError::Disconnected) => break,
+            };
             if service.stopped.load(Ordering::SeqCst) {
                 break;
             }
@@ -423,18 +459,76 @@ mod native {
                     let _ = reply.send(result);
                 }
 
+                Message::PropertiesChanged(id) => {
+                    if let Some(session) = sessions.iter_mut().find(|session| session.id == id) {
+                        // Artwork can arrive after title/artist without changing
+                        // either string. Re-read it on the properties event.
+                        session.artwork_loaded_key.clear();
+                        session.artwork_retry_after = None;
+                    }
+                }
                 Message::Refresh => {}
             }
-            let available = manager.GetSessions().map_err(|_| ())?;
-            sessions.retain(|s| available.clone().into_iter().any(|n| n == s.native));
-            for native in available {
-                if sessions.iter().any(|s| s.native == native) {
+            let available: Vec<_> = match manager.GetSessions() {
+                Ok(available) => available.into_iter().collect(),
+                // An intermittent enumeration failure must not permanently stop
+                // the worker or discard the user's current selection.
+                Err(_) => continue,
+            };
+            let now = Instant::now();
+            for session in &mut sessions {
+                if available.iter().any(|native| native == &session.native) {
+                    session.missing_since = None;
+                } else {
+                    session.missing_since.get_or_insert(now);
+                }
+            }
+            sessions.retain(|s| {
+                s.missing_since
+                    .is_none_or(|since| now.duration_since(since) <= RECONNECT_GRACE)
+            });
+            let incoming: Vec<_> = available
+                .iter()
+                .filter(|native| !sessions.iter().any(|s| &s.native == *native))
+                .map(|native| {
+                    (
+                        native.clone(),
+                        native
+                            .SourceAppUserModelId()
+                            .map(|s| s.to_string())
+                            .unwrap_or_default(),
+                    )
+                })
+                .collect();
+            let previous: Vec<_> = sessions
+                .iter()
+                .map(|s| (s.source.clone(), s.missing_since.is_none()))
+                .collect();
+            for (native, source) in &incoming {
+                let identities: Vec<_> = previous
+                    .iter()
+                    .map(|(source, present)| (source.as_str(), *present))
+                    .collect();
+                if let Some(index) = replacement_index(
+                    source,
+                    &identities,
+                    incoming.iter().filter(|(_, s)| s == source).count(),
+                ) {
+                    let id = sessions[index].id.clone();
+                    // A new COM session for the same unique browser keeps the
+                    // logical ID. Reset artwork and unsubscribe the old object.
+                    let cache = std::mem::take(&mut sessions[index].snapshot_cache);
+                    sessions[index] = Session::subscribe(id, native.clone(), &tx);
+                    sessions[index].snapshot_cache = cache;
+                    continue;
+                }
+                if sessions.iter().any(|s| &s.native == native) {
                     continue;
                 }
                 next_id += 1;
                 sessions.push(Session::subscribe(
                     format!("session-{next_id}"),
-                    native,
+                    native.clone(),
                     &tx,
                 ));
             }
@@ -449,7 +543,14 @@ mod native {
             }
             let snapshots = sessions
                 .iter_mut()
-                .filter_map(|s| s.snapshot().ok())
+                .filter_map(|s| {
+                    let next = if s.missing_since.is_none() {
+                        s.snapshot().ok()
+                    } else {
+                        None
+                    };
+                    s.snapshot_cache.accept(next, now)
+                })
                 .collect();
             service.publish(
                 app,

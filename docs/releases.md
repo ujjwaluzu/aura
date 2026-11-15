@@ -27,7 +27,7 @@ down only the process it launched.
 The output in `artifacts/release-candidate/` includes the installer, executable,
 dependency notices and inventory, lockfiles, check records, source fingerprint,
 toolchain versions, Authenticode status and SHA-256 sums. Candidates are
-unsigned, version 0.1.0 testing builds. Inspect `candidate-manifest.json` and
+unsigned testing builds. Inspect `candidate-manifest.json` and
 verify `SHA256SUMS.txt` before installing. The installer requests WebView2 only
 when the destination machine needs it.
 
@@ -57,7 +57,9 @@ the audit step. The JavaScript lockfile pins the patched `minimatch` release.
 Review the bundle identifier `com.projectaura.desktop` and publisher/product
 metadata before the first public release. The identifier is provisional; once
 shipped it affects app identity and local data paths and should remain stable.
-The bundled icon is an initial local Aura mark, not final brand artwork.
+The executable, installer and uninstaller use the Aura mark in
+`src-tauri/icons/icon.ico`. Installer icon settings are explicit; the app's bundle
+icon alone does not configure NSIS installer branding.
 
 Tauri's Windows bundler may download NSIS/build tooling on the first run. The
 configured Evergreen WebView2 bootstrapper downloads the runtime **only if needed

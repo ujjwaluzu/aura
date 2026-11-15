@@ -4,6 +4,8 @@ pub mod github_api;
 pub mod github_vault;
 pub mod music;
 pub mod music_media;
+#[cfg(any(windows, test))]
+mod music_media_state;
 pub mod music_oauth;
 pub mod music_vault;
 pub mod preferences;

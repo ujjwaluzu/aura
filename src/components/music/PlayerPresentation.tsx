@@ -17,15 +17,24 @@ export function PlayerPresentation({
   controls: ReactNode;
   time?: ReactNode;
 }) {
-  const [failedArtwork, setFailedArtwork] = useState<string | null>(null);
+  const trackKey = `${session.title}\0${session.artist}\0${session.source}`;
+  const [failedArtwork, setFailedArtwork] = useState<{
+    image: string | null;
+    track: string;
+  } | null>(null);
   return (
     <div className={`player-presentation player-${presentation}`}>
       <div className="player-artwork">
-        {session.artwork && session.artwork !== failedArtwork ? (
+        {session.artwork &&
+        (session.artwork !== failedArtwork?.image ||
+          trackKey !== failedArtwork.track) ? (
           <img
+            key={`${trackKey}\0${session.artwork}`}
             src={session.artwork}
             alt=""
-            onError={() => setFailedArtwork(session.artwork)}
+            onError={() =>
+              setFailedArtwork({ image: session.artwork, track: trackKey })
+            }
           />
         ) : (
           <span className="music-artwork-placeholder">

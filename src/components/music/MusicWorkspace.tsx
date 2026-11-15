@@ -6,6 +6,7 @@ import { PlaybackControls } from './PlaybackControls';
 import { MusicLibrary } from './MusicLibrary';
 import { DialogPanel } from '../ui/DialogPanel';
 import { PagedText } from '../ui/PagedText';
+import { version } from '../../../package.json';
 
 const sections = [
   ['player', 'Player'],
@@ -40,7 +41,7 @@ export function MusicWorkspace({
   const [diagnostics, setDiagnostics] = useState(false);
   const connected = music.account.status === 'connected';
   const report = {
-    app: 'Aura 0.1.0',
+    app: `Aura ${version}`,
     validationBuild: music.account.validationBuild,
     accountStatus: music.loading
       ? 'loading'

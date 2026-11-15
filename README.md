@@ -160,4 +160,11 @@ Aura is an actively developed foundation. Per-widget drag and resize, notes, mul
 
 ## License
 
-This repository does not currently include a license. Public visibility does not grant permission to reuse or redistribute the code; contact the project owner for licensing information.
+Aura is licensed under the [MIT License](LICENSE). Third-party components retain
+their respective licences and are listed in the generated third-party notices.
+
+## Code signing policy
+
+Aura is preparing an application to SignPath Foundation; current installers are
+unsigned. See the [Code signing policy](CODE_SIGNING_POLICY.md),
+[privacy policy](PRIVACY.md), and [SignPath setup](docs/signpath.md).

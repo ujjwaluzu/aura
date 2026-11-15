@@ -871,6 +871,198 @@ test('metadata changes retain the selected player and More focus target', async 
   ).toBeEnabled();
 });
 
+test('a track transition keeps the selected player visible while Windows reconnects', async ({
+  page,
+}) => {
+  await mockMusic(page, {
+    selected: true,
+    account: 'unavailable',
+    sessionCount: 1,
+  });
+  await page.goto('/');
+  await expect(
+    page.getByRole('button', { name: 'Pause playback' }),
+  ).toBeVisible();
+  await page.evaluate(() => {
+    const fixture = (
+      window as unknown as {
+        musicTest: { emit: (event: string, state: unknown) => void };
+      }
+    ).musicTest;
+    fixture.emit('aura://playback-changed', {
+      sessions: [],
+      selectedId: 'browser-1',
+      message: null,
+    });
+  });
+  await expect(page.getByText('Reconnecting player…')).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Open Music', exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'Waiting for selected player' }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole('button', { name: 'More music actions' }),
+  ).toBeEnabled();
+  await page.evaluate(() => {
+    (
+      window as unknown as {
+        musicTest: { emit: (event: string, state: unknown) => void };
+      }
+    ).musicTest.emit('aura://playback-changed', {
+      sessions: [
+        {
+          id: 'browser-1',
+          source: 'Chrome',
+          title: 'Recovered next track',
+          artist: 'Next artist',
+          artwork: null,
+          playing: true,
+          durationSeconds: 180,
+          positionSeconds: 0,
+          updatedAtUnixMs: Date.now(),
+          canPlay: true,
+          canPause: true,
+          canNext: true,
+          canPrevious: true,
+          canSeek: true,
+        },
+      ],
+      selectedId: 'browser-1',
+      message: null,
+    });
+  });
+  await expect(page.locator('.player-information strong')).toHaveText(
+    'Recovered next track',
+  );
+  await expect(page.getByRole('button', { name: 'Next track' })).toBeEnabled();
+  await expect(
+    page.getByRole('button', { name: 'Pause playback' }),
+  ).toBeEnabled();
+  await expect(page.getByText('Reconnecting player…')).toHaveCount(0);
+});
+
+test('artwork arriving after a track change renders without hiding playback controls', async ({
+  page,
+}) => {
+  await mockMusic(page, { selected: true, artwork: true, sessionCount: 1 });
+  await page.goto('/');
+  await expect(page.locator('.player-artwork img')).toBeVisible();
+  await page.evaluate(() => {
+    const fixture = (
+      window as unknown as {
+        musicTest: { emit: (event: string, state: unknown) => void };
+      }
+    ).musicTest;
+    fixture.emit('aura://playback-changed', {
+      sessions: [
+        {
+          id: 'browser-1',
+          source: 'chrome.exe',
+          title: 'Next track',
+          artist: 'Artist',
+          artwork: null,
+          playing: true,
+          durationSeconds: 180,
+          positionSeconds: 0,
+          updatedAtUnixMs: Date.now(),
+          canPlay: true,
+          canPause: true,
+          canNext: true,
+          canPrevious: true,
+          canSeek: true,
+        },
+      ],
+      selectedId: 'browser-1',
+      message: null,
+    });
+  });
+  await expect(page.locator('.player-artwork img')).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'Pause playback' }),
+  ).toBeEnabled();
+  await page.evaluate(() => {
+    (
+      window as unknown as {
+        musicTest: { emit: (event: string, state: unknown) => void };
+      }
+    ).musicTest.emit('aura://playback-changed', {
+      sessions: [
+        {
+          id: 'browser-1',
+          source: 'chrome.exe',
+          title: 'Next track',
+          artist: 'Artist',
+          artwork:
+            'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="20" height="20"%3E%3Crect width="20" height="20" fill="red"/%3E%3C/svg%3E',
+          playing: true,
+          durationSeconds: 180,
+          positionSeconds: 1,
+          updatedAtUnixMs: Date.now(),
+          canPlay: true,
+          canPause: true,
+          canNext: true,
+          canPrevious: true,
+          canSeek: true,
+        },
+      ],
+      selectedId: 'browser-1',
+      message: null,
+    });
+  });
+  await expect(page.locator('.player-artwork img')).toBeVisible();
+  await expect(page.locator('.player-artwork img')).toHaveJSProperty(
+    'naturalWidth',
+    20,
+  );
+  await expect(page.locator('.player-information strong')).toHaveText(
+    'Next track',
+  );
+});
+
+test('a new track retries artwork even when the preceding track image failed', async ({
+  page,
+}) => {
+  await mockMusic(page, { selected: true, artwork: true, sessionCount: 1 });
+  await page.goto('/');
+  const image = page.locator('.player-artwork img');
+  await expect(image).toBeVisible();
+  const artwork = await image.getAttribute('src');
+  await image.dispatchEvent('error');
+  await expect(image).toHaveCount(0);
+  await page.evaluate((artwork) => {
+    (
+      window as unknown as {
+        musicTest: { emit: (event: string, state: unknown) => void };
+      }
+    ).musicTest.emit('aura://playback-changed', {
+      sessions: [
+        {
+          id: 'browser-1',
+          source: 'chrome.exe',
+          title: 'Next track, same album',
+          artist: 'Test Artist',
+          artwork,
+          playing: true,
+          durationSeconds: 180,
+          positionSeconds: 0,
+          updatedAtUnixMs: Date.now(),
+          canPlay: true,
+          canPause: true,
+          canNext: true,
+          canPrevious: true,
+          canSeek: true,
+        },
+      ],
+      selectedId: 'browser-1',
+      message: null,
+    });
+  }, artwork);
+  await expect(image).toBeVisible();
+  await expect(image).toHaveJSProperty('naturalWidth', 100);
+});
+
 test('Settings can inspect a widget failure after opening later', async ({
   page,
   context,
