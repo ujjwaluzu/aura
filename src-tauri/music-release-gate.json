@@ -1,6 +1,6 @@
 {
-  "youtubeDataApiValidated": true,
+  "youtubeDataApiValidated": false,
   "publicDistributionApproved": false,
   "windowsReleaseValidated": false,
-  "evidence": "2026-11-13: native official API verified the real channel, owned playlists, liked videos and music search. Disposable private playlist creation, rename, add/remove, duplicate occurrence reorder, rating change/restoration, token refresh, process restart and disconnect passed. The test playlist was left empty and the original rating restored. Public enablement remains blocked by Google verification/project quota approval and clean Windows installer, browser playback and resource acceptance. The unofficial integration is retired. See docs/youtube-music.md."
+  "evidence": "2026-11-15: Google production preparation adds policy consent, programmatic revocation, grant rechecks and revoked-account cleanup, and requests youtube.force-ssl instead of the previous youtube account-management scope. Repeat real-account acceptance under the new scope, including server-confirmed revocation, before restoring youtubeDataApiValidated. The 2026-11-13 official API acceptance remains historical evidence for the previous scope. Google brand/sensitive-scope verification, domain ownership, project quota review and clean Windows acceptance remain pending. See docs/google-oauth-production.md and docs/youtube-music.md."
 }

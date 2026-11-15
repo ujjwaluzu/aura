@@ -19,6 +19,7 @@
     "allow-music-browse",
     "allow-music-change",
     "allow-music-open-player",
+    "allow-music-open-policy",
     "allow-music-artwork",
     "allow-music-playback-status",
     "allow-music-select-session",

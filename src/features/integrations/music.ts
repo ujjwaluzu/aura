@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { isDesktop } from '../../lib/native';
+import musicPolicy from '../../../src-tauri/music-policy.json';
 import type {
   MediaAction,
   MusicAccountState,
@@ -34,7 +35,12 @@ const desktop = <T>(command: string, args?: Record<string, unknown>) => {
 export const openMusic = () => desktop<void>('open_music');
 export const accountStatus = () =>
   desktop<MusicAccountState>('music_account_status');
-export const connectMusic = () => desktop<MusicAccountState>('music_connect');
+export const connectMusic = () =>
+  desktop<MusicAccountState>('music_connect', {
+    policyVersion: musicPolicy.version,
+  });
+export const openMusicPolicy = (target: keyof typeof musicPolicy.links) =>
+  desktop<void>('music_open_policy', { target });
 export const disconnectMusic = () =>
   desktop<MusicAccountState>('music_disconnect');
 export const browseMusic = (query: MusicQuery) =>

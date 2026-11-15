@@ -11,8 +11,11 @@ use std::{
 };
 use url::Url;
 
-pub const SCOPE: &str = "https://www.googleapis.com/auth/youtube";
+// This content/playlist scope supports Aura's API operations without requesting
+// the broader account-management scope. It is still a sensitive permission.
+pub const SCOPE: &str = "https://www.googleapis.com/auth/youtube.force-ssl";
 const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
+const REVOKE_URL: &str = "https://oauth2.googleapis.com/revoke";
 
 // Desktop client secrets identify the installed app; Google does not consider
 // them confidential. User tokens must still never leave the native boundary.
@@ -157,6 +160,39 @@ pub fn refresh(tokens: &Tokens) -> Result<Tokens, AppError> {
             ("refresh_token", &tokens.refresh_token),
         ],
         Some(tokens),
+    )
+}
+
+pub fn revoke(tokens: &Tokens) -> Result<(), AppError> {
+    // Keep tokens out of URLs and diagnostics. Revocation covers this Google
+    // project's grant, not just the current access token.
+    let response = http()
+        .map_err(|_| revocation_error())?
+        .post(REVOKE_URL)
+        .form(&[("token", tokens.refresh_token.as_str())])
+        .send()
+        .map_err(|_| revocation_error())?;
+    let status = response.status().as_u16();
+    let body: serde_json::Value = if status == 400 {
+        serde_json::from_reader(response.take(65_536)).unwrap_or_default()
+    } else {
+        serde_json::Value::Null
+    };
+    revocation_result(status, &body)
+}
+
+fn revocation_result(status: u16, body: &serde_json::Value) -> Result<(), AppError> {
+    if status == 200 || (status == 400 && body["error"] == "invalid_token") {
+        Ok(())
+    } else {
+        Err(revocation_error())
+    }
+}
+
+fn revocation_error() -> AppError {
+    AppError::new(
+        "OAUTH_REVOKE_REQUIRED",
+        "Local YouTube data was removed, but Google access removal could not be confirmed. Remove Aura in your Google account's third-party connections.",
     )
 }
 
@@ -330,5 +366,20 @@ mod tests {
             .code,
             "SESSION_EXPIRED"
         );
+    }
+
+    #[test]
+    fn revocation_accepts_success_and_already_invalid_tokens_only() {
+        assert!(revocation_result(200, &serde_json::Value::Null).is_ok());
+        assert!(revocation_result(400, &serde_json::json!({"error":"invalid_token"})).is_ok());
+        for status in [302, 400, 401, 429, 500] {
+            let error = revocation_result(
+                status,
+                &serde_json::json!({"error":"provider_secret_do_not_expose"}),
+            )
+            .unwrap_err();
+            assert_eq!(error.code, "OAUTH_REVOKE_REQUIRED");
+            assert!(!error.message.contains("provider_secret"));
+        }
     }
 }

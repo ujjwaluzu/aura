@@ -1,9 +1,10 @@
 ﻿import { useState, type ReactNode } from 'react';
 import { useMusic } from '../../hooks/useMusic';
 import { isDesktop, type MusicSection } from '../../lib/native';
-import { openPlayer } from '../../features/integrations/music';
+import { openMusicPolicy, openPlayer } from '../../features/integrations/music';
 import { PlaybackControls } from './PlaybackControls';
 import { MusicLibrary } from './MusicLibrary';
+import { MusicPolicy } from './MusicPolicy';
 import { DialogPanel } from '../ui/DialogPanel';
 import { PagedText } from '../ui/PagedText';
 import { version } from '../../../package.json';
@@ -39,6 +40,7 @@ export function MusicWorkspace({
   const music = useMusic();
   const [copied, setCopied] = useState('');
   const [diagnostics, setDiagnostics] = useState(false);
+  const [policy, setPolicy] = useState<'connect' | 'view' | null>(null);
   const connected = music.account.status === 'connected';
   const report = {
     app: `Aura ${version}`,
@@ -188,7 +190,7 @@ export function MusicWorkspace({
                     !music.accountKnown ||
                     music.account.status === 'unavailable'
                   }
-                  onClick={() => void music.connect()}
+                  onClick={() => setPolicy('connect')}
                 >
                   {music.account.status === 'expired' || music.error
                     ? 'Retry connection'
@@ -203,12 +205,43 @@ export function MusicWorkspace({
                 Refresh status
               </button>
             </div>
+            {music.account.status === 'disconnected' &&
+              music.account.message && (
+                <p role="status">{music.account.message}</p>
+              )}
+            <div className="settings-music-actions music-policy-actions">
+              <button type="button" onClick={() => setPolicy('view')}>
+                Privacy and terms
+              </button>
+              <button
+                type="button"
+                disabled={!isDesktop()}
+                onClick={() =>
+                  void openMusicPolicy('googlePermissions').catch(
+                    music.reportError,
+                  )
+                }
+              >
+                Manage Google access
+              </button>
+            </div>
             <p className="music-muted">
               Aura authorization and the official player’s sign-in are separate.
               Playback continues when Settings closes.
             </p>
           </section>
         </div>
+        {policy && (
+          <MusicPolicy
+            connecting={policy === 'connect'}
+            onClose={() => setPolicy(null)}
+            onAccept={() => {
+              setPolicy(null);
+              void music.connect();
+            }}
+            onError={music.reportError}
+          />
+        )}
         <button
           type="button"
           className="music-diagnostics-toggle"

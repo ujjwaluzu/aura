@@ -7,6 +7,7 @@ pub mod music_media;
 #[cfg(any(windows, test))]
 mod music_media_state;
 pub mod music_oauth;
+pub mod music_policy;
 pub mod music_vault;
 pub mod preferences;
 pub mod profile;

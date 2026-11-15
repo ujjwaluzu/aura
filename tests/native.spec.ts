@@ -132,6 +132,14 @@ test('Settings permissions, navigation reuse, playback events and preferences ov
       expect(['connected', 'disconnected', 'expired']).toContain(
         account.status,
       );
+    expect(
+      await invoke(
+        settings,
+        'music_open_policy',
+        { target: 'https://example.com' },
+        true,
+      ),
+    ).toMatchObject({ code: 'INVALID_INPUT' });
     const state = await invoke<PlaybackState>(
       settings,
       'music_playback_status',

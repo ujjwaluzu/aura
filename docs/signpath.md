@@ -5,6 +5,9 @@ Aura's maintainer selected the MIT licence for the project. The licence is in
 records the maintainer, approval rules and privacy behavior. No SignPath approval
 or signed release is claimed.
 
+The maintainer reported submitting the application on 15 November 2026. Provider
+review and account/onboarding steps remain pending; submission is not approval.
+
 ## Application
 
 Use the [official application](https://signpath.org/apply) and review the
@@ -34,8 +37,9 @@ release step before asserting that the released-project condition is met.
 
 1. The maintainer confirmed GitHub MFA is already enabled on 15 November 2026.
    The API did not independently disclose that state. Keep MFA enabled.
-2. Review the application packet and submit the official form. Complete any
-   email verification/account setup and SignPath MFA personally.
+2. The maintainer reported submitting the form. Keep the application packet for
+   follow-up questions. Complete any email verification/account setup and
+   SignPath MFA personally.
 3. Review and accept the Foundation terms. Only the maintainer can confirm the
    project's representations and agree to the provider's conditions.
 4. Wait for Foundation review. Free signing is not automatic, and approval cannot

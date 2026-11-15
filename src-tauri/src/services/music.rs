@@ -10,6 +10,7 @@ use std::{
         atomic::{AtomicBool, AtomicU64, Ordering},
         Mutex,
     },
+    time::{Duration, Instant},
 };
 
 #[derive(Default)]
@@ -17,6 +18,7 @@ struct Account {
     saved: Option<SavedMusicCredentials>,
     verified: bool,
     expired: bool,
+    verified_at: Option<Instant>,
 }
 pub struct MusicService {
     account: Mutex<Account>,
@@ -109,6 +111,24 @@ impl MusicService {
         if account.saved.is_none() {
             return Ok(self.snapshot(generation, "disconnected", &account, None));
         }
+        if account.saved.as_ref().is_some_and(|saved| {
+            !saved
+                .tokens
+                .scope
+                .split_whitespace()
+                .any(|scope| scope == music_oauth::SCOPE)
+        }) {
+            self.expire(&mut account)?;
+            return Ok(self.snapshot(
+                generation,
+                "expired",
+                &account,
+                Some(
+                    "Aura's YouTube permission changed. Review the current policy and reconnect."
+                        .into(),
+                ),
+            ));
+        }
         if account
             .saved
             .as_ref()
@@ -123,7 +143,11 @@ impl MusicService {
                 Some("Aura's Google client changed. Reconnect YouTube.".into()),
             ));
         }
-        if !account.verified {
+        if !account.verified
+            || account
+                .verified_at
+                .is_none_or(|checked| checked.elapsed() >= Duration::from_secs(1800))
+        {
             let verification = (|| {
                 let tokens = self.fresh(&mut account, generation)?;
                 let transport = HttpTransport::new(tokens.access_token)?;
@@ -143,11 +167,12 @@ impl MusicService {
                 saved.system_playlist_ids = channel.system_playlist_ids;
                 self.vault.save(saved)?;
                 account.verified = true;
+                account.verified_at = Some(Instant::now());
                 Ok(())
             })();
             if let Err(error) = verification {
                 if error.code == "SESSION_EXPIRED" {
-                    account.expired = true;
+                    self.expire(&mut account)?;
                     return Ok(self.snapshot(generation, "expired", &account, Some(error.message)));
                 }
                 return Err(error);
@@ -189,6 +214,7 @@ impl MusicService {
                 saved: Some(saved),
                 verified: true,
                 expired: false,
+                verified_at: Some(Instant::now()),
             };
             Ok(self.snapshot(generation, "connected", &account, None))
         })();
@@ -196,13 +222,48 @@ impl MusicService {
         result
     }
     pub fn disconnect(&self) -> Result<MusicAccountState, AppError> {
+        self.disconnect_with(music_oauth::revoke)
+    }
+    fn disconnect_with(
+        &self,
+        revoke: impl FnOnce(&Tokens) -> Result<(), AppError>,
+    ) -> Result<MusicAccountState, AppError> {
         let generation = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
         let mut account = self.account.lock().map_err(|_| busy())?;
+        let saved = match account.saved.take() {
+            Some(saved) => Ok(Some(saved)),
+            None => self.vault.load(),
+        };
         *account = Account::default();
+        // Delete local data even offline, or when the encrypted record cannot
+        // be decoded. Keep the token only on this stack for the revoke attempt.
         self.vault.clear()?;
-        Ok(self.snapshot(generation, "disconnected", &account, None))
+        let revocation_unconfirmed = match saved {
+            Ok(Some(saved)) => revoke(&saved.tokens).is_err(),
+            Ok(None) => false,
+            Err(_) => true,
+        };
+        let message = revocation_unconfirmed.then(|| {
+            "Local YouTube data was removed, but Google access removal could not be confirmed. Remove Aura in your Google account's third-party connections.".into()
+        });
+        Ok(self.snapshot(generation, "disconnected", &account, message))
+    }
+    fn expire(&self, account: &mut Account) -> Result<(), AppError> {
+        *account = Account {
+            expired: true,
+            ..Account::default()
+        };
+        self.vault.clear()
     }
     fn fresh(&self, account: &mut Account, generation: u64) -> Result<Tokens, AppError> {
+        self.fresh_with(account, generation, music_oauth::refresh)
+    }
+    fn fresh_with(
+        &self,
+        account: &mut Account,
+        generation: u64,
+        refresh: impl FnOnce(&Tokens) -> Result<Tokens, AppError>,
+    ) -> Result<Tokens, AppError> {
         if account.expired {
             return Err(AppError::new(
                 "SESSION_EXPIRED",
@@ -210,7 +271,7 @@ impl MusicService {
             ));
         }
         let saved = account.saved.as_mut().ok_or_else(not_connected)?;
-        let refreshed = music_oauth::refresh(&saved.tokens);
+        let refreshed = refresh(&saved.tokens);
         self.current(generation)?;
         match refreshed {
             Ok(tokens) => {
@@ -222,7 +283,7 @@ impl MusicService {
             }
             Err(error) => {
                 if error.code == "SESSION_EXPIRED" {
-                    account.expired = true;
+                    self.expire(account)?;
                 }
                 Err(error)
             }
@@ -248,7 +309,7 @@ impl MusicService {
             .err()
             .is_some_and(|e| e.code == "SESSION_EXPIRED")
         {
-            account.expired = true;
+            self.expire(&mut account)?;
         }
         result
     }
@@ -274,7 +335,7 @@ impl MusicService {
             .err()
             .is_some_and(|e| e.code == "SESSION_EXPIRED")
         {
-            account.expired = true;
+            self.expire(&mut account)?;
         }
         result
     }
@@ -447,6 +508,99 @@ pub fn artwork(url: &str) -> Result<String, AppError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(windows)]
+    fn saved_fixture() -> SavedMusicCredentials {
+        SavedMusicCredentials {
+            format_version: 2,
+            provider: "youtubeDataApi".into(),
+            client_id: "fixture-client".into(),
+            channel_id: "UCfixture".into(),
+            channel_title: "Fixture channel".into(),
+            system_playlist_ids: vec!["UUfixture".into()],
+            tokens: Tokens {
+                access_token: "fixture-access".into(),
+                refresh_token: "fixture-refresh".into(),
+                expires_at: 0,
+                expires_in: 3600,
+                scope: music_oauth::SCOPE.into(),
+                token_type: "Bearer".into(),
+            },
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn disconnect_revokes_saved_grant_after_local_deletion_even_if_offline() {
+        for offline in [false, true] {
+            let directory = std::env::temp_dir().join(format!(
+                "aura-revoke-{}-{}-{offline}",
+                std::process::id(),
+                music_oauth::now()
+            ));
+            let service = MusicService::new(Some(directory.clone()));
+            service.vault.save(&saved_fixture()).unwrap();
+            std::fs::write(
+                directory.join("music-credentials.123.tmp"),
+                b"encrypted remnant",
+            )
+            .unwrap();
+            std::fs::write(directory.join("preferences.json"), b"keep").unwrap();
+            let state = service
+                .disconnect_with(|tokens| {
+                    assert_eq!(tokens.refresh_token, "fixture-refresh");
+                    assert!(!directory.join("music-credentials.bin").exists());
+                    assert!(!directory.join("music-credentials.123.tmp").exists());
+                    if offline {
+                        Err(AppError::new("OFFLINE", "fixture"))
+                    } else {
+                        Ok(())
+                    }
+                })
+                .unwrap();
+            assert_eq!(state.status, "disconnected");
+            assert!(state.name.is_none() && state.channel_id.is_none());
+            assert_eq!(state.message.is_some(), offline);
+            assert!(service.vault.load().unwrap().is_none());
+            assert_eq!(
+                std::fs::read(directory.join("preferences.json")).unwrap(),
+                b"keep"
+            );
+            std::fs::remove_file(directory.join("preferences.json")).unwrap();
+            std::fs::remove_dir(directory).unwrap();
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn revoked_refresh_erases_account_data_but_network_failure_keeps_it() {
+        for code in ["SESSION_EXPIRED", "OFFLINE"] {
+            let directory = std::env::temp_dir().join(format!(
+                "aura-expire-{}-{}-{code}",
+                std::process::id(),
+                music_oauth::now()
+            ));
+            let service = MusicService::new(Some(directory.clone()));
+            service.vault.save(&saved_fixture()).unwrap();
+            let mut account = Account {
+                saved: Some(saved_fixture()),
+                verified: true,
+                verified_at: Some(Instant::now()),
+                ..Account::default()
+            };
+            let error = service
+                .fresh_with(&mut account, 0, |_| Err(AppError::new(code, "fixture")))
+                .err()
+                .unwrap();
+            assert_eq!(error.code, code);
+            let revoked = code == "SESSION_EXPIRED";
+            assert_eq!(account.expired, revoked);
+            assert_eq!(account.saved.is_none(), revoked);
+            assert_eq!(service.vault.load().unwrap().is_none(), revoked);
+            service.vault.clear().unwrap();
+            std::fs::remove_dir(directory).unwrap();
+        }
+    }
     #[test]
     fn native_availability_matches_build_gate_without_saved_credentials() {
         let directory = std::env::temp_dir().join(format!(
@@ -590,7 +744,10 @@ mod tests {
         )
         .unwrap();
         service.account.lock().unwrap().saved = Some(saved);
-        assert_eq!(service.disconnect().unwrap().status, "disconnected");
+        assert_eq!(
+            service.disconnect_with(|_| Ok(())).unwrap().status,
+            "disconnected"
+        );
         assert!(service.account.lock().unwrap().saved.is_none());
         assert!(!directory.join("music-credentials.bin").exists());
         assert!(!directory.join("music-credentials.999999.tmp").exists());

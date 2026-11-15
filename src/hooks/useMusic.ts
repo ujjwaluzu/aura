@@ -110,26 +110,37 @@ export function useMusicState() {
   const acceptAccount = useCallback((next: MusicAccountState) => {
     if ((next.revision ?? 0) < accountRevision.current) return;
     accountRevision.current = next.revision ?? 0;
+    if (next.status !== 'connected') clearMusicArtwork();
     setAccount(next);
     setAccountKnown(true);
   }, []);
-  const refresh = useCallback(async () => {
-    if (!isDesktop()) return;
-    const request = ++version.current;
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await accountStatus();
-      if (mounted.current && request === version.current && result)
-        acceptAccount(result);
-    } catch (e) {
-      reportError(e);
-      if (mounted.current && request === version.current)
-        setError(errorMessage(e));
-    } finally {
-      if (mounted.current && request === version.current) setLoading(false);
-    }
-  }, [acceptAccount, reportError]);
+  const refresh = useCallback(
+    async (background = false) => {
+      if (!isDesktop()) return;
+      const request = ++version.current;
+      if (!background) setLoading(true);
+      setError(null);
+      try {
+        const result = await accountStatus();
+        if (mounted.current && request === version.current && result)
+          acceptAccount(result);
+      } catch (e) {
+        reportError(e);
+        if (mounted.current && request === version.current)
+          setError(errorMessage(e));
+      } finally {
+        if (mounted.current && request === version.current) setLoading(false);
+      }
+    },
+    [acceptAccount, reportError],
+  );
+  useEffect(() => {
+    if (account.status !== 'connected') return;
+    // Native code rechecks the grant at most every thirty minutes. Polling
+    // status also lets every open window discard data after remote revocation.
+    const timer = window.setInterval(() => void refresh(true), 60_000);
+    return () => window.clearInterval(timer);
+  }, [account.status, refresh]);
   const refreshPlayback = useCallback(async () => {
     if (!isDesktop()) return;
     const request = ++playbackVersion.current;
@@ -169,7 +180,6 @@ export function useMusicState() {
                   (payload.revision ?? 0) < accountRevision.current
                 )
                   return;
-                if (payload.status !== 'connected') clearMusicArtwork();
                 ++version.current;
                 acceptAccount(payload);
                 setLoading(false);

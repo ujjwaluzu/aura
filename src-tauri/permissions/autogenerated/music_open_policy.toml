@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-music-open-policy"
+description = "Enables the music_open_policy command without any pre-configured scope."
+commands.allow = ["music_open_policy"]
+
+[[permission]]
+identifier = "deny-music-open-policy"
+description = "Denies the music_open_policy command without any pre-configured scope."
+commands.deny = ["music_open_policy"]

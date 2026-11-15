@@ -92,6 +92,7 @@ pub fn run() {
             commands::music::music_browse,
             commands::music::music_change,
             commands::music::music_open_player,
+            commands::music::music_open_policy,
             commands::music::music_artwork,
             commands::music::music_playback_status,
             commands::music::music_select_session,

@@ -2,7 +2,8 @@
 
 ## Current status
 
-Aura is preparing an application to SignPath Foundation. Current installers are
+The maintainer reported submitting Aura's SignPath Foundation application on
+15 November 2026. Review is pending. Current installers are
 unsigned. SignPath has not approved this project or issued signing access, and no
 current artifact should be represented as SignPath-signed.
 

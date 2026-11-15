@@ -2,10 +2,142 @@ import { expect, test } from '@playwright/test';
 import { layouts } from '../src/features/layouts/catalog';
 import { themes } from '../src/features/themes/catalog';
 import { mockMusic } from './fixtures/music';
+import { readFileSync } from 'node:fs';
+
+const musicPolicy = JSON.parse(
+  readFileSync(
+    new URL('../src-tauri/music-policy.json', import.meta.url),
+    'utf8',
+  ),
+) as { version: string };
 
 // Music behavior tests do not exercise the background animation. Keep the
 // browser fixture still so software-rendered CI runs stay responsive.
 test.use({ reducedMotion: 'reduce' });
+
+test('Google authorization requires policy acceptance and closing does not connect', async ({
+  page,
+}) => {
+  await mockMusic(page, { account: 'disconnected' });
+  await page.setViewportSize({ width: 960, height: 720 });
+  await page.goto('/?window=settings&destination=music-player');
+  await page
+    .getByRole('button', { name: 'Connect YouTube', exact: true })
+    .click();
+  const dialog = page.getByRole('dialog', { name: 'Privacy and Music terms' });
+  await expect(
+    dialog.getByRole('button', { name: 'Continue to Google' }),
+  ).toBeDisabled();
+  await expect(
+    dialog.getByRole('article', { name: 'Privacy policy text' }),
+  ).toContainText('YouTube API Services');
+  await dialog
+    .getByRole('button', { name: 'Music terms', exact: true })
+    .click();
+  await expect(
+    dialog.getByRole('article', { name: 'Music terms text' }),
+  ).toContainText('agree to be bound by');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  const before = await page.evaluate(
+    () =>
+      (window as unknown as { musicTest: { calls: { command: string }[] } })
+        .musicTest.calls,
+  );
+  expect(before.some(({ command }) => command === 'music_connect')).toBe(false);
+  await page
+    .getByRole('button', { name: 'Connect YouTube', exact: true })
+    .click();
+  await page.getByRole('checkbox', { name: /I agree to Aura/ }).check();
+  await page.screenshot({ path: 'artifacts/google-policy-consent.png' });
+  await page.setViewportSize({ width: 760, height: 500 });
+  await expect(
+    page.getByRole('button', { name: 'Continue to Google' }),
+  ).toBeInViewport({ ratio: 1 });
+  await expect(
+    page.getByRole('checkbox', { name: /I agree to Aura/ }),
+  ).toBeInViewport({ ratio: 1 });
+  await page.screenshot({
+    path: 'artifacts/google-policy-consent-minimum.png',
+  });
+  await page.getByRole('button', { name: 'Continue to Google' }).click();
+  await expect(page.getByText('Connected as Test Listener')).toBeVisible();
+  const calls = await page.evaluate(
+    () =>
+      (window as unknown as { musicTest: { calls: unknown[] } }).musicTest
+        .calls,
+  );
+  expect(calls).toContainEqual({
+    command: 'music_connect',
+    args: { policyVersion: musicPolicy.version },
+  });
+});
+
+test('offline revocation removes library content and exposes Google recovery', async ({
+  page,
+}) => {
+  const message =
+    "Local YouTube data was removed, but Google access removal could not be confirmed. Remove Aura in your Google account's third-party connections.";
+  await mockMusic(page, { disconnectMessage: message });
+  await page.setViewportSize({ width: 960, height: 720 });
+  await page.goto('/?window=settings&destination=music-playlists');
+  await expect(
+    page.getByRole('button', { name: /My private playlist/ }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Player', exact: true }).click();
+  await page.getByRole('button', { name: 'Disconnect account' }).click();
+  await expect(page.getByText(message, { exact: true })).toBeVisible();
+  await expect(page.getByText('Test Listener')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Manage Google access' }).click();
+  const calls = await page.evaluate(
+    () =>
+      (window as unknown as { musicTest: { calls: unknown[] } }).musicTest
+        .calls,
+  );
+  expect(calls).toContainEqual({
+    command: 'music_open_policy',
+    args: { target: 'googlePermissions' },
+  });
+  await page.getByRole('button', { name: 'Playlists', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: /My private playlist/ }),
+  ).toHaveCount(0);
+});
+
+test('remote revocation clears an open library without stopping browser playback', async ({
+  page,
+}) => {
+  await mockMusic(page, { selected: true });
+  await page.setViewportSize({ width: 960, height: 720 });
+  await page.goto('/?window=settings&destination=music-liked');
+  await expect(
+    page.getByRole('list', { name: 'Videos', exact: true }),
+  ).toBeVisible();
+  await page.evaluate(() =>
+    (
+      window as unknown as {
+        musicTest: { emit: (event: string, payload: unknown) => void };
+      }
+    ).musicTest.emit('aura://music-account-changed', {
+      revision: 1,
+      status: 'expired',
+      name: null,
+      channelId: null,
+      message: 'Reconnect your YouTube account.',
+      validationBuild: true,
+    }),
+  );
+  await expect(
+    page.getByRole('list', { name: 'Videos', exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole('button', { name: 'Player', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Retry connection' }),
+  ).toBeEnabled();
+  await expect(
+    page.getByRole('button', { name: 'Pause playback' }),
+  ).toBeEnabled();
+});
 
 test('music preview is opaque and account authorization stays gated', async ({
   page,
@@ -45,6 +177,8 @@ test('failed browser activation exits waiting and shows an actionable error', as
   await page
     .getByRole('button', { name: 'Connect YouTube', exact: true })
     .click();
+  await page.getByRole('checkbox', { name: /I agree to Aura/ }).check();
+  await page.getByRole('button', { name: 'Continue to Google' }).click();
   await expect(page.getByRole('alert')).toHaveText(
     'Account request failed. Refresh status or try connecting again.',
   );
@@ -69,6 +203,8 @@ test('connect verifies account and disconnect removes account content', async ({
   await page
     .getByRole('button', { name: 'Connect YouTube', exact: true })
     .click();
+  await page.getByRole('checkbox', { name: /I agree to Aura/ }).check();
+  await page.getByRole('button', { name: 'Continue to Google' }).click();
   await expect(page.getByText('Connected as Test Listener')).toBeVisible();
   await page.getByRole('button', { name: 'Playlists', exact: true }).click();
   await expect(
@@ -692,6 +828,8 @@ test('authorization explains the browser step and can be cancelled', async ({
   await page
     .getByRole('button', { name: 'Connect YouTube', exact: true })
     .click();
+  await page.getByRole('checkbox', { name: /I agree to Aura/ }).check();
+  await page.getByRole('button', { name: 'Continue to Google' }).click();
   await expect(
     page.getByText(/Finish authorization in your browser/),
   ).toBeVisible();
@@ -718,6 +856,8 @@ test('diagnostic copying excludes account identifiers and raw error text', async
   await page
     .getByRole('button', { name: 'Connect YouTube', exact: true })
     .click();
+  await page.getByRole('checkbox', { name: /I agree to Aura/ }).check();
+  await page.getByRole('button', { name: 'Continue to Google' }).click();
   await page.getByText('Diagnostics', { exact: true }).click();
   await page.getByRole('button', { name: 'Copy diagnostics' }).click();
   await expect(

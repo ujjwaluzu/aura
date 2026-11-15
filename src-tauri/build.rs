@@ -22,6 +22,7 @@ fn main() {
     println!("cargo:rerun-if-env-changed=AURA_MUSIC_CLIENT_ID");
     println!("cargo:rerun-if-env-changed=AURA_MUSIC_CLIENT_SECRET");
     println!("cargo:rerun-if-changed=music-release-gate.json");
+    println!("cargo:rerun-if-changed=music-policy.json");
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
         tauri_build::AppManifest::new().commands(&[
             "github_status",
@@ -46,6 +47,7 @@ fn main() {
             "music_browse",
             "music_change",
             "music_open_player",
+            "music_open_policy",
             "music_artwork",
             "music_playback_status",
             "music_select_session",

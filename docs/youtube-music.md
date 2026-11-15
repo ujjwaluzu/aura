@@ -62,7 +62,7 @@ the shipped client identity is distinct from protected user tokens.
 
 In Aura's Google Cloud project, enable **YouTube Data API v3**, configure Google
 Auth Platform branding/support contacts and External/Testing audience, add the
-test account, and request `https://www.googleapis.com/auth/youtube` for playlist
+test account, and request `https://www.googleapis.com/auth/youtube.force-ssl` for playlist
 and rating edits. Use a Desktop client, not a TV, web or service account.
 
 Run `pnpm.cmd music:validate`; Python/helper preparation is no longer required.
@@ -109,7 +109,11 @@ Windows DPAPI encrypts a version-2 `youtubeDataApi` credential record for the
 current user, including verified channel and client identity. Legacy unversioned
 credentials are cleared and require reconnection. Changed clients/channels cannot
 silently become verified accounts. Disconnect clears credentials, interrupted
-encrypted saves and UI account data, leaving browser sign-in/playback untouched.
+encrypted saves and UI account data, then requests Google grant revocation,
+leaving browser sign-in/playback untouched. If revocation cannot be confirmed,
+Aura displays a warning and a Google account permissions action. Rejected
+refreshes and unauthorized API responses clear the account; periodic connected
+status checks revalidate the grant while Aura runs.
 
 Artwork remains native HTTPS to fixed Google/YouTube raster hosts without
 redirects, bounded to 1 MiB. Visible artwork uses at most three concurrent requests
@@ -117,6 +121,13 @@ and a 64-image memory cache, cleared on disconnect. Windows session artwork is
 separately bounded and session listeners are stopped when Aura exits.
 
 ## Validation and public release
+
+See [Google production preparation](google-oauth-production.md) for Console
+fields, website requirements, scope justification and the demo procedure.
+On 15 November 2026 the requested permission changed from `youtube` to
+`youtube.force-ssl`; policy consent and revocation/cleanup were added. Historical
+live acceptance below used the previous scope. Repeat live acceptance, including
+server-confirmed revocation, before restoring `youtubeDataApiValidated`.
 
 The `music-validation` feature permits testing only in debug builds. Public
 account enablement requires a configured Aura client and all reviewed flags in

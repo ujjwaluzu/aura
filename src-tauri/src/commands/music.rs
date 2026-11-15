@@ -3,6 +3,7 @@ use crate::{
     services::{
         music::{self, MusicService},
         music_media::MediaService,
+        music_oauth, music_policy,
     },
 };
 use std::sync::Arc;
@@ -28,22 +29,34 @@ fn notify(app: &AppHandle, state: &MusicAccountState) {
 }
 #[tauri::command]
 pub async fn music_account_status(
+    app: AppHandle,
     window: WebviewWindow,
     service: State<'_, Arc<MusicService>>,
 ) -> Result<MusicAccountState, AppError> {
     allowed(window.label())?;
     let service = service.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || service.status())
-        .await
-        .map_err(|_| task_error())?
+    tauri::async_runtime::spawn_blocking(move || {
+        let result = service.status();
+        if let Ok(state) = &result {
+            if state.status == "expired" {
+                notify(&app, state);
+            }
+        }
+        result
+    })
+    .await
+    .map_err(|_| task_error())?
 }
 #[tauri::command]
 pub async fn music_connect(
     app: AppHandle,
     window: WebviewWindow,
     service: State<'_, Arc<MusicService>>,
+    policy_version: Option<String>,
 ) -> Result<MusicAccountState, AppError> {
     allowed(window.label())?;
+    music_oauth::gate()?;
+    music_policy::require(policy_version.as_deref())?;
     let service = service.inner().clone();
     let result = tauri::async_runtime::spawn_blocking(move || service.connect())
         .await
@@ -69,33 +82,58 @@ pub async fn music_disconnect(
 }
 #[tauri::command]
 pub async fn music_browse(
+    app: AppHandle,
     window: WebviewWindow,
     query: MusicQuery,
     service: State<'_, Arc<MusicService>>,
 ) -> Result<MusicPage, AppError> {
     allowed(window.label())?;
     let service = service.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || service.browse(query))
-        .await
-        .map_err(|_| task_error())?
+    tauri::async_runtime::spawn_blocking(move || {
+        let result = service.browse(query);
+        notify_expiry(&app, &service, &result);
+        result
+    })
+    .await
+    .map_err(|_| task_error())?
 }
 #[tauri::command]
 pub async fn music_change(
+    app: AppHandle,
     window: WebviewWindow,
     change: MusicChange,
     service: State<'_, Arc<MusicService>>,
 ) -> Result<(), AppError> {
     allowed(window.label())?;
     let service = service.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || service.change(change))
-        .await
-        .map_err(|_| task_error())?
+    tauri::async_runtime::spawn_blocking(move || {
+        let result = service.change(change);
+        notify_expiry(&app, &service, &result);
+        result
+    })
+    .await
+    .map_err(|_| task_error())?
+}
+fn notify_expiry<T>(app: &AppHandle, service: &MusicService, result: &Result<T, AppError>) {
+    if result
+        .as_ref()
+        .is_err_and(|error| error.code == "SESSION_EXPIRED")
+    {
+        if let Ok(state) = service.status() {
+            notify(app, &state);
+        }
+    }
 }
 #[tauri::command]
 pub async fn music_open_player(window: WebviewWindow, target: MusicTarget) -> Result<(), AppError> {
     allowed(window.label())?;
     let url = music::player_url(target)?;
     music::open_url(&url)
+}
+#[tauri::command]
+pub async fn music_open_policy(window: WebviewWindow, target: String) -> Result<(), AppError> {
+    allowed(window.label())?;
+    music::open_url(&music_policy::link(&target)?)
 }
 #[tauri::command]
 pub async fn music_artwork(window: WebviewWindow, url: String) -> Result<String, AppError> {

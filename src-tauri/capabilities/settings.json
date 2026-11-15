@@ -24,6 +24,7 @@
     "allow-music-browse",
     "allow-music-change",
     "allow-music-open-player",
+    "allow-music-open-policy",
     "allow-music-artwork"
   ]
 }

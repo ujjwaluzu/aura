@@ -152,7 +152,7 @@ The frontend is packaged as local static assets; Aura does not require a hosted 
 - YouTube account features are gated in public builds while Google API distribution requirements are finalized. Browser media-session controls are a separate integration.
 - Supported integrations need an internet connection. The core clock and system monitoring do not.
 
-Read the [GitHub integration guide](docs/github.md), [YouTube Music notes](docs/youtube-music.md), and [native integration research](docs/native-integrations.md) for details.
+Read the [GitHub integration guide](docs/github.md), [YouTube Music notes](docs/youtube-music.md), [Google production preparation](docs/google-oauth-production.md), and [native integration research](docs/native-integrations.md) for details.
 
 ## Current scope
 

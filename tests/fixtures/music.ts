@@ -9,6 +9,7 @@ export async function mockMusic(
     failedBrowse?: boolean;
     empty?: boolean;
     connectError?: string;
+    disconnectMessage?: string;
     accountError?: boolean;
     playbackError?: boolean;
     volumeError?: boolean;
@@ -32,7 +33,7 @@ export async function mockMusic(
       status: options.account ?? 'connected',
       name: options.accountName ?? 'Test Listener',
       channelId: 'UCfixture',
-      message: null,
+      message: null as string | null,
       validationBuild: true,
     };
     let preferences = {
@@ -252,7 +253,13 @@ export async function mockMusic(
             return account;
           }
           if (command === 'music_disconnect') {
-            account = { ...account, status: 'disconnected', name: '' };
+            account = {
+              ...account,
+              status: 'disconnected',
+              name: '',
+              channelId: '',
+              message: options.disconnectMessage ?? null,
+            };
             emit('aura://music-account-changed', account);
             return account;
           }
