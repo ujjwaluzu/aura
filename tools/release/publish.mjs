@@ -29,8 +29,14 @@ const gh = (args) =>
     windowsHide: true,
     maxBuffer: 32 * 1024 * 1024,
   }).trim();
-const release = () =>
-  JSON.parse(gh(['api', `repos/${repo}/releases/tags/${tag}`]));
+// The REST release-by-tag endpoint omits drafts. The CLI resolves both drafts
+// and published releases, then its API URL gives us the complete asset record.
+const release = () => {
+  const { apiUrl } = JSON.parse(
+    gh(['release', 'view', tag, '--repo', repo, '--json', 'apiUrl']),
+  );
+  return JSON.parse(gh(['api', apiUrl]));
+};
 const assertRelease = (record) => {
   if (record.tag_name !== tag || !record.prerelease)
     throw new Error('Expected the versioned beta prerelease.');
