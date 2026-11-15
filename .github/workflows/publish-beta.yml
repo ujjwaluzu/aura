@@ -49,6 +49,9 @@ jobs:
       - name: Ensure official WebView2 runtime is available
         shell: pwsh
         run: ./tools/release/ensure-webview2.ps1
+      - name: Prepare normal-user native test execution
+        shell: pwsh
+        run: ./tools/release/prepare-native-ci.ps1
       - name: Verify all repository and website checks
         run: pnpm verify
       - name: Package and require native integration test
@@ -65,6 +68,7 @@ jobs:
           path: |
             artifacts/release-checks/
             artifacts/public-release/
+            src-tauri/target/release/aura.exe
           retention-days: 30
           if-no-files-found: warn
 

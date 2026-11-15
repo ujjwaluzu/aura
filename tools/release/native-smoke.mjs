@@ -1,8 +1,9 @@
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import {
   mkdirSync,
   writeFileSync,
   existsSync,
+  readFileSync,
   createWriteStream,
 } from 'node:fs';
 import { join } from 'node:path';
@@ -11,6 +12,67 @@ import { fileHash, root, runPnpmAsync } from './common.mjs';
 
 if (process.platform !== 'win32')
   throw new Error('The packaged WebView smoke test runs on Windows.');
+const integrity = execFileSync('whoami.exe', ['/groups', '/fo', 'csv', '/nh'], {
+  encoding: 'utf8',
+  windowsHide: true,
+}).match(/S-1-16-\d+/)?.[0];
+if (process.env.AURA_NATIVE_MEDIUM_LAUNCH && integrity !== 'S-1-16-8192')
+  throw new Error(
+    `Native test did not receive a normal-user token (${integrity}).`,
+  );
+if (process.env.GITHUB_ACTIONS === 'true' && integrity !== 'S-1-16-8192') {
+  if (
+    !process.env.AURA_NATIVE_GSUDO ||
+    !existsSync(process.env.AURA_NATIVE_GSUDO)
+  )
+    throw new Error(
+      'Prepare the pinned normal-user CI launcher before native testing.',
+    );
+  const launchedAt = Date.now();
+  const result = spawnSync(
+    process.env.AURA_NATIVE_GSUDO,
+    [
+      '--integrity',
+      'Medium',
+      '--direct',
+      process.execPath,
+      ...process.argv.slice(1),
+    ],
+    {
+      cwd: root,
+      windowsHide: true,
+      stdio: 'inherit',
+      env: { ...process.env, AURA_NATIVE_MEDIUM_LAUNCH: '1' },
+    },
+  );
+  if (result.error) throw result.error;
+  if (result.status !== 0)
+    throw new Error(`Normal-user native test failed (${result.status}).`);
+  const record = JSON.parse(
+    readFileSync(
+      join(
+        process.env.AURA_NATIVE_OUTPUT ??
+          join(root, 'artifacts/release-checks'),
+        'native-smoke.json',
+      ),
+      'utf8',
+    ),
+  );
+  if (
+    !record.passed ||
+    record.diagnostics.integrity !== 'S-1-16-8192' ||
+    Date.parse(record.startedAt) < launchedAt ||
+    record.binarySha256 !==
+      fileHash(
+        process.env.AURA_NATIVE_BINARY ??
+          join(root, 'src-tauri/target/release/aura.exe'),
+      )
+  )
+    throw new Error(
+      'Normal-user launch did not produce a fresh passing native report for this executable.',
+    );
+  process.exit(0);
+}
 const startupState = () =>
   execFileSync(
     'powershell.exe',
@@ -167,7 +229,12 @@ try {
     profileIsolation:
       'explicit process-local Aura profile and separate WebView2 data directory',
     startupUntouched: startupState() === startupBefore,
-    diagnostics: { ...diagnostics, pid: child.pid, exitCode: child.exitCode },
+    diagnostics: {
+      ...diagnostics,
+      integrity,
+      pid: child.pid,
+      exitCode: child.exitCode,
+    },
     ...(failure ? { failure } : {}),
   };
   writeFileSync(report, `${JSON.stringify(state, null, 2)}\n`);

@@ -22,6 +22,16 @@ missing, validating its bootstrapper signature. Native integration failure stops
 publication and retains startup/endpoint diagnostics in the workflow artifact.
 No failure is bypassed or marked successful.
 
+Hosted Windows runners are elevated. WebView2 150+ deliberately ignores test
+debugging environment flags in elevated hosts, as recorded in
+[Wry #1782](https://github.com/tauri-apps/wry/issues/1782) and
+[Microsoft's confirmation](https://github.com/MicrosoftEdge/WebView2Feedback/issues/5645).
+The CI helper downloads checksum-pinned gsudo 2.6.1 from its official release and
+runs the same native test at Medium integrity, verified in its report. Only the
+current runner identity receives Modify access to its disposable checkout.
+Machine-wide browser security policies remain intact; a missing launcher,
+incorrect integrity level or native assertion failure stops publication.
+
 Release assets are `Aura_0.1.3-beta.1_x64-setup.exe`, `SHA256SUMS.txt`,
 `release-manifest.json`, and `Aura-0.1.3-beta.1-evidence.zip`. The manifest includes
 actual installer bytes, hash, source fingerprint, toolchain and gated features.
