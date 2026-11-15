@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/aura.svg" width="72" alt="Aura logo" />
+  <img src="docs/images/aura-logo.png" width="96" alt="Aura logo: a mint A with an orbiting aurora ribbon" />
   <h1 align="center">Aura</h1>
   <p align="center">
     A considered space for your desktop widgets.
@@ -23,13 +23,13 @@ Aura is a native Windows desktop application built with **Tauri 2, Rust, React, 
 
 ## What Aura does
 
-- **Clock and system monitor** — local time and date, plus CPU and physical memory readings with short history sparklines.
-- **GitHub Activity** — a contribution calendar, recent contribution summary, and active day statistics.
-- **GitHub Work** — review requests, your pull requests, pull requests with failing checks, and assigned issues.
-- **Music controls** — select a supported Windows browser media session and control playback. Aura Music also provides an account and library window for YouTube Music.
-- **Four animated themes** — Faulty Terminal, Galaxy, Letter Glitch, and Pixel Snow.
-- **Six widget layouts** — place the clock on either side and arrange the system monitor and music panel to suit your desktop.
-- **Separate settings window** — theme and layout previews in an opaque, resizable window.
+- **Clock and system monitor**: local time and date, plus CPU and physical memory readings with short history sparklines.
+- **GitHub Activity**: a contribution calendar, recent contribution summary, and active day statistics.
+- **GitHub Work**: review requests, your pull requests, pull requests with failing checks, and assigned issues.
+- **Music controls**: select a supported Windows browser media session and control playback. Aura Music also provides an account and library window for YouTube Music.
+- **Four animated themes**: Faulty Terminal, Galaxy, Letter Glitch, and Pixel Snow.
+- **Six widget layouts**: place the clock on either side and arrange the system monitor and music panel to suit your desktop.
+- **Separate settings window**: theme and layout previews in an opaque, resizable window.
 
 Theme and layout choices persist across restarts. The host is a 760 × 264 logical-pixel window; its native background is transparent so the desktop shows through around the glass panel.
 
@@ -38,7 +38,7 @@ Theme and layout choices persist across restarts. The host is a 760 × 264 logic
 <p align="center">
   <img src="docs/images/aura-activity.png" width="900" alt="Aura's GitHub Activity page with a contribution summary and calendar" />
   <br />
-  <em>GitHub Activity, shown with illustrative fixture data.</em>
+  <em>Your GitHub activity, directly on the desktop.</em>
 </p>
 
 <p align="center">
@@ -47,7 +47,7 @@ Theme and layout choices persist across restarts. The host is a 760 × 264 logic
   <em>Choose a theme and preview how it looks across the widgets.</em>
 </p>
 
-Screenshots are captured from the browser preview with mock data. They show Aura's frontend UI; native window transparency and operating-system integration are visible only in the Windows desktop build.
+Screenshots captured from the running Windows app, including the actual widget, GitHub Activity, and native Settings window.
 
 ## Windows release
 

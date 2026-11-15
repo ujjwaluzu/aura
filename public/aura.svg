@@ -1,1 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="28" fill="#171820"/><path d="M30 93 61 30a3 3 0 0 1 6 0l31 63M42 70h44" fill="none" stroke="#d1c4f4" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="tile" x1="64" y1="32" x2="448" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#172C27"/>
+      <stop offset="1" stop-color="#081310"/>
+    </linearGradient>
+    <linearGradient id="aurora" x1="148" y1="140" x2="370" y2="370" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E3FFE8"/>
+      <stop offset="0.48" stop-color="#A7EF9E"/>
+      <stop offset="1" stop-color="#45C9B4"/>
+    </linearGradient>
+    <linearGradient id="orbit" x1="110" y1="330" x2="410" y2="238" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#45C9B4" stop-opacity="0.1"/>
+      <stop offset="0.55" stop-color="#A7EF9E"/>
+      <stop offset="1" stop-color="#E3FFE8"/>
+    </linearGradient>
+  </defs>
+  <rect x="12" y="12" width="488" height="488" rx="116" fill="url(#tile)"/>
+  <rect x="13" y="13" width="486" height="486" rx="115" stroke="#A7EF9E" stroke-opacity="0.18" stroke-width="2"/>
+  <path d="M136 366 231 153C240 132 270 132 279 153L374 366H317L255 218 193 366Z" fill="url(#aurora)"/>
+  <path d="M102 333C170 371 303 321 397 252" stroke="url(#orbit)" stroke-width="23" stroke-linecap="round"/>
+  <circle cx="398" cy="250" r="12" fill="#E3FFE8"/>
+</svg>
