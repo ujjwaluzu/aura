@@ -3,6 +3,10 @@ import { layouts } from '../src/features/layouts/catalog';
 import { themes } from '../src/features/themes/catalog';
 import { mockMusic } from './fixtures/music';
 
+// Music behavior tests do not exercise the background animation. Keep the
+// browser fixture still so software-rendered CI runs stay responsive.
+test.use({ reducedMotion: 'reduce' });
+
 test('music preview is opaque and account authorization stays gated', async ({
   page,
 }) => {
