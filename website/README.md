@@ -15,7 +15,10 @@ without cropping its controls. The original `public/images/aura-galaxy-live.png`
 is retained as a reference; generation details are in [hero-image-prompt.md](hero-image-prompt.md).
 The website logo and favicon retain the app's original A-and-orbit SVG geometry,
 recolored to the website palette. Feature artwork uses labelled demo data. Theme
-previews support clicks, arrow keys, Home and End; motion respects reduced-motion
+previews support clicks, arrow keys, Home and End. The selected preview theme is
+saved in browser local storage under `aura.website.theme` and restored with its
+image, caption and selected button. Missing or invalid values default to Galaxy;
+blocked storage never prevents theme switching. Motion respects reduced-motion
 preferences.
 
 The hero describes Aura directly as desktop widgets for Windows. Page decoration

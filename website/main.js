@@ -12,24 +12,39 @@ const themes = {
   'letter-glitch': ['Letter Glitch', 'Letters, mint flashes and click tears.'],
   'pixel-snow': ['Pixel Snow', 'Falling snowflakes with a soft glow.'],
 };
-document.querySelectorAll('[data-theme]').forEach((button) => {
+const themeStorageKey = 'aura.website.theme';
+const themeButtons = [...document.querySelectorAll('[data-theme]')];
+
+function selectTheme(id) {
+  if (!Object.hasOwn(themes, id)) return;
+  const [name, description] = themes[id];
+  themeButtons.forEach((button) =>
+    button.setAttribute('aria-pressed', String(button.dataset.theme === id)),
+  );
+  const image = document.getElementById('theme-image');
+  image.src = `${import.meta.env.BASE_URL}images/widget-${id}.png`;
+  image.alt = `Aura application in ${name} theme with synthetic demonstration data.`;
+  document.getElementById('theme-caption').textContent =
+    `${name}. ${description}`;
+}
+
+try {
+  selectTheme(localStorage.getItem(themeStorageKey));
+} catch {
+  // Keep the default Galaxy preview when storage is unavailable.
+}
+
+themeButtons.forEach((button) => {
   button.addEventListener('click', () => {
     const id = button.dataset.theme;
-    const [name, description] = themes[id];
-    document
-      .querySelectorAll('[data-theme]')
-      .forEach((item) =>
-        item.setAttribute('aria-pressed', String(item === button)),
-      );
-    const image = document.getElementById('theme-image');
-    image.src = `${import.meta.env.BASE_URL}images/widget-${id}.png`;
-    image.alt = `Aura application in ${name} theme with synthetic demonstration data.`;
-    document.getElementById('theme-caption').textContent =
-      `${name}. ${description}`;
+    selectTheme(id);
+    try {
+      localStorage.setItem(themeStorageKey, id);
+    } catch {
+      // The preview still works when preferences cannot be saved.
+    }
   });
 });
-
-const themeButtons = [...document.querySelectorAll('[data-theme]')];
 themeButtons.forEach((button, index) => {
   button.addEventListener('keydown', (event) => {
     let next;
