@@ -11,9 +11,16 @@ licenses. Actual app screenshots retain their original theme colors.
 The hero uses the supplied real Galaxy screenshot, stored unchanged as
 `public/images/aura-galaxy-live.png`. A responsive CSS crop removes the surrounding
 desktop and clips the corners cleanly without resampling or redrawing the UI.
-The website's vector logo and matching favicon live alongside it. Feature artwork
-uses labelled demo data. Theme previews support clicks, arrow keys, Home and End;
-motion respects reduced-motion preferences.
+The website logo and favicon retain the app's original A-and-orbit SVG geometry,
+recolored to the website palette. Feature artwork uses labelled demo data. Theme
+previews support clicks, arrow keys, Home and End; motion respects reduced-motion
+preferences.
+
+Theme cards use static captures of the actual app background renderers, rather
+than decorative approximations. Regenerate only these assets in PowerShell with
+`$env:AURA_CAPTURE_THEME_BACKGROUNDS='1'; pnpm.cmd website:capture`.
+This mode hides the app controls and saves four 640 by 400 images without
+overwriting the full widget captures.
 
 `pnpm.cmd website:build --preview` builds a source preview without inventing
 installer metadata. `pnpm.cmd website:test` checks the built site at phone,

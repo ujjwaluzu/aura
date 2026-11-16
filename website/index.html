@@ -73,8 +73,8 @@
         ><img
           class="brand-mark"
           src="./images/aura-mark.svg"
-          width="36"
-          height="36"
+          width="42"
+          height="42"
           alt=""
         />aura</a
       >
@@ -270,10 +270,14 @@
               aria-pressed="false"
               aria-label="Faulty Terminal"
             >
-              <span class="theme-card-art terminal" aria-hidden="true"
-                ><span class="terminal-code"
-                  >&gt; hello, world_<br />&gt; make room.</span
-                ><span class="theme-card-clock">10:08</span></span
+              <span class="theme-card-art" aria-hidden="true"
+                ><img
+                  src="./images/theme-faulty-terminal.png"
+                  width="640"
+                  height="400"
+                  alt=""
+                  loading="lazy"
+                /><span class="theme-card-clock">10:08</span></span
               ><span class="theme-card-info"
                 ><span>Faulty Terminal</span
                 ><span class="theme-select" aria-hidden="true">↗</span></span
@@ -287,9 +291,14 @@
               aria-pressed="true"
               aria-label="Galaxy"
             >
-              <span class="theme-card-art galaxy" aria-hidden="true"
-                ><span class="galaxy-ring"></span
-                ><span class="theme-card-clock">10:08</span></span
+              <span class="theme-card-art" aria-hidden="true"
+                ><img
+                  src="./images/theme-galaxy.png"
+                  width="640"
+                  height="400"
+                  alt=""
+                  loading="lazy"
+                /><span class="theme-card-clock">10:08</span></span
               ><span class="theme-card-info"
                 ><span>Galaxy</span
                 ><span class="theme-select" aria-hidden="true">↗</span></span
@@ -301,11 +310,14 @@
               aria-pressed="false"
               aria-label="Letter Glitch"
             >
-              <span class="theme-card-art glitch" aria-hidden="true"
-                ><span class="glitch-letters"
-                  >A U R A X P L O R E<br />0 1 A Q U I E T 0 1<br />M O M E N T
-                  A U R A<br />X 0 1 B R E A T H E</span
-                ><span class="theme-card-clock">10:08</span></span
+              <span class="theme-card-art" aria-hidden="true"
+                ><img
+                  src="./images/theme-letter-glitch.png"
+                  width="640"
+                  height="400"
+                  alt=""
+                  loading="lazy"
+                /><span class="theme-card-clock">10:08</span></span
               ><span class="theme-card-info"
                 ><span>Letter Glitch</span
                 ><span class="theme-select" aria-hidden="true">↗</span></span
@@ -317,9 +329,14 @@
               aria-pressed="false"
               aria-label="Pixel Snow"
             >
-              <span class="theme-card-art snow" aria-hidden="true"
-                ><span class="snow-pixels"></span
-                ><span class="theme-card-clock">10:08</span></span
+              <span class="theme-card-art" aria-hidden="true"
+                ><img
+                  src="./images/theme-pixel-snow.png"
+                  width="640"
+                  height="400"
+                  alt=""
+                  loading="lazy"
+                /><span class="theme-card-clock">10:08</span></span
               ><span class="theme-card-info"
                 ><span>Pixel Snow</span
                 ><span class="theme-select" aria-hidden="true">↗</span></span
@@ -557,33 +574,49 @@
     </main>
     <footer class="site-footer">
       <div class="wrap">
-        <div class="footer-top">
-          <a class="brand" href="./"
-            ><img
-              class="brand-mark"
-              src="./images/aura-mark.svg"
-              width="36"
-              height="36"
-              alt=""
-            />aura</a
-          >
-          <p>A little space for a better everyday.</p>
-          <a class="back-top" href="#main"
-            >Back to the top <span aria-hidden="true">↑</span></a
-          >
-        </div>
-        <div class="footer-bottom">
-          <small>Open source · MIT License · Made for Windows</small>
-          <nav aria-label="Footer">
-            <a href="./privacy.html">Privacy</a
-            ><a href="./music-terms.html">Music terms</a
-            ><a href="https://github.com/ujjwaluzu/aura">Source ↗</a
-            ><a href="https://github.com/ujjwaluzu/aura/issues"
-              >Report an issue ↗</a
+        <div class="footer-main">
+          <div class="footer-brand-block">
+            <a class="brand" href="./" aria-label="Aura home"
+              ><img
+                class="brand-mark"
+                src="./images/aura-mark.svg"
+                width="42"
+                height="42"
+                alt=""
+              />aura</a
             >
+            <p>
+              A considered space for your desktop.<br />A little more room for
+              you.
+            </p>
+          </div>
+          <nav class="footer-nav" aria-label="Footer">
+            <div class="footer-link-group">
+              <p class="footer-label">EXPLORE AURA</p>
+              <a href="./#features">Features</a><a href="./#themes">Themes</a
+              ><a href="./#faq">Questions &amp; answers</a>
+            </div>
+            <div class="footer-link-group">
+              <p class="footer-label">THE USEFUL DETAILS</p>
+              <a href="./privacy.html">Privacy</a
+              ><a href="./music-terms.html">Music terms</a
+              ><a href="https://github.com/ujjwaluzu/aura"
+                >Source on GitHub <span aria-hidden="true">↗</span></a
+              ><a href="https://github.com/ujjwaluzu/aura/issues"
+                >Report an issue <span aria-hidden="true">↗</span></a
+              >
+            </div>
           </nav>
-          <span class="footer-note"
-            >A little more you. <span aria-hidden="true">✳</span></span
+        </div>
+        <div class="footer-base">
+          <small
+            >Open source <span aria-hidden="true">·</span>
+            <a href="https://github.com/ujjwaluzu/aura/blob/main/LICENSE"
+              >MIT License</a
+            >
+            <span aria-hidden="true">·</span> Made for Windows</small
+          ><a class="back-top" href="#main"
+            >Back to top <span aria-hidden="true">↑</span></a
           >
         </div>
       </div>

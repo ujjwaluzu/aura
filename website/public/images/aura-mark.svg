@@ -1,4 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
-  <path fill="#171714" fill-rule="evenodd" d="M4 34 15 7a4 4 0 0 1 7.4 0L33.5 34h-8.1l-2.3-6.3h-9L11.8 34H4Zm12.2-12.4H21l-2.4-6.9-2.4 6.9Z" clip-rule="evenodd"/>
-  <circle cx="32.5" cy="7.5" r="4.5" fill="#2854ff"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="tile" x1="64" y1="32" x2="448" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#171714"/>
+      <stop offset="1" stop-color="#10100f"/>
+    </linearGradient>
+    <linearGradient id="aurora" x1="148" y1="140" x2="370" y2="370" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f8f7f3"/>
+      <stop offset="0.48" stop-color="#dce3ff"/>
+      <stop offset="1" stop-color="#2854ff"/>
+    </linearGradient>
+    <linearGradient id="orbit" x1="110" y1="330" x2="410" y2="238" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2854ff" stop-opacity="0.1"/>
+      <stop offset="0.55" stop-color="#dce3ff"/>
+      <stop offset="1" stop-color="#f8f7f3"/>
+    </linearGradient>
+  </defs>
+  <rect x="12" y="12" width="488" height="488" rx="116" fill="url(#tile)"/>
+  <rect x="13" y="13" width="486" height="486" rx="115" stroke="#2854ff" stroke-opacity="0.35" stroke-width="2"/>
+  <path d="M136 366 231 153C240 132 270 132 279 153L374 366H317L255 218 193 366Z" fill="url(#aurora)"/>
+  <path d="M102 333C170 371 303 321 397 252" stroke="url(#orbit)" stroke-width="23" stroke-linecap="round"/>
+  <circle cx="398" cy="250" r="12" fill="#f8f7f3"/>
 </svg>

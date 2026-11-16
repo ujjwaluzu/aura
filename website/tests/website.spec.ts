@@ -45,6 +45,12 @@ test('responsive showcase, theme controls, policies and versioned download', asy
     '/aura/images/widget-galaxy.png',
   );
   await expect(page.locator('#theme-caption')).toContainText('Galaxy');
+  await expect(page.locator('.theme-card-art img')).toHaveCount(4);
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Footer', exact: true })
+      .getByRole('link', { name: 'Features', exact: true }),
+  ).toBeVisible();
   await page.keyboard.press('ArrowRight');
   await expect(
     page.getByRole('button', { name: 'Letter Glitch', exact: true }),

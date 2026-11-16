@@ -117,6 +117,28 @@ for (const theme of themes) {
     await expect(
       page.getByText('Morning Light', { exact: true }),
     ).toBeVisible();
+    if (process.env.AURA_CAPTURE_THEME_BACKGROUNDS === '1') {
+      await page.setViewportSize({ width: 640, height: 400 });
+      await page.addStyleTag({
+        content: `
+          .host-surface > :not(.theme-background) { visibility: hidden !important; }
+          .widget-frame { padding: 0 !important; }
+          .host-surface {
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            background: #070a0c !important;
+            animation: none !important;
+          }
+          .theme-background { opacity: 1 !important; }
+        `,
+      });
+      await expect(page.locator('.theme-background canvas')).toBeVisible();
+      await page.screenshot({
+        path: `website/public/images/theme-${theme.id}.png`,
+      });
+      return;
+    }
     await page.screenshot({
       path: `website/public/images/widget-${theme.id}.png`,
       omitBackground: true,
