@@ -49,8 +49,9 @@ function prepareMotion() {
     });
     effects.forEach(({ animation }) => animation.cancel());
     effects = boxes.flatMap((box) => {
-      const { element, top, distance, opacity, parallax } = box;
-      if (settleVisible && top < position + viewport) settled.add(element);
+      const { element, top, height, distance, opacity, parallax } = box;
+      if (settleVisible && top < position + viewport && top + height > position)
+        settled.add(element);
       if (settled.has(element)) return [];
       const screenshot = element.dataset.motion === 'screenshot';
       const animation = element.animate(

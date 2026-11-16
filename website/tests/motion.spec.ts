@@ -194,7 +194,7 @@ for (const mode of ['native', 'fallback'] as const) {
 
   test(`${mode}: initial readability, anchor navigation and restored scroll`, async ({
     page,
-  }) => {
+  }, testInfo) => {
     await prepare(page, mode);
     expect(await opacity(page, '.hero h1')).toBe(1);
     expect(await opacity(page, '.hero-copy')).toBe(1);
@@ -219,6 +219,12 @@ for (const mode of ['native', 'fallback'] as const) {
       .poll(() => page.evaluate(() => scrollY))
       .toBeCloseTo(position, 0);
     await expect.poll(() => opacity(page, '#themes .section-heading')).toBe(1);
+    // Restoring a deep position only settles visible content. Cards above it
+    // must still follow scroll when we reverse back toward the top.
+    await move(page, '.feature:nth-child(3)', 0);
+    await expect
+      .poll(() => opacity(page, '.feature:nth-child(3)'))
+      .toBeCloseTo(testInfo.project.name === 'desktop' ? 0.35 : 0.55, 2);
     await page.goto('./#install');
     await expect.poll(() => opacity(page, '#install .section-heading')).toBe(1);
   });
