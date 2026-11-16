@@ -23,9 +23,9 @@ document.querySelectorAll('[data-theme]').forEach((button) => {
     image.src = `${import.meta.env.BASE_URL}images/widget-${id}.png`;
     image.alt = `Aura application in ${name} theme with synthetic demonstration data.`;
     document.getElementById('theme-caption').textContent =
-      `${name} — ${description}`;
+      `${name}. ${description}`;
     document.querySelector('.preview-topline > span:last-child').textContent =
-      `${String(Object.keys(themes).indexOf(id) + 1).padStart(2, '0')}—04`;
+      `${String(Object.keys(themes).indexOf(id) + 1).padStart(2, '0')} / 04`;
   });
 });
 
@@ -59,25 +59,6 @@ for (let index = 0; index < 65; index++) {
   );
   contributions.append(cell);
 }
-
-const playButton = document.querySelector('.demo-play');
-playButton.addEventListener('click', () => {
-  const playing = playButton.getAttribute('aria-pressed') !== 'true';
-  playButton.setAttribute('aria-pressed', String(playing));
-  playButton.setAttribute(
-    'aria-label',
-    playing ? 'Pause demo animation' : 'Play demo animation',
-  );
-  document
-    .querySelector('.widget-demo')
-    .classList.toggle('is-playing', playing);
-  document.querySelector('.song-playing').textContent = playing
-    ? '· playing'
-    : '· paused';
-  playButton
-    .querySelector('path')
-    .setAttribute('d', playing ? 'M5 4h3v12H5Zm7 0h3v12h-3Z' : 'm7 4 9 6-9 6Z');
-});
 
 // This generated file comes only from a checksum-verified release manifest.
 fetch(`${import.meta.env.BASE_URL}release.json`)

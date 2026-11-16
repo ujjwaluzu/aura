@@ -58,14 +58,15 @@ test('responsive showcase, theme controls, policies and versioned download', asy
     page.getByRole('button', { name: 'Faulty Terminal', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
 
-  const play = page.getByRole('button', { name: 'Play demo animation' });
-  await play.click();
-  await expect(
-    page.getByRole('button', { name: 'Pause demo animation' }),
-  ).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('.song-playing')).toHaveText('· playing');
-  await page.getByRole('button', { name: 'Pause demo animation' }).click();
-  await expect(play).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('.hero-screenshot')).toHaveAttribute(
+    'src',
+    /images\/aura-galaxy-live\.png$/,
+  );
+  await expect(page.locator('.site-header .brand-mark')).toHaveAttribute(
+    'src',
+    /images\/aura-mark\.svg$/,
+  );
+  expect(await page.locator('body').innerText()).not.toContain('\u2014');
   await page
     .getByText('Does Aura start with Windows?', { exact: true })
     .click();
@@ -112,6 +113,7 @@ test('responsive showcase, theme controls, policies and versioned download', asy
   ]) {
     await page.goto(path!);
     await expect(page.getByRole('heading', { level: 1 })).toContainText(title!);
+    expect(await page.locator('body').innerText()).not.toContain('\u2014');
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,

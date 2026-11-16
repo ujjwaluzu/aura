@@ -8,7 +8,7 @@
       content="A little space for everything. Aura brings your time, system activity, browser music and GitHub day to your Windows desktop. Explore the open-source Windows beta."
     />
     <meta name="theme-color" content="#f8f7f3" />
-    <link rel="icon" href="./images/aura.png" />
+    <link rel="icon" href="./images/favicon.svg" />
     <link
       rel="preload"
       href="./fonts/bodoni-moda.ttf"
@@ -24,7 +24,7 @@
       crossorigin
     />
     <link rel="stylesheet" href="./style.css" />
-    <title>Aura — A little space for everything.</title>
+    <title>Aura | A little space for everything.</title>
     <script type="module" src="./main.js"></script>
   </head>
   <body>
@@ -35,9 +35,6 @@
       aria-hidden="true"
     >
       <defs>
-        <symbol id="i-aura" viewBox="0 0 32 32">
-          <path d="m5 26 11-21 11 21M9.5 18h13" />
-        </symbol>
         <symbol id="i-arrow" viewBox="0 0 24 24">
           <path d="M5 12h14m-6-6 6 6-6 6" />
         </symbol>
@@ -73,9 +70,13 @@
     </svg>
     <header class="site-header wrap">
       <a class="brand" href="./" aria-label="Aura home"
-        ><svg class="icon brand-mark" aria-hidden="true">
-          <use href="#i-aura" /></svg
-        >aura<span class="brand-period">.</span></a
+        ><img
+          class="brand-mark"
+          src="./images/aura-mark.svg"
+          width="36"
+          height="36"
+          alt=""
+        />aura</a
       >
       <nav aria-label="Main navigation">
         <a href="#features">Features</a><a href="#themes">Themes</a
@@ -119,86 +120,22 @@
           <span data-size>Size available with verified release</span>
         </p>
         <p class="beta-micro">Open source. Unsigned public beta.</p>
-        <div class="desktop-scene">
-          <div class="orbit-label orbit-label-left" aria-hidden="true">
-            A little more in sync.<svg viewBox="0 0 100 50">
-              <path d="M3 8Q35 3 76 35m-15-1 17 4-3-16" />
-            </svg>
+        <figure class="desktop-scene">
+          <div class="hero-screenshot-crop">
+            <img
+              class="hero-screenshot"
+              src="./images/aura-galaxy-live.png"
+              width="908"
+              height="303"
+              fetchpriority="high"
+              alt="Aura running in the Galaxy theme, showing the clock, CPU and memory activity, and browser music controls."
+            />
           </div>
-          <div class="floating-tile tile-clock" aria-hidden="true">
-            <svg class="icon"><use href="#i-clock" /></svg>
-          </div>
-          <div class="floating-tile tile-cpu" aria-hidden="true">
-            <svg class="icon"><use href="#i-cpu" /></svg>
-          </div>
-          <div class="floating-tile tile-music" aria-hidden="true">
-            <svg class="icon"><use href="#i-music" /></svg>
-          </div>
-          <div class="floating-tile tile-spark" aria-hidden="true">
-            <svg class="icon"><use href="#i-spark" /></svg>
-          </div>
-          <div class="floating-tile tile-github" aria-hidden="true">
-            <svg class="icon"><use href="#i-github" /></svg>
-          </div>
-          <div
-            class="widget-demo"
-            aria-label="Interactive illustration of an Aura widget, using demo data"
-          >
-            <div class="widget-topline">
-              <span
-                ><svg class="icon" aria-hidden="true">
-                  <use href="#i-aura" />
-                </svg>
-                aura</span
-              ><span>YOUR DAY, AT A GLANCE <i></i></span>
-            </div>
-            <div class="widget-content">
-              <div class="widget-clock">
-                <span class="widget-time"
-                  >10<span class="time-colon">:</span>24</span
-                ><span class="widget-date">Sunday, 15 November</span
-                ><span class="widget-greeting">A little room to focus.</span>
-              </div>
-              <div class="widget-right">
-                <div class="widget-metric">
-                  <span>CPU</span><span>20<span class="percent">%</span></span>
-                  <div class="metric-track"><i style="--usage: 20%"></i></div>
-                </div>
-                <div class="widget-metric">
-                  <span>MEMORY</span
-                  ><span>40<span class="percent">%</span></span>
-                  <div class="metric-track"><i style="--usage: 40%"></i></div>
-                </div>
-                <div class="widget-song">
-                  <div class="album-art" aria-hidden="true">
-                    <span></span><i></i>
-                  </div>
-                  <div>
-                    <strong>Morning Light</strong
-                    ><span
-                      >Demo Artist
-                      <span class="song-playing">· paused</span></span
-                    >
-                  </div>
-                  <button
-                    class="demo-play"
-                    type="button"
-                    aria-label="Play demo animation"
-                    aria-pressed="false"
-                  >
-                    <svg viewBox="0 0 20 20" aria-hidden="true">
-                      <path class="play-shape" d="m7 4 9 6-9 6Z" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <p class="scene-caption">
-            <span class="caption-line"></span> A little preview of your
-            everyday. <span class="demo-label">Illustrative demo</span>
-          </p>
-        </div>
+          <figcaption class="scene-caption">
+            Your desktop, in its element.
+            <span>Actual Aura app · Galaxy theme</span>
+          </figcaption>
+        </figure>
         <a class="scroll-cue" href="#features"
           ><span>LESS SWITCHING. MORE LIVING.</span
           ><span aria-hidden="true">↓</span></a
@@ -330,7 +267,7 @@
             <button
               type="button"
               data-theme="faulty-terminal"
-              aria-pressed="true"
+              aria-pressed="false"
               aria-label="Faulty Terminal"
             >
               <span class="theme-card-art terminal" aria-hidden="true"
@@ -347,7 +284,7 @@
             <button
               type="button"
               data-theme="galaxy"
-              aria-pressed="false"
+              aria-pressed="true"
               aria-label="Galaxy"
             >
               <span class="theme-card-art galaxy" aria-hidden="true"
@@ -392,21 +329,20 @@
           <figure class="theme-preview">
             <div class="preview-topline">
               <span><i></i><i></i><i></i></span
-              ><span>THE REAL THING / ACTUAL APP UI</span><span>01—04</span>
+              ><span>THE REAL THING / ACTUAL APP UI</span><span>02 / 04</span>
             </div>
             <div class="theme-image-stage">
               <img
                 id="theme-image"
-                src="./images/widget-faulty-terminal.png"
+                src="./images/widget-galaxy.png"
                 width="760"
                 height="264"
-                alt="Aura application in Faulty Terminal theme with synthetic demonstration data."
+                alt="Aura application in Galaxy theme with synthetic demonstration data."
                 loading="lazy"
               />
             </div>
             <figcaption id="theme-caption" aria-live="polite">
-              Faulty Terminal — Green phosphor, scanlines and interactive
-              glitches.
+              Galaxy. Twinkling stars, gentle rotation and click-to-warp flight.
             </figcaption>
             <span class="preview-demo"
               >Actual application · synthetic demo data</span
@@ -623,9 +559,13 @@
       <div class="wrap">
         <div class="footer-top">
           <a class="brand" href="./"
-            ><svg class="icon brand-mark" aria-hidden="true">
-              <use href="#i-aura" /></svg
-            >aura<span class="brand-period">.</span></a
+            ><img
+              class="brand-mark"
+              src="./images/aura-mark.svg"
+              width="36"
+              height="36"
+              alt=""
+            />aura</a
           >
           <p>A little space for a better everyday.</p>
           <a class="back-top" href="#main"
