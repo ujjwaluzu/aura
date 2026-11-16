@@ -8,9 +8,11 @@ The visual system uses warm ivory (`#f8f7f3`), near-black (`#171714`) and
 cobalt (`#2854ff`), with neutral tints for surfaces and dividers. Bodoni Moda,
 Anton and DM Sans are served locally from `public/fonts/`, alongside their OFL
 licenses. Actual app screenshots retain their original theme colors.
-The hero uses the supplied real Galaxy screenshot, stored unchanged as
-`public/images/aura-galaxy-live.png`. A responsive CSS crop removes the surrounding
-desktop and clips the corners cleanly without resampling or redrawing the UI.
+The hero uses `public/images/aura-galaxy-clean.png`, an AI-cleaned Galaxy preview
+derived from the supplied screenshot. The edit removes desktop/code text showing
+through the translucent widget background. The full preview scales responsively
+without cropping its controls. The original `public/images/aura-galaxy-live.png`
+is retained as a reference; generation details are in [hero-image-prompt.md](hero-image-prompt.md).
 The website logo and favicon retain the app's original A-and-orbit SVG geometry,
 recolored to the website palette. Feature artwork uses labelled demo data. Theme
 previews support clicks, arrow keys, Home and End; motion respects reduced-motion
@@ -54,7 +56,7 @@ tracking, third-party font request or payment flow.
 Screenshots are captured from the actual React application with synthetic IPC
 fixtures using `pnpm.cmd website:capture`. All captures use the public beta's
 gated Google state and contain no real accounts, credentials or remote artwork.
-The hero is a real screenshot supplied for this website, including the visible
+The hero is an AI-cleaned preview based on the supplied screenshot and its visible
 music session. Gallery captures are labelled synthetic demo data. Images are
 stored in `website/public/images/` and are not evidence of native integration
 passing. Website branding uses the custom SVG mark and favicon.

@@ -72,7 +72,7 @@ test('responsive showcase, theme controls, policies and versioned download', asy
 
   await expect(page.locator('.hero-screenshot')).toHaveAttribute(
     'src',
-    /images\/aura-galaxy-live\.png$/,
+    /images\/aura-galaxy-clean\.png$/,
   );
   await expect(page.locator('.site-header .brand-mark')).toHaveAttribute(
     'src',

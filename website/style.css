@@ -1528,10 +1528,10 @@ details p {
     transition: none !important;
   }
 }
-/* Crop (10, 12, 884, 280) from the unchanged 908 by 303 pixel capture. */
+/* Show the entire cleaned preview, including every widget control. */
 .hero-screenshot-crop {
   position: relative;
-  aspect-ratio: 884 / 280;
+  aspect-ratio: 2170 / 725;
   width: 100%;
   overflow: hidden;
   border-radius: 24px;
@@ -1540,12 +1540,8 @@ details p {
   outline: 1px solid rgb(23 23 20 / 12%);
 }
 .hero-screenshot {
-  position: absolute;
-  width: 102.714932%;
-  max-width: none;
+  width: 100%;
   height: auto;
-  left: -1.131222%;
-  top: -4.285714%;
 }
 .scene-caption > span {
   color: var(--muted);
