@@ -23,6 +23,15 @@
       type="font/ttf"
       crossorigin
     />
+    <script>
+      // Run before styles/first paint; without JavaScript all content stays visible.
+      if (
+        CSS.supports('animation-timeline: view(block 0px)') &&
+        CSS.supports('animation-range: cover 0% cover 20%')
+      ) {
+        document.documentElement.dataset.scrollMotion = 'native';
+      }
+    </script>
     <link rel="stylesheet" href="./style.css" />
     <title>Aura | Desktop widgets for Windows</title>
     <script type="module" src="./main.js"></script>
@@ -72,7 +81,7 @@
         </p>
         <p class="beta-micro">Open source. Unsigned public beta.</p>
         <figure class="desktop-scene">
-          <div class="hero-screenshot-crop">
+          <div class="hero-screenshot-crop" data-motion="screenshot">
             <img
               class="hero-screenshot"
               src="./images/aura-galaxy-live.png"
@@ -94,7 +103,7 @@
         aria-labelledby="features-title"
       >
         <div class="wrap">
-          <div class="section-heading split-heading">
+          <div class="section-heading split-heading" data-motion="heading">
             <div>
               <h2 id="features-title">
                 THE THINGS YOU CHECK.<br /><span>RIGHT WHERE YOU ARE.</span>
@@ -106,18 +115,22 @@
             </p>
           </div>
           <div class="quick-facts">
-            <div><strong>4</strong><span>animated themes</span></div>
-            <div><strong>6</strong><span>widget layouts</span></div>
-            <div>
+            <div data-motion="card">
+              <strong>4</strong><span>animated themes</span>
+            </div>
+            <div data-motion="card">
+              <strong>6</strong><span>widget layouts</span>
+            </div>
+            <div data-motion="card">
               <strong>MIT</strong><span>open source. yours to explore.</span>
             </div>
-            <div>
+            <div data-motion="card">
               <strong data-size>Small footprint</strong
               ><span>Windows x64 installer</span>
             </div>
           </div>
           <div class="feature-grid">
-            <article class="feature">
+            <article class="feature" data-motion="card">
               <div class="feature-visual mini-clock" aria-hidden="true">
                 <span>10:24</span>
                 <div>SUNDAY, 15 NOVEMBER</div>
@@ -133,7 +146,7 @@
                 quiet eye on your system with live history sparklines.
               </p>
             </article>
-            <article class="feature">
+            <article class="feature" data-motion="card">
               <div class="feature-visual mini-player" aria-hidden="true">
                 <div class="mini-record"><i></i></div>
                 <div>
@@ -150,7 +163,7 @@
                 session. Your music stays in its rhythm. So do you.
               </p>
             </article>
-            <article class="feature">
+            <article class="feature" data-motion="card">
               <div class="feature-visual mini-github" aria-hidden="true">
                 <div class="contribution-grid"></div>
               </div>
@@ -173,7 +186,7 @@
         aria-labelledby="themes-title"
       >
         <div class="wrap">
-          <div class="section-heading centered">
+          <div class="section-heading centered" data-motion="heading">
             <h2 id="themes-title">SAME SPACE.<br />DIFFERENT STATE OF MIND.</h2>
             <p>Four animated themes. Six layouts. A little more you.</p>
           </div>
@@ -181,6 +194,7 @@
             <button
               type="button"
               data-theme="faulty-terminal"
+              data-motion="card"
               aria-pressed="false"
               aria-label="Faulty Terminal"
             >
@@ -200,6 +214,7 @@
             <button
               type="button"
               data-theme="galaxy"
+              data-motion="card"
               aria-pressed="true"
               aria-label="Galaxy"
             >
@@ -217,6 +232,7 @@
             <button
               type="button"
               data-theme="letter-glitch"
+              data-motion="card"
               aria-pressed="false"
               aria-label="Letter Glitch"
             >
@@ -234,6 +250,7 @@
             <button
               type="button"
               data-theme="pixel-snow"
+              data-motion="card"
               aria-pressed="false"
               aria-label="Pixel Snow"
             >
@@ -249,7 +266,7 @@
               ><span class="theme-card-sub">A softer kind of screen time.</span>
             </button>
           </div>
-          <figure class="theme-preview">
+          <figure class="theme-preview" data-motion="screenshot">
             <div class="theme-image-stage">
               <img
                 id="theme-image"
@@ -267,7 +284,7 @@
               >Actual application · synthetic demo data</span
             >
           </figure>
-          <div class="settings-row">
+          <div class="settings-row" data-motion="heading">
             <div>
               <h3>A SETUP THAT FEELS LIKE YOURS.</h3>
               <p>
@@ -286,11 +303,11 @@
         aria-labelledby="install-title"
       >
         <div class="wrap">
-          <div class="section-heading">
+          <div class="section-heading" data-motion="heading">
             <h2 id="install-title">THREE STEPS TO SETTLE IN.</h2>
           </div>
           <ol class="install-steps">
-            <li>
+            <li data-motion="card">
               <h3>Download the beta.</h3>
               <p>
                 Get the Windows x64 installer. This early beta is unsigned;
@@ -298,7 +315,7 @@
                 Review the source and release notes before installing.
               </p>
             </li>
-            <li>
+            <li data-motion="card">
               <h3>Install for your user.</h3>
               <p>
                 Run the installer. Aura uses Microsoft Edge WebView2; setup
@@ -306,7 +323,7 @@
                 connection may be required.
               </p>
             </li>
-            <li>
+            <li data-motion="card">
               <h3>Make it yours.</h3>
               <p>
                 Choose your theme and layout in Settings. Startup is enabled on
@@ -317,6 +334,7 @@
           </ol>
           <section
             class="download-panel"
+            data-motion="card"
             id="download"
             aria-labelledby="download-title"
           >
@@ -369,7 +387,7 @@
         id="faq"
         aria-labelledby="faq-title"
       >
-        <div>
+        <div data-motion="heading">
           <h2 id="faq-title">BEFORE YOU<br /><span>MOVE IN.</span></h2>
           <p class="faq-aside">A little clarity goes a long way.</p>
           <a class="text-link" href="https://github.com/ujjwaluzu/aura/issues"
@@ -377,7 +395,7 @@
           </a>
         </div>
         <div class="faq-list">
-          <details name="aura-faq" open>
+          <details name="aura-faq" data-motion="card" open>
             <summary>What does “unsigned beta” mean?</summary>
             <p>
               The installer has no trusted code-signing certificate. Windows may
@@ -386,7 +404,7 @@
               the source and release notes before deciding to install.
             </p>
           </details>
-          <details name="aura-faq">
+          <details name="aura-faq" data-motion="card">
             <summary>Does Aura start with Windows?</summary>
             <p>
               Yes. On its first release launch, Aura enables startup for the
@@ -394,7 +412,7 @@
               Aura with Windows. Windows Startup apps can override this setting.
             </p>
           </details>
-          <details name="aura-faq">
+          <details name="aura-faq" data-motion="card">
             <summary>Do I need a Google account for music controls?</summary>
             <p>
               No. Windows browser media-session controls work independently.
@@ -404,7 +422,7 @@
               requirements.
             </p>
           </details>
-          <details name="aura-faq">
+          <details name="aura-faq" data-motion="card">
             <summary>What is WebView2, and do I need it?</summary>
             <p>
               Aura uses Microsoft's WebView2 Runtime to display its local
@@ -416,7 +434,7 @@
               >.
             </p>
           </details>
-          <details name="aura-faq">
+          <details name="aura-faq" data-motion="card">
             <summary>What data leaves my computer?</summary>
             <p>
               Clock, system metrics, preferences and browser media metadata stay
@@ -428,7 +446,7 @@
               <a href="./privacy.html">privacy policy</a> for details.
             </p>
           </details>
-          <details name="aura-faq">
+          <details name="aura-faq" data-motion="card">
             <summary>Where can I report a problem?</summary>
             <p>
               Open an
@@ -444,7 +462,7 @@
     </main>
     <footer class="site-footer">
       <div class="wrap">
-        <div class="footer-main">
+        <div class="footer-main" data-motion="card">
           <div class="footer-brand-block">
             <a class="brand" href="./" aria-label="Aura home"
               ><img
@@ -477,7 +495,7 @@
             </div>
           </nav>
         </div>
-        <div class="footer-base">
+        <div class="footer-base" data-motion="card">
           <small
             >Open source <span aria-hidden="true">·</span>
             <a href="https://github.com/ujjwaluzu/aura/blob/main/LICENSE"

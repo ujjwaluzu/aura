@@ -18,9 +18,14 @@ preferences.
 
 The hero describes Aura directly as desktop widgets for Windows. Page decoration
 uses typography and imagery without icons, emoji or eyebrow labels. Sections and
-cards receive a short, one-time fade and rise as they enter the viewport. Content
-remains visible without JavaScript, reduced-motion disables the effect, and
-keyboard focus cancels animation on the focused content.
+cards reveal over the first 20% of their passage through the viewport, following
+scroll position in both directions. Horizontal columns stagger by scroll distance;
+single-column layouts reset the stagger. Screenshot frames have gentle parallax
+without changing their crop or scale. Native CSS view timelines are enabled before
+first paint; unsupported browsers scrub paused Web Animations with one passive
+scroll listener and layout geometry cached on resize/content changes. Initially
+visible fallback content stays settled. Content remains visible without JavaScript,
+reduced-motion immediately disables motion, and focused content stays fully visible.
 
 Theme cards use static captures of the actual app background renderers, rather
 than decorative approximations. Regenerate only these assets in PowerShell with

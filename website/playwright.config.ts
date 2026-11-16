@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 export default defineConfig({
   testDir: './tests',
-  testMatch: 'website.spec.ts',
+  testMatch: ['website.spec.ts', 'motion.spec.ts'],
   workers: 1,
   outputDir: '../artifacts/website-tests',
   use: { baseURL: 'http://127.0.0.1:1430/aura/', trace: 'retain-on-failure' },
