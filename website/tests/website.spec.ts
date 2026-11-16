@@ -45,12 +45,44 @@ test('responsive showcase, theme controls, policies and versioned download', asy
     '/aura/images/widget-galaxy.png',
   );
   await expect(page.locator('#theme-caption')).toContainText('Galaxy');
+  await page.keyboard.press('ArrowRight');
+  await expect(
+    page.getByRole('button', { name: 'Letter Glitch', exact: true }),
+  ).toBeFocused();
+  await expect(page.locator('#theme-image')).toHaveAttribute(
+    'src',
+    '/aura/images/widget-letter-glitch.png',
+  );
+  await page.keyboard.press('Home');
+  await expect(
+    page.getByRole('button', { name: 'Faulty Terminal', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+
+  const play = page.getByRole('button', { name: 'Play demo animation' });
+  await play.click();
+  await expect(
+    page.getByRole('button', { name: 'Pause demo animation' }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.song-playing')).toHaveText('· playing');
+  await page.getByRole('button', { name: 'Pause demo animation' }).click();
+  await expect(play).toHaveAttribute('aria-pressed', 'false');
   await page
     .getByText('Does Aura start with Windows?', { exact: true })
     .click();
   await expect(page.locator('details[open]')).toContainText(
     'Settings → General',
   );
+  await expect(page.locator('details[open]')).toHaveCount(1);
+  await page.evaluate(() => document.fonts.ready);
+  for (const font of [
+    '600 40px "Bodoni Moda"',
+    '400 40px Anton',
+    '400 16px "DM Sans"',
+  ]) {
+    expect(
+      await page.evaluate((font) => document.fonts.check(font), font),
+    ).toBe(true);
+  }
   await page.locator('img').evaluateAll((images) =>
     images.forEach((image) => {
       if (image instanceof HTMLImageElement) image.loading = 'eager';

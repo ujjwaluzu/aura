@@ -24,7 +24,59 @@ document.querySelectorAll('[data-theme]').forEach((button) => {
     image.alt = `Aura application in ${name} theme with synthetic demonstration data.`;
     document.getElementById('theme-caption').textContent =
       `${name} — ${description}`;
+    document.querySelector('.preview-topline > span:last-child').textContent =
+      `${String(Object.keys(themes).indexOf(id) + 1).padStart(2, '0')}—04`;
   });
+});
+
+const themeButtons = [...document.querySelectorAll('[data-theme]')];
+themeButtons.forEach((button, index) => {
+  button.addEventListener('keydown', (event) => {
+    let next;
+    if (event.key === 'ArrowRight') next = (index + 1) % themeButtons.length;
+    if (event.key === 'ArrowLeft')
+      next = (index - 1 + themeButtons.length) % themeButtons.length;
+    if (event.key === 'Home') next = 0;
+    if (event.key === 'End') next = themeButtons.length - 1;
+    if (next === undefined) return;
+    event.preventDefault();
+    themeButtons[next].focus();
+    themeButtons[next].click();
+  });
+});
+
+// Deterministic illustrative activity, not a real account or contribution count.
+const contributions = document.querySelector('.contribution-grid');
+for (let index = 0; index < 65; index++) {
+  const cell = document.createElement('i');
+  const levels = [0.08, 0.18, 0.35, 0.6, 0.85, 1];
+  cell.style.setProperty(
+    '--level',
+    levels[
+      (index * 11 + Math.floor(index / 3) * 7 + Math.floor(index / 7)) %
+        levels.length
+    ],
+  );
+  contributions.append(cell);
+}
+
+const playButton = document.querySelector('.demo-play');
+playButton.addEventListener('click', () => {
+  const playing = playButton.getAttribute('aria-pressed') !== 'true';
+  playButton.setAttribute('aria-pressed', String(playing));
+  playButton.setAttribute(
+    'aria-label',
+    playing ? 'Pause demo animation' : 'Play demo animation',
+  );
+  document
+    .querySelector('.widget-demo')
+    .classList.toggle('is-playing', playing);
+  document.querySelector('.song-playing').textContent = playing
+    ? '· playing'
+    : '· paused';
+  playButton
+    .querySelector('path')
+    .setAttribute('d', playing ? 'M5 4h3v12H5Zm7 0h3v12h-3Z' : 'm7 4 9 6-9 6Z');
 });
 
 // This generated file comes only from a checksum-verified release manifest.

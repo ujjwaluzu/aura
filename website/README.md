@@ -4,6 +4,14 @@ Independent static HTML/CSS/JavaScript showcase, built with the repository's Vit
 `pnpm.cmd website:dev` serves `/aura/` at port 1430. Output is `website/dist/`;
 desktop builds continue to use the root `dist/`.
 
+The visual system uses warm ivory (`#f8f7f3`), near-black (`#171714`) and
+cobalt (`#2854ff`), with neutral tints for surfaces and dividers. Bodoni Moda,
+Anton and DM Sans are served locally from `public/fonts/`, alongside their OFL
+licenses. Actual app screenshots retain their original theme colors.
+The hero and feature artwork are explicitly labelled illustrations. The hero
+play button toggles a visual demo, without audio. Theme previews support clicks,
+arrow keys, Home and End; decorative motion respects reduced-motion preferences.
+
 `pnpm.cmd website:build --preview` builds a source preview without inventing
 installer metadata. `pnpm.cmd website:test` checks the built site at phone,
 tablet and desktop widths, keyboard navigation, images, policy pages, theme

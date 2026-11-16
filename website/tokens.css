@@ -1,9 +1,12 @@
 :root {
-  --bg: #101412;
-  --text: #edf1eb;
-  --muted: #a3afa6;
-  --mint: #acf2c7;
-  --line: #2b352e;
+  --bg: #f8f7f3;
+  --text: #171714;
+  --accent: #2854ff;
+  --muted: #67665f;
+  --line: #deddd5;
+  --paper: #f0eee5;
+  --sans: 'DM Sans', 'Segoe UI', sans-serif;
+  --display: 'Anton', Impact, sans-serif;
   --mono: 'Cascadia Code', 'SFMono-Regular', Consolas, monospace;
-  color-scheme: dark;
+  color-scheme: light;
 }
