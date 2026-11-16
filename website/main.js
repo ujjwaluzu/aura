@@ -24,8 +24,6 @@ document.querySelectorAll('[data-theme]').forEach((button) => {
     image.alt = `Aura application in ${name} theme with synthetic demonstration data.`;
     document.getElementById('theme-caption').textContent =
       `${name}. ${description}`;
-    document.querySelector('.preview-topline > span:last-child').textContent =
-      `${String(Object.keys(themes).indexOf(id) + 1).padStart(2, '0')} / 04`;
   });
 });
 
@@ -60,6 +58,82 @@ for (let index = 0; index < 65; index++) {
   contributions.append(cell);
 }
 
+// Animate on entry without hiding content before JavaScript or observation runs.
+const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+const scrollTargets = [
+  ...document.querySelectorAll(
+    '.section-heading, .quick-facts, .feature, .theme-picker > button, .theme-preview, .settings-row, .install-steps > li, .download-panel, .faq-section > div:first-child, .faq-list > details, .footer-main, .footer-base',
+  ),
+];
+const scrollAnimations = new Map();
+let scrollObserver;
+
+function prepareScrollAnimations() {
+  scrollObserver?.disconnect();
+  scrollAnimations.forEach((animation) => animation.cancel());
+  scrollAnimations.clear();
+  scrollTargets.forEach((element) => {
+    element.dataset.scrollReveal = 'static';
+  });
+  if (motionPreference.matches || !('IntersectionObserver' in window)) return;
+
+  scrollObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach(({ target, isIntersecting }) => {
+        if (!isIntersecting || target.dataset.scrollReveal !== 'waiting')
+          return;
+        scrollObserver.unobserve(target);
+        target.dataset.scrollReveal = 'visible';
+        if (typeof target.animate !== 'function') return;
+        const staggered = target.matches(
+          '.feature, .theme-picker > button, .install-steps > li',
+        );
+        const index = staggered
+          ? [...target.parentElement.children].indexOf(target)
+          : 0;
+        const animation = target.animate(
+          [
+            { opacity: 0, transform: 'translateY(18px)' },
+            { opacity: 1, transform: 'translateY(0)' },
+          ],
+          {
+            duration: 560,
+            delay: Math.min(index * 45, 135),
+            easing: 'cubic-bezier(.22, 1, .36, 1)',
+            fill: 'backwards',
+          },
+        );
+        scrollAnimations.set(target, animation);
+        const complete = () => {
+          if (scrollAnimations.get(target) === animation)
+            scrollAnimations.delete(target);
+        };
+        animation.finished.then(complete, complete);
+      });
+    },
+    { threshold: 0.08, rootMargin: '0px 0px -24px 0px' },
+  );
+
+  scrollTargets.forEach((element) => {
+    if (element.getBoundingClientRect().top < window.innerHeight - 24) return;
+    element.dataset.scrollReveal = 'waiting';
+    scrollObserver.observe(element);
+  });
+}
+
+motionPreference.addEventListener('change', prepareScrollAnimations);
+document.addEventListener('focusin', (event) => {
+  const target =
+    event.target instanceof Element
+      ? event.target.closest('[data-scroll-reveal]')
+      : null;
+  if (!target) return;
+  scrollObserver?.unobserve(target);
+  scrollAnimations.get(target)?.cancel();
+  target.dataset.scrollReveal = 'visible';
+});
+prepareScrollAnimations();
+
 // This generated file comes only from a checksum-verified release manifest.
 fetch(`${import.meta.env.BASE_URL}release.json`)
   .then((response) => {
@@ -90,7 +164,7 @@ fetch(`${import.meta.env.BASE_URL}release.json`)
   })
   .catch(() => {
     document.querySelectorAll('.download-link').forEach((link) => {
-      link.textContent = 'View beta release on GitHub ↗';
+      link.textContent = 'View beta release on GitHub';
       link.href =
         'https://github.com/ujjwaluzu/aura/releases/tag/v0.1.3-beta.1';
     });

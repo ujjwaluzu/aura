@@ -19,8 +19,14 @@ test('responsive showcase, theme controls, policies and versioned download', asy
   );
   await page.goto('./');
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
-    'A little space',
+    'Desktop widgets.',
   );
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(
+    'Made for Windows.',
+  );
+  await expect(
+    page.locator('.eyebrow, .icon, .hero-asterisk, .settings-star'),
+  ).toHaveCount(0);
   for (const link of await page
     .getByRole('link', { name: 'Download Windows Beta' })
     .all())
@@ -77,7 +83,7 @@ test('responsive showcase, theme controls, policies and versioned download', asy
     .getByText('Does Aura start with Windows?', { exact: true })
     .click();
   await expect(page.locator('details[open]')).toContainText(
-    'Settings → General',
+    'Settings, then General',
   );
   await expect(page.locator('details[open]')).toHaveCount(1);
   await page.evaluate(() => document.fonts.ready);
@@ -112,6 +118,7 @@ test('responsive showcase, theme controls, policies and versioned download', asy
   await page.screenshot({
     path: `artifacts/website-${testInfo.project.name}.png`,
     fullPage: true,
+    animations: 'disabled',
   });
   for (const [path, title] of [
     ['privacy.html', 'Aura privacy policy'],
@@ -137,7 +144,7 @@ test('unavailable metadata falls back to explicit prerelease page', async ({
   );
   await page.goto('./');
   await expect(page.locator('.download-link').first()).toHaveText(
-    'View beta release on GitHub ↗',
+    'View beta release on GitHub',
   );
   await expect(page.locator('.download-link').first()).toHaveAttribute(
     'href',
