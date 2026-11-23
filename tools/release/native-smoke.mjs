@@ -91,7 +91,7 @@ const startupState = () =>
 const startupBefore = startupState();
 const directory =
   process.env.AURA_NATIVE_OUTPUT ?? join(root, 'artifacts/release-checks');
-const profile = join(directory, 'isolated-profile');
+const profile = join(directory, `isolated-profile-${Date.now()}`);
 const report = join(directory, 'native-smoke.json');
 const binary =
   process.env.AURA_NATIVE_BINARY ??
@@ -192,7 +192,8 @@ try {
     throw new Error('Isolated smoke test unexpectedly initialized startup.');
   passed = true;
 } catch (error) {
-  failure = error instanceof Error ? error.message : String(error);
+  failure =
+    error instanceof Error ? (error.stack ?? error.message) : String(error);
 } finally {
   let browser;
   try {

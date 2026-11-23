@@ -1,13 +1,17 @@
-# Aura 0.1.3-beta.1 — unsigned public beta
+# Aura 0.1.3-beta.2 — unsigned public beta
 
-Aura's first public beta brings its desktop clock, CPU and RAM history,
-GitHub Activity and Work views, Windows browser music controls, four animated
-themes and six layouts to Windows x64. Settings are saved locally. The existing
-application identity, preferences, startup settings and Aura icon are preserved.
+This update adds a native notification-area icon: click it to restore Aura, or
+use its menu to show the widget, reset its position after a display change, or
+quit. Reopening Aura also restores the running instance. The original delayed
+disappearance was not reproduced, so its underlying cause remains unconfirmed.
+
+Music now uses Windows browser media sessions without Google authorization or
+YouTube account screens. A failed Windows media-manager initialization can be
+retried. The website serves assets from the custom domain root and enforces HTTPS.
 
 ## Installation
 
-Download `Aura_0.1.3-beta.1_x64-setup.exe` from this release. This installer is
+Download `Aura_0.1.3-beta.2_x64-setup.exe` from this release. This installer is
 **unsigned**. Windows may display an unknown-publisher or SmartScreen warning;
 review the source, notes and checksums before choosing to install. No security
 settings need to be changed by Aura. Clean-Windows installation acceptance is
@@ -28,9 +32,8 @@ when upgrading. Open Settings to choose a theme, layout and browser media sessio
   no SignPath approval is claimed.
 - Clean-Windows testing is pending, including clean install/uninstall, missing
   WebView2, offline install, non-admin and varied DPI/display configurations.
-- Google sign-in and YouTube account/library features remain gated pending
-  provider requirements. No Google approval is claimed. Windows browser media
-  controls remain available; supported actions depend on the selected session.
+- Google authorization and YouTube library operations are not available.
+  Browser controls depend on the selected Windows media session.
 - No per-widget drag/resize, notes or desktop-icon-layer integration.
 - If a browser is closed beyond the short reconnect window, select its reopened
   media session again in Aura.
@@ -46,6 +49,6 @@ installer and checks its hash before deploying the website.
 
 Aura has no hosted app backend or telemetry. Optional GitHub authorization uses
 the Aura-owned client ID and keeps user credentials local under Windows DPAPI.
-No personal credentials are packaged. Read the [privacy policy](https://ujjwaluzu.github.io/aura/privacy.html)
-and [Music terms](https://ujjwaluzu.github.io/aura/music-terms.html).
+No personal credentials are packaged. Read the [privacy policy](https://aura.sanoraworks.com/privacy.html)
+and [Music terms](https://aura.sanoraworks.com/music-terms.html).
 Report problems through [GitHub issues](https://github.com/ujjwaluzu/aura/issues).

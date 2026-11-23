@@ -19,14 +19,14 @@
 
 Aura is a native Windows desktop application built with **Tauri 2, Rust, React, and TypeScript**. Its small, frameless widget host sits over the desktop, while a separate settings window lets you choose a visual theme and widget layout.
 
-> **Unsigned public beta:** Aura 0.1.3-beta.1 is the early Windows x64 beta. [Visit the website](https://ujjwaluzu.github.io/aura/) or [download the versioned installer](https://github.com/ujjwaluzu/aura/releases/download/v0.1.3-beta.1/Aura_0.1.3-beta.1_x64-setup.exe). Windows 11 is the primary tested environment; clean-Windows testing is pending. Google sign-in and YouTube account/library features remain gated.
+> **Unsigned public beta:** Aura 0.1.3-beta.2 is the early Windows x64 beta. [Visit the website](https://aura.sanoraworks.com/) or [download the versioned installer](https://github.com/ujjwaluzu/aura/releases/download/v0.1.3-beta.2/Aura_0.1.3-beta.2_x64-setup.exe). Windows 11 is the primary tested environment; clean-Windows testing is pending. Browser music works without Google or YouTube authorization.
 
 ## What Aura does
 
 - **Clock and system monitor**: local time and date, plus CPU and physical memory readings with short history sparklines.
 - **GitHub Activity**: a contribution calendar, recent contribution summary, and active day statistics.
 - **GitHub Work**: review requests, your pull requests, pull requests with failing checks, and assigned issues.
-- **Music controls**: select a supported Windows browser media session and control playback. Google account and YouTube library features remain gated in this beta.
+- **Music controls**: select a supported Windows browser media session and control playback. No Google or YouTube authorization is required.
 - **Four animated themes**: Faulty Terminal, Galaxy, Letter Glitch, and Pixel Snow.
 - **Six widget layouts**: place the clock on either side and arrange the system monitor and music panel to suit your desktop.
 - **Separate settings window**: theme and layout previews in an opaque, resizable window.
@@ -51,7 +51,7 @@ Screenshots captured from the running Windows app, including the actual widget, 
 
 ## Windows release
 
-Download [Aura 0.1.3-beta.1](https://github.com/ujjwaluzu/aura/releases/tag/v0.1.3-beta.1), an **unsigned public beta**, with checksums, a release manifest and verification evidence. Windows may display an unknown-publisher or SmartScreen warning. Clean-Windows installation testing remains pending; this beta is not claimed to install on every Windows configuration. See the [beta release notes](docs/beta-release-notes.md) and [release procedure](docs/releases.md).
+Download [Aura 0.1.3-beta.2](https://github.com/ujjwaluzu/aura/releases/tag/v0.1.3-beta.2), an **unsigned public beta**, with checksums, a release manifest and verification evidence. Windows may display an unknown-publisher or SmartScreen warning. Clean-Windows installation testing remains pending; this beta is not claimed to install on every Windows configuration. See the [beta release notes](docs/beta-release-notes.md) and [release procedure](docs/releases.md).
 
 ## Run from source
 
@@ -122,7 +122,7 @@ Tauri 2 desktop shell ── WebView2 widget and settings windows
         ▼
 Rust services ── Windows system metrics, secure preferences,
                   GitHub integration, browser media sessions,
-                  and YouTube Music API access
+                  and native playback controls
 ```
 
 The frontend is packaged as local static assets; Aura does not require a hosted frontend or application server. Native operating-system access stays in Rust behind typed commands, validation, and per-window Tauri capabilities.
@@ -147,7 +147,7 @@ The frontend is packaged as local static assets; Aura does not require a hosted 
 - The clock and system monitor run locally. Aura has no hosted backend or telemetry service.
 - GitHub credentials and cached account data are protected with Windows DPAPI. Activity and Work refresh independently every five minutes.
 - Aura's GitHub authorization requests `read:user` and `repo`. GitHub's `repo` scope includes write access, but Aura only sends read queries; it does not merge pull requests, submit reviews, edit issues, or rerun workflows.
-- YouTube account features are gated in public builds while Google API distribution requirements are finalized. Browser media-session controls are a separate integration.
+- Music reads Windows browser media sessions without Google authorization or YouTube library access.
 - Supported integrations need an internet connection. The core clock and system monitoring do not.
 
 Read the [GitHub integration guide](docs/github.md), [YouTube Music notes](docs/youtube-music.md), [Google production preparation](docs/google-oauth-production.md), and [native integration research](docs/native-integrations.md) for details.

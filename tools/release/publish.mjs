@@ -16,7 +16,7 @@ if (!['stage', 'publish', 'verify-public'].includes(mode))
 const version = JSON.parse(
   readFileSync(join(root, 'package.json'), 'utf8'),
 ).version;
-if (version !== '0.1.3-beta.1')
+if (!/^0\.1\.3-beta\.[1-9]\d*$/.test(version))
   throw new Error('This workflow is scoped to the approved beta.');
 const tag = `v${version}`;
 const repo = 'ujjwaluzu/aura';

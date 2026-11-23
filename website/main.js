@@ -107,6 +107,6 @@ fetch(`${import.meta.env.BASE_URL}release.json`)
     document.querySelectorAll('.download-link').forEach((link) => {
       link.textContent = 'View beta release on GitHub';
       link.href =
-        'https://github.com/ujjwaluzu/aura/releases/tag/v0.1.3-beta.1';
+        'https://github.com/ujjwaluzu/aura/releases/tag/v0.1.3-beta.2';
     });
   });

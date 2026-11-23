@@ -17,3 +17,5 @@ pub mod youtube_api;
 
 #[cfg(windows)]
 pub mod music_volume;
+
+pub mod window_recovery;

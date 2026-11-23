@@ -14,7 +14,6 @@ import { usePreferences } from '../../hooks/usePreferences';
 import {
   errorMessage,
   isDesktop,
-  type MusicSection,
   type SettingsDestination,
 } from '../../lib/native';
 import { WidgetPreview } from './WidgetPreview';
@@ -46,11 +45,6 @@ export function Settings() {
       ? 'music'
       : (initial as 'general' | 'theme' | 'layout'),
   );
-  const [section, setSection] = useState<MusicSection>(
-    initial.startsWith('music-')
-      ? (initial.slice(6) as MusicSection)
-      : 'player',
-  );
   const [windowError, setWindowError] = useState<string | null>(null);
   const { preferences, ready, saving, saved, error, update } = usePreferences();
   const layout = getLayout(preferences.layoutId);
@@ -64,7 +58,6 @@ export function Settings() {
         if (!active) return;
         if (payload.startsWith('music-')) {
           setTab('music');
-          setSection(payload.slice(6) as MusicSection);
         } else setTab(payload as 'general' | 'theme' | 'layout');
       },
     )
@@ -260,7 +253,7 @@ export function Settings() {
         role="tabpanel"
         aria-labelledby="tab-music"
       >
-        <MusicWorkspace section={section} onSection={setSection} />
+        <MusicWorkspace />
       </section>
       <footer className="settings-footer">
         <span role="status">

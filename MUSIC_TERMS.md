@@ -1,27 +1,25 @@
 # Aura Music terms
 
-Last updated: 15 November 2026.
+Last updated: 23 November 2026.
 
-Aura Music uses YouTube API Services for optional account features. By using
-these features, you agree to be bound by the
-[YouTube Terms of Service](https://www.youtube.com/t/terms).
-Read Aura's privacy policy before connecting your Google account.
+Aura reads browser playback through Windows media sessions. No Google or YouTube
+authorization is required. Aura does not read your account, playlists or liked
+videos. The available metadata and playback controls depend on what your browser
+and media provider share with Windows.
 
 Aura is an independent application maintained by
 [ujjwaluzu](https://github.com/ujjwaluzu). It is not a Google or YouTube product.
-The application source code is distributed under the MIT licence in the Aura
-repository; these Music terms describe the connected service's requirements.
+The application source code is distributed under the MIT licence.
 
-Google authorization lets Aura browse the connected channel's playlists and
-liked videos, search YouTube, and perform playlist and rating changes that you
-explicitly request. Disconnecting Aura does not undo changes made on YouTube.
-You can remove Aura's grant at any time using
+Aura can open the official YouTube Music website in your browser. Browser sign-in,
+content availability, advertising, subscriptions and playback restrictions are
+handled by that provider under its own terms, including the
+[YouTube Terms of Service](https://www.youtube.com/t/terms).
+Aura does not download audio or provide offline YouTube playback.
+
+If you authorized an older developer build, you can remove that grant through
 [Google account permissions](https://security.google.com/settings/security/permissions).
-
-Playback opens the official YouTube Music or YouTube website in your browser.
-The provider controls availability, advertising, subscriptions and playback
-restrictions. Aura does not download audio or provide offline YouTube playback.
-Browser sign-in and Aura's Google authorization are separate.
+Current builds do not use Google account credentials.
 
 For questions about Aura, contact the maintainer through the
 [Aura project](https://github.com/ujjwaluzu/aura). Never post credentials or

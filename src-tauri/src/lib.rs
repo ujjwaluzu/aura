@@ -23,19 +23,18 @@ pub fn run() {
     let builder = if production {
         // This plugin must be first so a second process exits before setup.
         builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
-            if let Some(host) = app.get_webview_window("widget-host") {
-                for result in [host.unminimize(), host.show(), host.set_focus()] {
-                    if let Err(error) = result {
-                        eprintln!("Aura could not restore its existing widget: {error}");
-                    }
-                }
-            }
+            services::window_recovery::restore(app, false);
         }))
     } else {
         builder
     };
     builder
         .setup(move |app| {
+            // Explorer may still be starting at sign-in. A missing tray must
+            // never prevent the widget itself from opening.
+            if let Err(error) = services::window_recovery::install(app) {
+                eprintln!("Aura could not create its recovery tray: {error}");
+            }
             let profile = isolated_profile
                 .clone()
                 .or_else(|| app.path().app_config_dir().ok());

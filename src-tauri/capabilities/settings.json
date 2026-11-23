@@ -9,9 +9,6 @@
     "allow-get-startup-status",
     "allow-set-startup-enabled",
     "allow-open-music",
-    "allow-music-account-status",
-    "allow-music-connect",
-    "allow-music-disconnect",
     "allow-music-playback-status",
     "allow-music-select-session",
     "allow-music-media-control",
@@ -21,10 +18,7 @@
     "core:event:allow-unlisten",
     "core:window:allow-close",
     "allow-open-settings",
-    "allow-music-browse",
-    "allow-music-change",
     "allow-music-open-player",
-    "allow-music-open-policy",
-    "allow-music-artwork"
+    "allow-music-open-policy"
   ]
 }

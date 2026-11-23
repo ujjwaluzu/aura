@@ -50,6 +50,12 @@ impl MediaService {
             if result.is_err() {
                 service.publish(&app, PlaybackState { message: Some("Windows media sessions are unavailable. Use the official player controls.".into()), ..Default::default() });
             }
+            // A failed Windows session manager must be retryable. Clear the
+            // stale channel before permitting another startup attempt.
+            if let Ok(mut sender) = service.sender.lock() {
+                *sender = None;
+            }
+            service.started.store(false, Ordering::SeqCst);
         });
     }
     fn publish(&self, app: &AppHandle, state: PlaybackState) {

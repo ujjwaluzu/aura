@@ -8,16 +8,12 @@ import {
 } from 'react';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import {
-  accountStatus,
-  connectMusic,
-  disconnectMusic,
   emptyPlayback,
   playbackStatus,
   unavailableAccount,
 } from '../features/integrations/music';
 import { errorMessage, isDesktop } from '../lib/native';
-import type { MusicAccountState, PlaybackState } from '../types/music';
-import { clearMusicArtwork } from '../features/integrations/music-artwork';
+import type { PlaybackState } from '../types/music';
 
 const diagnosticKey = 'aura.music.recent-errors';
 type RecentDiagnostic = { code: string; recordedAt: number };
@@ -47,14 +43,7 @@ function readDiagnostics(
 }
 
 export function useMusicState() {
-  const [account, setAccount] = useState<MusicAccountState>(() =>
-    isDesktop()
-      ? { ...unavailableAccount, status: 'disconnected', message: null }
-      : unavailableAccount,
-  );
   const [playback, setPlayback] = useState<PlaybackState>(emptyPlayback);
-  const [loading, setLoading] = useState(isDesktop);
-  const [accountKnown, setAccountKnown] = useState(!isDesktop());
   const [playbackLoading, setPlaybackLoading] = useState(isDesktop);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [details, setDetails] = useState<{ code: string; message: string }[]>(
@@ -101,46 +90,8 @@ export function useMusicState() {
       { code, message: errorMessage(error) },
     ]);
   }, []);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const version = useRef(0);
   const playbackVersion = useRef(0);
   const mounted = useRef(false);
-  const accountRevision = useRef(0);
-  const acceptAccount = useCallback((next: MusicAccountState) => {
-    if ((next.revision ?? 0) < accountRevision.current) return;
-    accountRevision.current = next.revision ?? 0;
-    if (next.status !== 'connected') clearMusicArtwork();
-    setAccount(next);
-    setAccountKnown(true);
-  }, []);
-  const refresh = useCallback(
-    async (background = false) => {
-      if (!isDesktop()) return;
-      const request = ++version.current;
-      if (!background) setLoading(true);
-      setError(null);
-      try {
-        const result = await accountStatus();
-        if (mounted.current && request === version.current && result)
-          acceptAccount(result);
-      } catch (e) {
-        reportError(e);
-        if (mounted.current && request === version.current)
-          setError(errorMessage(e));
-      } finally {
-        if (mounted.current && request === version.current) setLoading(false);
-      }
-    },
-    [acceptAccount, reportError],
-  );
-  useEffect(() => {
-    if (account.status !== 'connected') return;
-    // Native code rechecks the grant at most every thirty minutes. Polling
-    // status also lets every open window discard data after remote revocation.
-    const timer = window.setInterval(() => void refresh(true), 60_000);
-    return () => window.clearInterval(timer);
-  }, [account.status, refresh]);
   const refreshPlayback = useCallback(async () => {
     if (!isDesktop()) return;
     const request = ++playbackVersion.current;
@@ -172,30 +123,6 @@ export function useMusicState() {
       void (async () => {
         try {
           keep(
-            await listen<MusicAccountState>(
-              'aura://music-account-changed',
-              ({ payload }) => {
-                if (
-                  !active ||
-                  (payload.revision ?? 0) < accountRevision.current
-                )
-                  return;
-                ++version.current;
-                acceptAccount(payload);
-                setLoading(false);
-                setBusy(false);
-                setError(null);
-              },
-            ),
-          );
-        } catch (e) {
-          if (active) reportError(e);
-        }
-        if (active) await refresh();
-      })();
-      void (async () => {
-        try {
-          keep(
             await listen<PlaybackState>(
               'aura://playback-changed',
               ({ payload }) => {
@@ -218,56 +145,17 @@ export function useMusicState() {
       mounted.current = false;
       subscriptions.forEach((stop) => stop());
     };
-  }, [refresh, refreshPlayback, acceptAccount, reportError]);
-  const connect = async () => {
-    setBusy(true);
-    setError(null);
-    setAccount((current) => ({ ...current, status: 'connecting' }));
-    const request = ++version.current;
-    try {
-      const result = await connectMusic();
-      if (mounted.current && version.current === request) acceptAccount(result);
-    } catch (e) {
-      reportError(e);
-      if (mounted.current && version.current === request) {
-        setError(errorMessage(e));
-        setAccount((current) => ({ ...current, status: 'disconnected' }));
-      }
-    } finally {
-      if (mounted.current && version.current === request) setBusy(false);
-    }
-  };
-  const disconnect = async () => {
-    clearMusicArtwork();
-    const request = ++version.current;
-    setError(null);
-    setBusy(true);
-    try {
-      const result = await disconnectMusic();
-      if (mounted.current && version.current === request) acceptAccount(result);
-    } catch (e) {
-      reportError(e);
-      if (mounted.current) setError(errorMessage(e));
-    } finally {
-      if (mounted.current) setBusy(false);
-    }
-  };
+  }, [refreshPlayback, reportError]);
   return {
-    account,
+    account: unavailableAccount,
     playback,
-    loading,
-    busy,
-    accountKnown,
     playbackLoading,
     playbackError,
     details,
     recentDiagnostics,
     reportError,
-    error,
-    refresh,
+    refresh: refreshPlayback,
     refreshPlayback,
-    connect,
-    disconnect,
   };
 }
 export type MusicState = ReturnType<typeof useMusicState>;

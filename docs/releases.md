@@ -4,7 +4,7 @@ Aura prepares a **per-user NSIS installer** for Windows x64. The repository does
 not publish automatically. Pull requests and pushes to `main` run Windows
 verification. The manually triggered **Publish unsigned beta and Pages** workflow
 verifies, packages and tests the native app, uploads and checks draft assets,
-publishes `v0.1.3-beta.1` as an unsigned prerelease, downloads the public installer
+publishes `v0.1.3-beta.2` as an unsigned prerelease, downloads the public installer
 without authentication, checks its SHA-256, then builds and deploys GitHub Pages.
 The old `v0.1.0-rc.1` draft is left untouched.
 
@@ -36,8 +36,8 @@ early preflight exercises the same Authenticode and archive helpers before the
 costly verification/build steps. Local Windows PowerShell workflows keep their
 existing host.
 
-Release assets are `Aura_0.1.3-beta.1_x64-setup.exe`, `SHA256SUMS.txt`,
-`release-manifest.json`, and `Aura-0.1.3-beta.1-evidence.zip`. The manifest includes
+Release assets are `Aura_0.1.3-beta.2_x64-setup.exe`, `SHA256SUMS.txt`,
+`release-manifest.json`, and `Aura-0.1.3-beta.2-evidence.zip`. The manifest includes
 actual installer bytes, hash, source fingerprint, toolchain and gated features.
 The evidence archive contains dependency notices and successful check reports.
 Website download details are generated from the checksum-verified public copy.

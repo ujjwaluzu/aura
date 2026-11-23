@@ -150,12 +150,12 @@ test('responsive showcase, theme controls, policies and versioned download', asy
   page.on('pageerror', (error) => errors.push(error.message));
   // Explicit fixture metadata exercises rendering; publication uses actual bytes.
   const release = {
-    version: '0.1.3-beta.1',
+    version: '0.1.3-beta.2',
     sizeBytes: 2200000,
     sha256: 'a'.repeat(64),
-    releaseUrl: 'https://github.com/ujjwaluzu/aura/releases/tag/v0.1.3-beta.1',
+    releaseUrl: 'https://github.com/ujjwaluzu/aura/releases/tag/v0.1.3-beta.2',
     downloadUrl:
-      'https://github.com/ujjwaluzu/aura/releases/download/v0.1.3-beta.1/Aura_0.1.3-beta.1_x64-setup.exe',
+      'https://github.com/ujjwaluzu/aura/releases/download/v0.1.3-beta.2/Aura_0.1.3-beta.2_x64-setup.exe',
   };
   await page.route('**/release.json', (route) =>
     route.fulfill({ json: release }),
@@ -291,6 +291,6 @@ test('unavailable metadata falls back to explicit prerelease page', async ({
   );
   await expect(page.locator('.download-link').first()).toHaveAttribute(
     'href',
-    'https://github.com/ujjwaluzu/aura/releases/tag/v0.1.3-beta.1',
+    'https://github.com/ujjwaluzu/aura/releases/tag/v0.1.3-beta.2',
   );
 });

@@ -148,7 +148,7 @@ const manifest = {
   knownLimitations: [
     'Unsigned installer',
     'Clean-Windows testing pending',
-    'Google account and library access gated',
+    'Browser media only; no Google authorization or YouTube library access',
     'Windows 11 is the primary locally tested environment',
   ],
   files: Object.fromEntries(

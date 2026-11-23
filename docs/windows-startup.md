@@ -70,3 +70,15 @@ test does not replace an existing Aura installation:
 
 See the [release verification record](windows-release-candidate-verification.md)
 for executed checks and remaining platform acceptance.
+
+## Recover a hidden widget
+
+Click the Aura notification-area icon to show and restore the widget. Its menu
+also offers **Show Aura**, **Reset widget position** (for display changes or an
+off-screen window), and **Quit Aura**. Reopening the installed app restores the
+same production instance. Minimizing remains intentional; Aura does not steal
+focus on a timer. The Pin control keeps it above other windows when desired.
+
+The reported delayed disappearance could not be reproduced during investigation;
+no matching Windows Application crash record was found. Tray restoration covers
+hidden/minimized windows independently of the WebView and settings UI.

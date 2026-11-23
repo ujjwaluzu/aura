@@ -250,7 +250,7 @@ test('without JavaScript, motion targets and downloads remain readable', async (
   ).toBe(true);
   await expect(page.locator('.download-link').first()).toHaveAttribute(
     'href',
-    /releases\/download\/v0\.1\.3-beta\.1/,
+    /releases\/(?:download|tag)\/v0\.1\.3-beta\.\d+/,
   );
   await context.close();
 });

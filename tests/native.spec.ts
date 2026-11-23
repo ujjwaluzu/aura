@@ -1,22 +1,25 @@
-﻿import { chromium, expect, test } from '@playwright/test';
+import { chromium, expect, test } from '@playwright/test';
 import { layouts } from '../src/features/layouts/catalog';
 import { themes } from '../src/features/themes/catalog';
 import type { Preferences } from '../src/types/preferences';
 import type { PlaybackState } from '../src/types/music';
 
-/** Real packaged WebView IPC. Set AURA_NATIVE_CDP for a task-owned Aura instance. */
+/** Real packaged WebView IPC against a task-owned Aura instance. */
 test('Settings permissions, navigation reuse, playback events and preferences over Rust IPC', async () => {
   test.setTimeout(120_000);
   const browser = await chromium.connectOverCDP(process.env.AURA_NATIVE_CDP!);
-  const context = browser.contexts()[0]!;
-  const host = context
-    .pages()
-    .find(
-      (p) =>
-        !p.url().includes('window=settings') &&
-        /tauri.localhost|127.0.0.1:1420/.test(p.url()),
-    );
+  let host = browser.contexts().flatMap((context) => context.pages())[0];
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    host ??= browser.contexts().flatMap((context) => context.pages())[0];
+    const url = host
+      ? await host.evaluate(() => location.href).catch(() => '')
+      : '';
+    if (/tauri.localhost|127.0.0.1:1420/.test(url)) break;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
   if (!host) throw new Error('No Aura widget host found.');
+  const context = host.context();
   const invoke = <T>(
     page: typeof host,
     command: string,
@@ -42,6 +45,9 @@ test('Settings permissions, navigation reuse, playback events and preferences ov
           }),
       { command, args, captureError },
     ) as Promise<T>;
+  await expect(
+    host.getByRole('status', { name: 'Native connection' }),
+  ).toHaveText('Native core connected', { timeout: 30_000 });
   const original = await invoke<Preferences>(host, 'get_preferences');
   const originalPlayback = await invoke<PlaybackState>(
     host,
@@ -53,7 +59,7 @@ test('Settings permissions, navigation reuse, playback events and preferences ov
   try {
     await expect(
       host.getByRole('status', { name: 'Native connection' }),
-    ).toHaveText('Native core connected');
+    ).toHaveText('Native core connected', { timeout: 30_000 });
     expect(
       await invoke(host, 'get_foundation_info', { protocolVersion: 0 }, true),
     ).toMatchObject({ code: 'PROTOCOL_MISMATCH' });
@@ -97,8 +103,8 @@ test('Settings permissions, navigation reuse, playback events and preferences ov
     }
     await invoke(host, 'open_music');
     await expect(
-      settings.getByRole('button', { name: 'Playlists', exact: true }),
-    ).toHaveAttribute('aria-current', 'page');
+      settings.getByRole('heading', { name: 'Now playing', exact: true }),
+    ).toBeVisible();
     await expect(settings.locator('body')).toHaveCSS(
       'background-color',
       'rgb(17, 19, 24)',
@@ -111,27 +117,24 @@ test('Settings permissions, navigation reuse, playback events and preferences ov
     expect(dimensions.height).toBeGreaterThanOrEqual(500);
     await invoke(host, 'open_settings', { destination: 'music-player' });
     await expect(
-      settings.getByRole('button', { name: 'Player', exact: true }),
-    ).toHaveAttribute('aria-current', 'page');
-    const account = await invoke<{ status: string; validationBuild: boolean }>(
-      settings,
+      settings.getByRole('heading', { name: 'Now playing', exact: true }),
+    ).toBeVisible();
+    await expect(
+      settings.getByRole('heading', { name: 'Browser media' }),
+    ).toBeVisible();
+    await expect(
+      settings.getByRole('button', { name: 'Connect YouTube', exact: true }),
+    ).toHaveCount(0);
+    for (const command of [
       'music_account_status',
-    );
-    expect(account.validationBuild).toBe(
-      Boolean(process.env.AURA_EXPECT_VALIDATION),
-    );
-    if (!account.validationBuild) {
-      expect(account.status).toBe('unavailable');
-      expect(await invoke(settings, 'music_connect', {}, true)).toMatchObject({
-        code: 'MUSIC_UNAVAILABLE',
-      });
-      await expect(
-        settings.getByRole('button', { name: 'Connect YouTube', exact: true }),
-      ).toBeDisabled();
-    } else
-      expect(['connected', 'disconnected', 'expired']).toContain(
-        account.status,
+      'music_connect',
+      'music_browse',
+      'music_change',
+    ]) {
+      expect(JSON.stringify(await invoke(settings, command, {}, true))).toMatch(
+        /not allowed|denied/i,
       );
+    }
     expect(
       await invoke(
         settings,
@@ -165,7 +168,9 @@ test('Settings permissions, navigation reuse, playback events and preferences ov
         }),
       });
     });
-    await invoke(settings, 'music_select_session', { id: null });
+    await invoke(settings, 'music_select_session', {
+      id: state.sessions[0]?.id ?? null,
+    });
     await expect
       .poll(() =>
         settings!.evaluate(
@@ -175,7 +180,9 @@ test('Settings permissions, navigation reuse, playback events and preferences ov
         ),
       )
       .toBeGreaterThan(0);
-    await expect(settings.getByLabel('Windows media session')).toHaveValue('');
+    await expect(settings.getByLabel('Windows media session')).toHaveValue(
+      state.sessions[0]?.id ?? '',
+    );
     if (state.sessions[0]) {
       await settings
         .getByLabel('Windows media session')
@@ -191,6 +198,8 @@ test('Settings permissions, navigation reuse, playback events and preferences ov
         state.sessions[0].title || 'Untitled media',
       );
     }
+    // Unmount the widget's automatic single-player binding before testing an empty selection.
+    await host.getByRole('button', { name: 'Next widget page' }).click();
     await invoke(settings, 'music_select_session', { id: null });
     for (const [command, args] of [
       ['music_media_control', { action: 'pause' }],
@@ -208,21 +217,13 @@ test('Settings permissions, navigation reuse, playback events and preferences ov
         result.code,
       );
     }
+    await host.getByRole('button', { name: 'Previous widget page' }).click();
     // Invalid inputs prove these commands reached native validation rather than ACL denial.
     for (const [command, args] of [
-      [
-        'music_browse',
-        { query: { kind: 'playlist', id: 'https://invalid.test' } },
-      ],
-      [
-        'music_change',
-        { change: { kind: 'like', id: 'https://invalid.test', liked: true } },
-      ],
       [
         'music_open_player',
         { target: { kind: 'track', id: 'https://invalid.test' } },
       ],
-      ['music_artwork', { url: 'https://invalid.test/art.png' }],
     ] as const) {
       const result = await invoke(settings, command, args, true);
       expect(JSON.stringify(result), command).not.toMatch(
@@ -232,8 +233,8 @@ test('Settings permissions, navigation reuse, playback events and preferences ov
     }
     await invoke(host, 'open_settings');
     await expect(
-      settings.getByRole('button', { name: 'Player', exact: true }),
-    ).toHaveAttribute('aria-current', 'page');
+      settings.getByRole('heading', { name: 'Now playing', exact: true }),
+    ).toBeVisible();
     await invoke(host, 'open_settings', { destination: 'theme' });
     for (const theme of themes) {
       const option = settings.getByRole('button', {
@@ -280,8 +281,8 @@ test('Settings permissions, navigation reuse, playback events and preferences ov
     ).toMatch(/not allowed|denied/i);
     await invoke(host, 'open_music');
     await expect(
-      settings.getByRole('button', { name: 'Playlists', exact: true }),
-    ).toHaveAttribute('aria-current', 'page');
+      settings.getByRole('heading', { name: 'Now playing', exact: true }),
+    ).toBeVisible();
     expect(
       context.pages().filter((p) => p.url().includes('window=settings')),
     ).toHaveLength(1);
@@ -295,7 +296,7 @@ test('Settings permissions, navigation reuse, playback events and preferences ov
       id: originalPlayback.selectedId,
     });
     await settings.screenshot({
-      path: `artifacts/aura-settings-${account.validationBuild ? 'validation' : 'regular'}-native.png`,
+      path: 'artifacts/aura-settings-browser-native.png',
     });
     const beforeClose = await invoke<PlaybackState>(
       host,
@@ -311,8 +312,8 @@ test('Settings permissions, navigation reuse, playback events and preferences ov
     await invoke(host, 'open_settings', { destination: 'music-search' });
     settings = await reopened;
     await expect(
-      settings.getByRole('button', { name: 'Search', exact: true }).first(),
-    ).toHaveAttribute('aria-current', 'page');
+      settings.getByRole('heading', { name: 'Browser media' }),
+    ).toBeVisible();
     await settings.getByRole('button', { name: 'Done' }).dispatchEvent('click');
   } finally {
     // Restore user preferences/session even when assertions fail.

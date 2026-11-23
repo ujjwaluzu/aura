@@ -57,14 +57,13 @@ export function PlaybackControls({
   const music = useMusic();
   const reportError = music.reportError;
   const compact = presentation !== 'settings';
-  const connected = music.account.status === 'connected';
   const session =
     playback.sessions.find((s) => s.id === playback.selectedId) ??
-    (compact && connected && !playback.message && playback.sessions.length === 1
+    (compact && !playback.message && playback.sessions.length === 1
       ? playback.sessions[0]
       : undefined);
   const reconnecting = Boolean(playback.selectedId) && !session;
-  const showPlayer = Boolean(session) || reconnecting || (compact && connected);
+  const showPlayer = Boolean(session) || reconnecting || compact;
   const displaySession = session ?? {
     title: reconnecting
       ? 'Reconnecting player…'
@@ -79,7 +78,7 @@ export function PlaybackControls({
       ? 'Waiting for the selected player'
       : playback.sessions.length
         ? 'Select a player to control playback'
-        : 'Start a song in YouTube Music',
+        : 'Start media in your browser',
     source: reconnecting ? 'Windows media player' : 'YouTube Music',
     artwork: null,
   };
@@ -643,9 +642,9 @@ export function PlaybackControls({
               <div className="player-more-links">
                 <button
                   type="button"
-                  onClick={() => showSettings('music-playlists')}
+                  onClick={() => showSettings('music-player')}
                 >
-                  Library
+                  Player settings
                 </button>
                 <button type="button" onClick={() => setPanelMode('players')}>
                   Change player

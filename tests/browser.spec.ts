@@ -341,8 +341,8 @@ test('reference layout keeps one clear music entry point below usage', async ({
     .getByRole('region', { name: 'Music player' })
     .boundingBox();
   expect(music!.y).toBeGreaterThan(cpu!.y + cpu!.height);
-  await expect(page.getByText('No music playing')).toBeVisible();
-  await page.getByRole('button', { name: 'Open Music' }).click();
+  await expect(page.getByText('Ready to play')).toBeVisible();
+  await page.getByRole('button', { name: 'Start YouTube Music' }).click();
   await expect(page.getByRole('alert')).toContainText('Playback action failed');
 });
 
@@ -479,7 +479,7 @@ test('all six layouts apply without clipped modules or music entry points', asyn
       layout.id,
     ).toBe(true);
     await expect(
-      page.getByRole('button', { name: 'Open Music' }),
+      page.getByRole('button', { name: 'Start YouTube Music' }),
     ).toBeInViewport();
   }
   await page.reload();

@@ -28,7 +28,7 @@ impl SettingsDestination {
 
 #[tauri::command]
 pub async fn open_music(app: AppHandle, window: WebviewWindow) -> Result<(), AppError> {
-    open_settings(app, window, Some(SettingsDestination::MusicPlaylists)).await
+    open_settings(app, window, Some(SettingsDestination::MusicPlayer)).await
 }
 
 // Async avoids creating a WebView inside a synchronous WebView2 callback.

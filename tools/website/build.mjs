@@ -20,7 +20,7 @@ if (!preview) {
   );
   const installer = resolve(
     process.env.AURA_RELEASE_INSTALLER ??
-      'artifacts/public-release/Aura_0.1.3-beta.1_x64-setup.exe',
+      `artifacts/public-release/Aura_${JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version}_x64-setup.exe`,
   );
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   const version = JSON.parse(
