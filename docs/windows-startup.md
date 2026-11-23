@@ -79,6 +79,26 @@ off-screen window), and **Quit Aura**. Reopening the installed app restores the
 same production instance. Minimizing remains intentional; Aura does not steal
 focus on a timer. The Pin control keeps it above other windows when desired.
 
-The reported delayed disappearance could not be reproduced during investigation;
-no matching Windows Application crash record was found. Tray restoration covers
-hidden/minimized windows independently of the WebView and settings UI.
+Tray restoration covers hidden/minimized windows independently of the WebView
+and settings UI. It cannot recover a renderer terminated by another application.
+
+### OMEN Gaming Hub starts when Aura opens
+
+On the affected HP computer, OMEN Gaming Hub had classified Aura as a game.
+Its optimizer log recorded `AutoBoostNow BOOST_MYGAME app - Aura`, with
+`msedgewebview2`, Edge and WhatsApp in its process optimization list. WebView2
+renders Aura's interface: interfering with it can leave the native Aura process
+running with an unresponsive window. OMEN's restore operation also relaunched
+other optimized apps, explaining the accompanying Edge/WhatsApp windows.
+
+Turn off OMEN's **Boost all** setting in its game/Booster controls, then quit and
+reopen Aura after the current boost finishes restoring. The exact control location
+depends on the installed OMEN version. If enabling automatic game boosting later,
+first remove Aura from OMEN's game list or exclude it from boosting. The older
+`AutoBoost` preference alone was insufficient on the tested OMEN version:
+`BoostAll` was enabled independently. Renaming Aura's executable also failed
+because OMEN still recognized the saved game entry.
+
+The local fix disables automatic boosting for all games; manual boosting remains
+available. Aura does not change OMEN preferences at application startup. See the
+[OMEN verification record](omen-booster-acceptance.json) for the follow-up test.

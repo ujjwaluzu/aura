@@ -1,0 +1,33 @@
+{
+  "checkedAt": "2026-11-23T11:32:35.924Z",
+  "auraVersion": "0.1.3-beta.2",
+  "omenVersion": "1101.2611.2.0",
+  "environment": "Affected Windows x64 HP computer, existing per-user Aura installation",
+  "finding": "OMEN classified Aura as a game and automatically boosted it, including WebView2, Edge and WhatsApp in its optimized process list.",
+  "before": {
+    "optimizerLogTrigger": "AutoBoostNow BOOST_MYGAME app - Aura",
+    "legacyAutoBoost": false,
+    "boostAll": true,
+    "rendererDisconnectedWithinSeconds": true,
+    "renamingExecutableAvoidedBoost": false
+  },
+  "fix": {
+    "setting": "OMEN BoostAll",
+    "value": false,
+    "scope": "Current user's OMEN package settings; automatic boosting for all games",
+    "method": "OMEN BoostService.SetBoostAllRegistryKeyValue(false) in its packaged application context, with readback",
+    "manualBoostingAvailable": true,
+    "auraBinaryChanged": false
+  },
+  "after": {
+    "nativeUiResponsiveSeconds": 60,
+    "minimizeRelaunchCyclesPassed": 3,
+    "newAuraBoostLogTriggers": 0,
+    "widgetScreenshotInspected": true
+  },
+  "limits": [
+    "Reboot/sign-in testing was not performed.",
+    "Other computers and OMEN versions were not tested.",
+    "Enabling Boost All again can reintroduce the conflict while Aura remains in OMEN's game list."
+  ]
+}

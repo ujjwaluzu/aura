@@ -2,8 +2,11 @@
 
 This update adds a native notification-area icon: click it to restore Aura, or
 use its menu to show the widget, reset its position after a display change, or
-quit. Reopening Aura also restores the running instance. The original delayed
-disappearance was not reproduced, so its underlying cause remains unconfirmed.
+quit. Reopening Aura also restores the running instance. A follow-up investigation
+on the affected HP computer traced the unrecoverable window to OMEN Gaming Hub
+automatically boosting Aura and interfering with WebView2. Disable OMEN's
+**Boost all** setting and reopen Aura after the boost restores. See
+[Windows troubleshooting](windows-startup.md#omen-gaming-hub-starts-when-aura-opens).
 
 Music now uses Windows browser media sessions without Google authorization or
 YouTube account screens. A failed Windows media-manager initialization can be
