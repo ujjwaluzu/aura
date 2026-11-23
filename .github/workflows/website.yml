@@ -1,0 +1,59 @@
+name: Website deployment
+on:
+  push:
+    branches: [main]
+    paths:
+      [
+        'website/**',
+        'tools/website/**',
+        'PRIVACY.md',
+        'MUSIC_TERMS.md',
+        '.github/workflows/website.yml',
+      ]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: aura-pages
+  cancel-in-progress: false
+jobs:
+  website:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22.18.0
+      - run: npm install --global pnpm@11.15.1
+      - run: pnpm install --frozen-lockfile
+      - name: Verify published prerelease and anonymous installer download
+        run: pnpm release:publish verify-public
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Build download page from verified release manifest
+        run: pnpm website:build
+      - run: pnpm exec playwright install chromium
+      - name: Test phone, tablet and desktop layouts
+        run: pnpm website:test
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: website/dist
+  deploy:
+    needs: website
+    if: ${{ always() && needs.website.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages after release publication
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

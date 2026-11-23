@@ -5,7 +5,7 @@ export default defineConfig({
   testMatch: ['website.spec.ts', 'motion.spec.ts'],
   workers: 1,
   outputDir: '../artifacts/website-tests',
-  use: { baseURL: 'http://127.0.0.1:1430/aura/', trace: 'retain-on-failure' },
+  use: { baseURL: 'http://127.0.0.1:1430/', trace: 'retain-on-failure' },
   projects: [
     {
       name: 'phone',
@@ -33,7 +33,7 @@ export default defineConfig({
     cwd: fileURLToPath(new URL('../', import.meta.url)),
     command:
       'pnpm.cmd exec vite preview --config website/vite.config.mjs --host 127.0.0.1 --port 1430',
-    url: 'http://127.0.0.1:1430/aura/',
+    url: 'http://127.0.0.1:1430/',
     reuseExistingServer: !process.env.CI,
   },
 });

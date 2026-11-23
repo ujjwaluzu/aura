@@ -13,7 +13,7 @@ export default defineConfig({
     },
   ],
   root: fileURLToPath(new URL('./', import.meta.url)),
-  base: '/aura/',
+  base: '/',
   build: {
     outDir: 'dist',
     emptyOutDir: true,

@@ -1,7 +1,7 @@
 # Aura website
 
 Independent static HTML/CSS/JavaScript showcase, built with the repository's Vite.
-`pnpm.cmd website:dev` serves `/aura/` at port 1430. Output is `website/dist/`;
+`pnpm.cmd website:dev` serves `/` at port 1430. Output is `website/dist/`;
 desktop builds continue to use the root `dist/`.
 
 The visual system uses warm ivory (`#f8f7f3`), near-black (`#171714`) and

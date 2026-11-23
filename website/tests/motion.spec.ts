@@ -238,7 +238,7 @@ test('without JavaScript, motion targets and downloads remain readable', async (
     viewport: testInfo.project.use.viewport,
   });
   const page = await context.newPage();
-  await page.goto('http://127.0.0.1:1430/aura/');
+  await page.goto('http://127.0.0.1:1430/');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   expect(
     await page.locator('[data-motion]').evaluateAll((elements) =>

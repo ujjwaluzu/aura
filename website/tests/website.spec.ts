@@ -24,7 +24,7 @@ async function expectTheme(page: Page, id: keyof typeof previewThemes) {
   );
   await expect(page.locator('#theme-image')).toHaveJSProperty(
     'src',
-    new URL(`/aura/images/widget-${id}.png`, page.url()).href,
+    new URL(`/images/widget-${id}.png`, page.url()).href,
   );
   await expect(page.locator('#theme-image')).toHaveAttribute(
     'alt',
@@ -191,7 +191,7 @@ test('responsive showcase, theme controls, policies and versioned download', asy
   await expect(theme).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#theme-image')).toHaveAttribute(
     'src',
-    '/aura/images/widget-galaxy.png',
+    '/images/widget-galaxy.png',
   );
   await expect(page.locator('#theme-caption')).toContainText('Galaxy');
   await expect(page.locator('.theme-card-art img')).toHaveCount(4);
@@ -206,7 +206,7 @@ test('responsive showcase, theme controls, policies and versioned download', asy
   ).toBeFocused();
   await expect(page.locator('#theme-image')).toHaveAttribute(
     'src',
-    '/aura/images/widget-letter-glitch.png',
+    '/images/widget-letter-glitch.png',
   );
   await page.keyboard.press('Home');
   await expect(
