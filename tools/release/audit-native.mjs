@@ -21,6 +21,8 @@ const findings = [
   ...(audit.warnings?.unsound ?? []),
 ].map((item) => `${item.advisory?.id}:${item.package?.name}`);
 const expected = [
+  // Retained in the cross-platform lockfile, but absent from Windows below.
+  'RUSTSEC-2026-0543:chrono',
   'RUSTSEC-2024-0370:proc-macro-error',
   'RUSTSEC-2024-0429:glib',
   // Single-instance's Linux D-Bus backend still uses zbus 5. These crates
