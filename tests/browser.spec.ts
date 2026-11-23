@@ -533,25 +533,24 @@ test('Layout offers exactly four Clock and two Music focus arrangements', async 
   await page.screenshot({ path: 'artifacts/aura-six-layouts.png' });
 });
 
-test('retired saved layouts and themes migrate while preserving the arrangement', async ({
-  page,
-}) => {
-  // Eight full reloads also initialize the six WebGL layout thumbnails each time.
-  test.setTimeout(120_000);
-  await page.setViewportSize({ width: 960, height: 720 });
-  await page.goto('/?window=settings&destination=layout');
-  const replacements = {
-    'stats-left-clock-music': 'clock-left-stats-music',
-    'stats-left-music-clock': 'clock-left-music-stats',
-    'stats-right-clock-music': 'clock-right-stats-music',
-    'stats-right-music-clock': 'clock-right-music-stats',
-    'music-left-clock-stats': 'clock-left-music-stats',
-    'music-left-stats-clock': 'clock-left-stats-music',
-    'music-right-clock-stats': 'clock-right-music-stats',
-    'music-right-stats-clock': 'clock-right-stats-music',
-  };
-  for (const [previous, replacement] of Object.entries(replacements)) {
-    await page.evaluate(
+const retiredLayouts = {
+  'stats-left-clock-music': 'clock-left-stats-music',
+  'stats-left-music-clock': 'clock-left-music-stats',
+  'stats-right-clock-music': 'clock-right-stats-music',
+  'stats-right-music-clock': 'clock-right-music-stats',
+  'music-left-clock-stats': 'clock-left-music-stats',
+  'music-left-stats-clock': 'clock-left-stats-music',
+  'music-right-clock-stats': 'clock-right-music-stats',
+  'music-right-stats-clock': 'clock-right-stats-music',
+};
+for (const [previous, replacement] of Object.entries(retiredLayouts)) {
+  test(`saved ${previous} migrates while preserving the arrangement`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 760, height: 264 });
+    // Seed a previous installation before first load. Each case gets its own
+    // browser context rather than accumulating WebGL thumbnails across reloads.
+    await page.addInitScript(
       (layoutId) =>
         localStorage.setItem(
           'aura:preview-preferences',
@@ -564,21 +563,17 @@ test('retired saved layouts and themes migrate while preserving the arrangement'
         ),
       previous,
     );
-    await page.reload();
-    await expect(page.locator('.settings-app')).toHaveAttribute(
+    await page.goto('/');
+    await expect(page.getByLabel('Aura widget host')).toHaveAttribute(
       'data-theme',
       'faulty-terminal',
     );
-    const expected = layouts.find((layout) => layout.id === replacement)!;
-    await expect(
-      page.getByRole('button', {
-        name: `${expected.title}, ${expected.description}`,
-        exact: true,
-      }),
-    ).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('.layout-option')).toHaveCount(6);
-  }
-});
+    await expect(page.getByLabel('Aura widget host')).toHaveAttribute(
+      'data-layout',
+      replacement,
+    );
+  });
+}
 
 test('clock navigation opens the GitHub view and restores the chosen layout', async ({
   page,
